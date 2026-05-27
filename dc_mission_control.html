@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DC Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async></script>
+<style>
+:root {
+  --bg:        #080C14;
+  --bg2:       #0C1220;
+  --bg3:       #111827;
+  --bg4:       #171F30;
+  --panel:     #0F1828;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --ink:       #E8EDF5;
+  --ink2:      #8A97B0;
+  --ink3:      #4A5568;
+  --gold:      #F5C842;
+  --gold-dim:  rgba(245,200,66,0.12);
+  --gold-glow: rgba(245,200,66,0.25);
+  --teal:      #2DD4BF;
+  --teal-dim:  rgba(45,212,191,0.1);
+  --blue:      #60A5FA;
+  --blue-dim:  rgba(96,165,250,0.1);
+  --green:     #4ADE80;
+  --green-dim: rgba(74,222,128,0.1);
+  --red:       #F87171;
+  --red-dim:   rgba(248,113,113,0.1);
+  --amber:     #FB923C;
+  --amber-dim: rgba(251,146,60,0.1);
+  --purple:    #A78BFA;
+  --purple-dim:rgba(167,139,250,0.1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── scanline overlay ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border2);
+  padding: .75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  position: sticky; top: 0; z-index: 50;
+}
+
+.header-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: .06em;
+  color: var(--gold);
+  text-shadow: 0 0 20px var(--gold-glow);
+  white-space: nowrap;
+}
+
+.header-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--ink3);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.header-sep { flex: 1; }
+
+.clock {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--teal);
+  letter-spacing: .1em;
+  text-shadow: 0 0 12px rgba(45,212,191,0.4);
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: .1em;
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+
+/* ── GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 260px;
+  grid-template-rows: auto;
+  gap: 1px;
+  background: var(--border);
+  min-height: calc(100vh - 49px);
+}
+
+.col { background: var(--bg); display: flex; flex-direction: column; gap: 1px; }
+
+/* ── PANELS ── */
+.panel {
+  background: var(--panel);
+  padding: 1rem 1.125rem;
+  position: relative;
+}
+
+.panel-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: .75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-label::before {
+  content: '';
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.panel-label .pl-accent { color: var(--gold); }
+
+/* ── TOOL TILES ── */
+.tool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.tool-tile {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 10px 8px;
+  cursor: pointer;
+  transition: all .15s;
+  text-decoration: none;
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+
+.tool-tile::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--tile-color, var(--gold));
+  opacity: .6;
+}
+
+.tool-tile:hover {
+  border-color: var(--border2);
+  background: var(--bg4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.tool-icon { font-size: 18px; margin-bottom: 4px; display: block; }
+
+.tool-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+  margin-bottom: 2px;
+}
+
+.tool-desc {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--ink3);
+  letter-spacing: .04em;
+  line-height: 1.4;
+}
+
+.tool-tile.wide {
+  grid-column: 1 / -1;
+}
+
+/* ── LINKS ── */
+.link-group { margin-bottom: .875rem; }
+
+.link-group-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border);
+}
+
+.link-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background .12s;
+  text-decoration: none;
+}
+
+.link-item:hover { background: var(--bg4); }
+
+.link-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.link-text {
+  font-size: 12px;
+  color: var(--ink2);
+  flex: 1;
+  transition: color .12s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.link-item:hover .link-text { color: var(--ink); }
+
+.link-edit {
+  font-size: 10px;
+  color: var(--ink3);
+  background: none; border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0;
+  transition: opacity .12s;
+}
+
+.link-item:hover .link-edit { opacity: 1; }
+
+/* ── TODO ── */
+.todo-input-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: .75rem;
+}
+
+.todo-input {
+  flex: 1;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  padding: 6px 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .12s;
+}
+.todo-input:focus { border-color: var(--border2); }
+.todo-input::placeholder { color: var(--ink3); }
+
+.todo-add-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding: 6px 10px;
+  background: var(--gold-dim);
+  border: 1px solid var(--gold-glow);
+  border-radius: 3px;
+  color: var(--gold);
+  cursor: pointer;
+  transition: background .12s;
+  white-space: nowrap;
+}
+.todo-add-btn:hover { background: rgba(245,200,66,0.2); }
+
+.todo-priority {
+  font-size: 11px;
+  padding: 6px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink2);
+  cursor: pointer;
+  outline: none;
+}
+
+.todo-list { display: flex; flex-direction: column; gap: 3px; }
+
+.todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 7px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  transition: background .12s;
+  cursor: default;
+}
+
+.todo-item:hover { background: var(--bg3); border-color: var(--border); }
+.todo-item.done .todo-text { text-decoration: line-through; color: var(--ink3); }
+
+.todo-check {
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--ink3);
+  border-radius: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .12s;
+  margin-top: 1px;
+}
+
+.todo-check:hover { border-color: var(--gold); }
+.todo-item.done .todo-check { background: var(--green); border-color: var(--green); }
+.todo-item.done .todo-check::after {
+  content: '';
+  width: 8px; height: 5px;
+  border-left: 1.5px solid #000;
+  border-bottom: 1.5px solid #000;
+  transform: rotate(-45deg) translate(1px, -1px);
+  display: block;
+}
+
+.todo-text { font-size: 12px; color: var(--ink2); flex: 1; line-height: 1.4; }
+
+.todo-pri {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  letter-spacing: .06em;
+  padding: 2px 5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pri-urgent  { background: var(--red-dim);   color: var(--red);   }
+.pri-high    { background: var(--amber-dim);  color: var(--amber); }
+.pri-normal  { background: var(--blue-dim);   color: var(--blue);  }
+.pri-low     { background: var(--bg3);        color: var(--ink3);  }
+
+.todo-del {
+  background: none; border: none;
+  color: var(--ink3); cursor: pointer;
+  font-size: 13px; line-height: 1; padding: 0;
+  opacity: 0; transition: opacity .12s, color .12s;
+}
+.todo-item:hover .todo-del { opacity: 1; }
+.todo-del:hover { color: var(--red); }
+
+.todo-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: .625rem;
+}
+
+.todo-tab {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all .12s;
+}
+.todo-tab.active { background: var(--gold-dim); color: var(--gold); border-color: var(--gold-glow); }
+
+/* ── REMINDERS / NOTES ── */
+.reminder-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.reminder-item:last-child { border-bottom: none; }
+
+.reminder-icon { font-size: 14px; flex-shrink: 0; padding-top: 1px; }
+
+.reminder-body { flex: 1; }
+
+.reminder-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+
+.reminder-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--ink3);
+  letter-spacing: .04em;
+  line-height: 1.4;
+}
+
+/* ── METRICS BAR ── */
+.metrics-bar {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.metric-cell {
+  flex: 1;
+  background: var(--panel);
+  padding: .75rem 1rem;
+  text-align: center;
+}
+
+.metric-n {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.metric-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+/* ── NOTES ── */
+.scratch-pad {
+  width: 100%;
+  min-height: 120px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  line-height: 1.65;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink2);
+  padding: 10px;
+  resize: vertical;
+  outline: none;
+  transition: border-color .12s;
+}
+.scratch-pad:focus { border-color: var(--border2); }
+.scratch-pad::placeholder { color: var(--ink3); }
+
+/* ── SEMESTER RING ── */
+.semester-ring-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: .75rem;
+}
+
+.ring-svg { flex-shrink: 0; }
+
+.ring-info { flex: 1; }
+
+.ring-pct {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  color: var(--gold);
+  line-height: 1;
+  text-shadow: 0 0 20px var(--gold-glow);
+}
+
+.ring-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--ink3);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.ring-days {
+  font-size: 11px;
+  color: var(--ink2);
+  margin-top: 3px;
+}
+
+/* ── ALERT STRIP ── */
+.alert-strip {
+  background: var(--red-dim);
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 3px;
+  padding: 7px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+
+.alert-strip-icon { font-size: 13px; flex-shrink: 0; }
+
+.alert-strip-text {
+  font-size: 11px;
+  color: var(--red);
+  line-height: 1.45;
+}
+
+.alert-strip-text strong { font-weight: 600; display: block; margin-bottom: 1px; }
+
+/* ── LINK EDIT MODAL ── */
+.ledit-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.ledit-backdrop.open { display: flex; }
+
+.ledit-modal {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 1.25rem;
+  width: 360px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+.ledit-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: .875rem;
+}
+
+.ledit-field { margin-bottom: 10px; }
+
+.ledit-field label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.ledit-field input {
+  width: 100%;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  padding: 7px 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink);
+  outline: none;
+}
+.ledit-field input:focus { border-color: var(--border2); }
+
+.ledit-btns { display: flex; gap: 8px; margin-top: 1rem; }
+
+.ledit-save {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  background: var(--gold-dim);
+  border: 1px solid var(--gold-glow);
+  border-radius: 3px;
+  color: var(--gold);
+  cursor: pointer;
+}
+
+.ledit-cancel {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink3);
+  cursor: pointer;
+}
+
+.ledit-del {
+  margin-left: auto;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 3px;
+  color: var(--red);
+  cursor: pointer;
+}
+
+/* ── CALENDAR ── */
+.cal-signin-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 1.25rem .5rem; gap: .625rem; text-align: center;
+}
+.cal-signin-icon { font-size: 26px; }
+.cal-signin-title {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink3);
+}
+.cal-signin-sub { font-size: 11px; color: var(--ink3); line-height: 1.5; max-width: 200px; }
+.cal-signin-btn {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 500;
+  padding: 7px 14px; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 4px; color: var(--ink); cursor: pointer; transition: all .15s; margin-top: 2px;
+}
+.cal-signin-btn:hover { background: var(--bg4); border-color: rgba(255,255,255,0.2); }
+.cal-client-row { display: flex; gap: 6px; width: 100%; max-width: 260px; }
+.cal-client-input {
+  flex: 1; font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  padding: 6px 8px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 3px; color: var(--ink2); outline: none; letter-spacing: .03em;
+}
+.cal-client-input:focus { border-color: var(--border2); }
+.cal-client-input::placeholder { color: var(--ink3); }
+.cal-client-save {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: .08em;
+  text-transform: uppercase; padding: 6px 10px; background: var(--gold-dim);
+  border: 1px solid var(--gold-glow); border-radius: 3px; color: var(--gold); cursor: pointer;
+}
+.cal-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: .625rem; }
+.cal-user-info { display: flex; align-items: center; gap: 6px; }
+.cal-avatar { width: 20px; height: 20px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border2); object-fit: cover; }
+.cal-user-name { font-size: 11px; color: var(--ink2); }
+.cal-signout {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: .08em;
+  text-transform: uppercase; background: none; border: none; color: var(--ink3);
+  cursor: pointer; transition: color .12s; padding: 0;
+}
+.cal-signout:hover { color: var(--red); }
+.cal-section-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink3); margin-bottom: 4px; margin-top: .5rem;
+  padding-bottom: 3px; border-bottom: 1px solid var(--border);
+}
+.cal-event {
+  display: flex; align-items: flex-start; gap: 8px; padding: 5px 6px;
+  border-radius: 3px; margin-bottom: 2px; transition: background .12s; border-left: 2px solid transparent;
+}
+.cal-event:hover { background: var(--bg3); }
+.cal-event.dc-flagged { background: var(--gold-dim); border-left-color: var(--gold); }
+.cal-event.dc-flagged:hover { background: rgba(245,200,66,0.18); }
+.cal-event.today-event { background: var(--teal-dim); border-left-color: var(--teal); }
+.cal-event-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.cal-event-body { flex: 1; min-width: 0; }
+.cal-event-title {
+  font-size: 11px; font-weight: 500; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;
+}
+.cal-event.dc-flagged .cal-event-title { color: var(--gold); }
+.cal-event-meta { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--ink3); letter-spacing: .03em; margin-top: 1px; }
+.cal-day-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink3); padding: 5px 0 3px;
+  display: flex; align-items: center; gap: 6px;
+}
+.cal-day-label.is-today { color: var(--teal); }
+.cal-day-label.is-today::after {
+  content: 'TODAY'; font-size: 7px; background: var(--teal-dim);
+  color: var(--teal); padding: 1px 5px; border-radius: 2px;
+}
+.cal-loading {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink3); text-align: center; padding: 1.5rem 0;
+  animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.cal-error { font-size: 11px; color: var(--red); text-align: center; padding: 1rem; line-height: 1.5; }
+.cal-refresh-btn {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: .1em;
+  text-transform: uppercase; background: none; border: none;
+  color: var(--ink3); cursor: pointer; padding: 0; transition: color .12s;
+}
+.cal-refresh-btn:hover { color: var(--teal); }
+.cal-next-badge {
+  display: inline-flex; align-items: center; gap: 5px; background: var(--blue-dim);
+  border: 1px solid rgba(96,165,250,0.2); border-radius: 3px; padding: 3px 8px; margin-bottom: .5rem;
+}
+.cal-next-badge-text { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--blue); letter-spacing: .06em; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div>
+    <div class="header-logo">DC MISSION CONTROL</div>
+    <div class="header-sub">La Salle · Math &amp; Science · 2026–27</div>
+  </div>
+  <div class="header-sep"></div>
+  <div class="header-status"><div class="status-dot"></div><span id="headerDate">—</span></div>
+  <div class="clock" id="clock">00:00:00</div>
+</header>
+
+<!-- ── METRICS BAR ── -->
+<div class="metrics-bar">
+  <div class="metric-cell">
+    <div class="metric-n" style="color:var(--gold)" id="m-todo">—</div>
+    <div class="metric-label">Tasks open</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-n" style="color:var(--red)" id="m-urgent">—</div>
+    <div class="metric-label">Urgent</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-n" style="color:var(--teal)" id="m-done">—</div>
+    <div class="metric-label">Done today</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-n" style="color:var(--blue)" id="m-links">—</div>
+    <div class="metric-label">Quick links</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-n" style="color:var(--green)" id="m-tools">6</div>
+    <div class="metric-label">DC tools built</div>
+  </div>
+</div>
+
+<!-- ── MAIN GRID ── -->
+<div class="grid">
+
+  <!-- ════ LEFT COLUMN ════ -->
+  <div class="col">
+
+    <!-- Semester status -->
+    <div class="panel">
+      <div class="panel-label"><span class="pl-accent">SEM</span> · YEAR STATUS</div>
+      <div class="semester-ring-wrap">
+        <svg class="ring-svg" width="72" height="72" viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+          <circle cx="36" cy="36" r="30" fill="none" stroke="var(--gold)" stroke-width="6"
+            stroke-dasharray="188.5" stroke-dashoffset="188.5"
+            stroke-linecap="round" transform="rotate(-90 36 36)"
+            id="semRing" style="transition:stroke-dashoffset 1s ease-out;filter:drop-shadow(0 0 4px var(--gold-glow))"/>
+        </svg>
+        <div class="ring-info">
+          <div class="ring-pct" id="semPct">—%</div>
+          <div class="ring-label">of school year</div>
+          <div class="ring-days" id="semDays">Computing…</div>
+        </div>
+      </div>
+
+      <div class="alert-strip" id="activeAlert" style="display:none">
+        <div class="alert-strip-icon">⚠</div>
+        <div class="alert-strip-text">
+          <strong id="alertTitle">Alert</strong>
+          <span id="alertBody">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DC Tools -->
+    <div class="panel" style="flex:1">
+      <div class="panel-label"><span class="pl-accent">SYS</span> · DC TOOLS</div>
+      <div class="tool-grid">
+        <a class="tool-tile" style="--tile-color:var(--gold)" href="semester_startup_checklist.html" target="_blank">
+          <span class="tool-icon">✅</span>
+          <div class="tool-name">Semester Checklist</div>
+          <div class="tool-desc">Weeks 1–2 startup tasks · 27 items</div>
+        </a>
+        <a class="tool-tile" style="--tile-color:var(--teal)" href="email_template_library.html" target="_blank">
+          <span class="tool-icon">✉️</span>
+          <div class="tool-name">Email Library</div>
+          <div class="tool-desc">11 templates · fill &amp; send</div>
+        </a>
+        <a class="tool-tile" style="--tile-color:var(--blue)" href="meeting_tool.html" target="_blank">
+          <span class="tool-icon">📋</span>
+          <div class="tool-name">Meeting Tool</div>
+          <div class="tool-desc">Agenda generator · notes cleaner</div>
+        </a>
+        <a class="tool-tile" style="--tile-color:var(--red)" href="concern_log.html" target="_blank">
+          <span class="tool-icon">🗂</span>
+          <div class="tool-name">Concern Log</div>
+          <div class="tool-desc">Student issues · case tracking</div>
+        </a>
+        <a class="tool-tile wide" style="--tile-color:var(--green); opacity:.55; cursor:default" href="#" onclick="return false">
+          <span class="tool-icon">🔬</span>
+          <div class="tool-name">Finals &amp; Reassessment Analyzer</div>
+          <div class="tool-desc">Your existing Python scripts — academic support scheduler · chem reassessment</div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ MIDDLE COLUMN ════ -->
+  <div class="col">
+
+    <!-- To-do -->
+    <div class="panel" style="flex:1">
+      <div class="panel-label"><span class="pl-accent">OPS</span> · TASK QUEUE</div>
+
+      <div class="todo-input-row">
+        <input class="todo-input" type="text" id="todoInput" placeholder="Add a task…" onkeydown="if(event.key==='Enter')addTodo()">
+        <select class="todo-priority" id="todoPri">
+          <option value="urgent">🔴 Urgent</option>
+          <option value="high">🟠 High</option>
+          <option value="normal" selected>🔵 Normal</option>
+          <option value="low">⚪ Low</option>
+        </select>
+        <button class="todo-add-btn" onclick="addTodo()">ADD</button>
+      </div>
+
+      <div class="todo-tabs">
+        <button class="todo-tab active" onclick="setTodoTab('active',this)">Active</button>
+        <button class="todo-tab" onclick="setTodoTab('done',this)">Completed</button>
+        <button class="todo-tab" onclick="setTodoTab('all',this)">All</button>
+      </div>
+
+      <div class="todo-list" id="todoList"></div>
+    </div>
+
+    <!-- Scratch pad -->
+    <div class="panel">
+      <div class="panel-label"><span class="pl-accent">LOG</span> · SCRATCH PAD</div>
+      <textarea class="scratch-pad" id="scratchPad" placeholder="Quick notes, ideas, things to remember… saves automatically." oninput="saveScratch()"></textarea>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--ink3);margin-top:5px;letter-spacing:.06em">AUTO-SAVED · BROWSER STORAGE</div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="panel" style="flex:1;overflow-y:auto;max-height:460px">
+      <div class="panel-label" style="justify-content:space-between">
+        <span><span class="pl-accent">CAL</span> · UPCOMING EVENTS</span>
+        <button class="cal-refresh-btn" id="calRefreshBtn" onclick="calRefreshAll()" style="display:none">↻ REFRESH</button>
+      </div>
+      <div id="calPanel">
+        <div id="calEmpty" class="cal-signin-wrap">
+          <div class="cal-signin-icon">📅</div>
+          <div class="cal-signin-title">Google Calendar</div>
+          <div class="cal-signin-sub">Sign in once to connect all your calendars automatically</div>
+          <button class="cal-signin-btn" id="calSigninBtn" onclick="calSignIn()">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Sign in with Google
+          </button>
+        </div>
+        <div id="calFeed" style="display:none"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ RIGHT COLUMN ════ -->
+  <div class="col">
+
+    <!-- Quick links -->
+    <div class="panel" style="flex:1">
+      <div class="panel-label" style="justify-content:space-between">
+        <span><span class="pl-accent">NAV</span> · QUICK LINKS</span>
+        <button onclick="openAddLink()" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;background:none;border:none;color:var(--gold);cursor:pointer;text-transform:uppercase">+ ADD</button>
+      </div>
+
+      <div id="linksContainer"></div>
+    </div>
+
+    <!-- Reminders -->
+    <div class="panel">
+      <div class="panel-label"><span class="pl-accent">BRIEF</span> · KEY REMINDERS</div>
+      <div class="reminder-item">
+        <div class="reminder-icon">⚠️</div>
+        <div class="reminder-body">
+          <div class="reminder-title">Senior complaint — active</div>
+          <div class="reminder-sub">Document every step · use concern log · consult admin before responding</div>
+        </div>
+      </div>
+      <div class="reminder-item">
+        <div class="reminder-icon">🔬</div>
+        <div class="reminder-body">
+          <div class="reminder-title">Physics First — over-formalize early</div>
+          <div class="reminder-sub">Visit PF schools · define benchmarks · measure impact from day 1</div>
+        </div>
+      </div>
+      <div class="reminder-item">
+        <div class="reminder-icon">📊</div>
+        <div class="reminder-body">
+          <div class="reminder-title">Push admin for behavior data</div>
+          <div class="reminder-sub">Cheating · absence · referral rates per Gerry's suggestion</div>
+        </div>
+      </div>
+      <div class="reminder-item">
+        <div class="reminder-icon">🎯</div>
+        <div class="reminder-body">
+          <div class="reminder-title">Dual-DC reframe pitch</div>
+          <div class="reminder-sub">Interdisciplinary strategy — not cost savings. Pitch to admin early</div>
+        </div>
+      </div>
+      <div class="reminder-item">
+        <div class="reminder-icon">🌱</div>
+        <div class="reminder-body">
+          <div class="reminder-title">Take care of yourself</div>
+          <div class="reminder-sub">Your team said it explicitly. Build recovery time into every week</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ── LINK EDIT MODAL ── -->
+<div class="ledit-backdrop" id="leditBackdrop" onclick="if(event.target===this)closeLEdit()">
+  <div class="ledit-modal">
+    <div class="ledit-title" id="leditTitle">Add quick link</div>
+    <div class="ledit-field">
+      <label>Label</label>
+      <input type="text" id="leditLabel" placeholder="e.g. PowerSchool" />
+    </div>
+    <div class="ledit-field">
+      <label>URL</label>
+      <input type="text" id="leditURL" placeholder="https://…" />
+    </div>
+    <div class="ledit-field">
+      <label>Category</label>
+      <input type="text" id="leditCat" placeholder="e.g. Admin, Curriculum, Resources" />
+    </div>
+    <div class="ledit-btns">
+      <button class="ledit-save" onclick="saveLEdit()">Save</button>
+      <button class="ledit-cancel" onclick="closeLEdit()">Cancel</button>
+      <button class="ledit-del" id="leditDelBtn" onclick="deleteLEdit()" style="display:none">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CLOCK ───
+function tickClock() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('en-US', { hour12: false });
+  document.getElementById('clock').textContent = t;
+  document.getElementById('headerDate').textContent =
+    now.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }).toUpperCase();
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// ─── SEMESTER RING ───
+function computeSemester() {
+  const inservice  = new Date('2026-08-11'); // Teacher inservice week begins
+  const students   = new Date('2026-08-17'); // First day students on campus
+  const end        = new Date('2026-12-19'); // End of fall semester
+  const today      = new Date();
+  // Ring tracks the full school year (inservice → end)
+  const total      = end - inservice;
+  const elapsed    = today - inservice;
+  let pct = Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
+  const daysLeft   = Math.max(0, Math.ceil((end - today) / 86400000));
+  const daysIn     = Math.max(0, Math.floor(elapsed / 86400000));
+  const daysToInservice = Math.ceil((inservice - today) / 86400000);
+  const daysToStudents  = Math.ceil((students - today) / 86400000);
+
+  document.getElementById('semPct').textContent = pct + '%';
+
+  if (today < inservice) {
+    document.getElementById('semDays').textContent = `Inservice in ${daysToInservice}d · Students in ${daysToStudents}d`;
+  } else if (today >= inservice && today < students) {
+    document.getElementById('semDays').textContent = `Inservice week · Students arrive in ${daysToStudents}d`;
+  } else if (today > end) {
+    document.getElementById('semDays').textContent = 'Semester complete';
+  } else {
+    document.getElementById('semDays').textContent = `${daysIn}d in · ${daysLeft}d remaining`;
+  }
+
+  // Ring animation
+  const ring = document.getElementById('semRing');
+  const circumference = 188.5;
+  setTimeout(() => {
+    ring.style.strokeDashoffset = circumference - (circumference * pct / 100);
+  }, 300);
+
+  // Alerts
+  if (daysLeft > 0 && daysLeft <= 14) {
+    document.getElementById('activeAlert').style.display = 'flex';
+    document.getElementById('alertTitle').textContent = `Finals in ${daysLeft} days`;
+    document.getElementById('alertBody').textContent = 'Run finals analyzer · verify study guides · notify dept';
+  } else if (today >= inservice && today < students) {
+    document.getElementById('activeAlert').style.display = 'flex';
+    document.getElementById('alertTitle').textContent = 'Inservice week — students arrive Aug 17';
+    document.getElementById('alertBody').textContent = 'Run semester startup checklist · send welcome email to both depts';
+  } else if (today < inservice && daysToInservice <= 30) {
+    document.getElementById('activeAlert').style.display = 'flex';
+    document.getElementById('alertTitle').textContent = `Inservice in ${daysToInservice} days`;
+    document.getElementById('alertBody').textContent = 'Good time to work through the semester startup checklist';
+  } else if (today < inservice) {
+    document.getElementById('activeAlert').style.display = 'flex';
+    document.getElementById('alertTitle').textContent = `Inservice Aug 11 · Students Aug 17`;
+    document.getElementById('alertBody').textContent = `${daysToInservice}d until inservice · ${daysToStudents}d until first day`;
+  }
+}
+computeSemester();
+
+// ─── TODO ───
+const TODO_KEY = 'dc_mc_todos_v1';
+let todos = [];
+let todoTab = 'active';
+
+function loadTodos() {
+  try { todos = JSON.parse(localStorage.getItem(TODO_KEY)) || []; }
+  catch { todos = []; }
+  // Seed on first load
+  if (todos.length === 0) {
+    todos = [
+      { id: 't1', text: 'Handle senior complaint — document in concern log', pri: 'urgent', done: false, createdAt: Date.now() },
+      { id: 't2', text: 'Physics First: schedule planning session or school visit', pri: 'high', done: false, createdAt: Date.now() },
+      { id: 't3', text: 'Draft dual-DC intro email to both departments', pri: 'high', done: false, createdAt: Date.now() },
+      { id: 't4', text: 'Request admin behavior/absence data report (per Gerry)', pri: 'normal', done: false, createdAt: Date.now() },
+      { id: 't5', text: 'Book NSTA workshop for science dept', pri: 'normal', done: false, createdAt: Date.now() },
+      { id: 't6', text: 'Set up Schoology dept communications channel', pri: 'normal', done: false, createdAt: Date.now() },
+      { id: 't7', text: 'Run semester startup checklist', pri: 'high', done: false, createdAt: Date.now() },
+    ];
+    saveTodos();
+  }
+}
+
+function saveTodos() {
+  localStorage.setItem(TODO_KEY, JSON.stringify(todos));
+  updateMetrics();
+}
+
+function addTodo() {
+  const text = document.getElementById('todoInput').value.trim();
+  if (!text) return;
+  todos.unshift({ id: 't' + Date.now(), text, pri: document.getElementById('todoPri').value, done: false, createdAt: Date.now() });
+  document.getElementById('todoInput').value = '';
+  saveTodos();
+  renderTodos();
+}
+
+function toggleTodo(id) {
+  const t = todos.find(x => x.id === id);
+  if (t) { t.done = !t.done; t.doneAt = t.done ? Date.now() : null; }
+  saveTodos();
+  renderTodos();
+}
+
+function deleteTodo(id) {
+  todos = todos.filter(x => x.id !== id);
+  saveTodos();
+  renderTodos();
+}
+
+function setTodoTab(tab, btn) {
+  todoTab = tab;
+  document.querySelectorAll('.todo-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTodos();
+}
+
+function renderTodos() {
+  const priOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+  let list = [...todos].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return (priOrder[a.pri] ?? 9) - (priOrder[b.pri] ?? 9);
+  });
+
+  if (todoTab === 'active') list = list.filter(t => !t.done);
+  if (todoTab === 'done')   list = list.filter(t => t.done);
+
+  const priLabel = { urgent: 'URGENT', high: 'HIGH', normal: '', low: 'LOW' };
+  const priClass = { urgent: 'pri-urgent', high: 'pri-high', normal: 'pri-normal', low: 'pri-low' };
+
+  document.getElementById('todoList').innerHTML = list.length === 0
+    ? `<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;padding:1rem 0;text-align:center">${todoTab === 'done' ? 'Nothing completed yet' : 'Queue clear'}</div>`
+    : list.map(t => `
+      <div class="todo-item ${t.done ? 'done' : ''}" id="td_${t.id}">
+        <div class="todo-check" onclick="toggleTodo('${t.id}')"></div>
+        <div class="todo-text">${escHtml(t.text)}</div>
+        ${priLabel[t.pri] ? `<span class="todo-pri ${priClass[t.pri]}">${priLabel[t.pri]}</span>` : ''}
+        <button class="todo-del" onclick="deleteTodo('${t.id}')" title="Remove">×</button>
+      </div>`).join('');
+}
+
+function updateMetrics() {
+  const open   = todos.filter(t => !t.done).length;
+  const urgent = todos.filter(t => !t.done && t.pri === 'urgent').length;
+  const today  = new Date();
+  const done   = todos.filter(t => t.done && t.doneAt &&
+    new Date(t.doneAt).toDateString() === today.toDateString()).length;
+
+  document.getElementById('m-todo').textContent   = open;
+  document.getElementById('m-urgent').textContent = urgent;
+  document.getElementById('m-done').textContent   = done;
+}
+
+// ─── SCRATCH PAD ───
+function saveScratch() {
+  localStorage.setItem('dc_mc_scratch_v1', document.getElementById('scratchPad').value);
+}
+
+function loadScratch() {
+  document.getElementById('scratchPad').value =
+    localStorage.getItem('dc_mc_scratch_v1') || '';
+}
+
+// ─── QUICK LINKS ───
+const LINKS_KEY = 'dc_mc_links_v1';
+let links = [];
+let editingLinkId = null;
+
+const DEFAULT_LINKS = [
+  { id: 'l1', label: 'PowerSchool', url: '', cat: 'Admin' },
+  { id: 'l2', label: 'Schoology', url: '', cat: 'Admin' },
+  { id: 'l3', label: 'Google Classroom', url: '', cat: 'Admin' },
+  { id: 'l4', label: 'FlexiSched', url: '', cat: 'Academic Support' },
+  { id: 'l5', label: 'Google Drive — DC Folder', url: '', cat: 'Documents' },
+  { id: 'l6', label: 'Dept Meeting Notes', url: '', cat: 'Documents' },
+  { id: 'l7', label: 'Supply Order Form', url: '', cat: 'Admin' },
+  { id: 'l8', label: 'La Salle Staff Portal', url: '', cat: 'Admin' },
+  { id: 'l9', label: 'NSTA Website', url: 'https://www.nsta.org', cat: 'Resources' },
+  { id: 'l10', label: 'Force Concept Inventory', url: 'https://www.physport.org/assessments/fci', cat: 'Resources' },
+  { id: 'l11', label: 'CA Science Standards', url: 'https://www.cde.ca.gov/pd/ca/sc/ngssstandards.asp', cat: 'Curriculum' },
+  { id: 'l12', label: 'CA Math Framework', url: 'https://www.cde.ca.gov/ci/ma/cf/', cat: 'Curriculum' },
+];
+
+const LINK_COLORS = { Admin: '#F5C842', Documents: '#60A5FA', 'Academic Support': '#2DD4BF', Resources: '#4ADE80', Curriculum: '#A78BFA' };
+
+function loadLinks() {
+  try { links = JSON.parse(localStorage.getItem(LINKS_KEY)); }
+  catch { links = null; }
+  if (!links || links.length === 0) { links = DEFAULT_LINKS; saveLinks(); }
+}
+
+function saveLinks() {
+  localStorage.setItem(LINKS_KEY, JSON.stringify(links));
+  document.getElementById('m-links').textContent = links.length;
+}
+
+function renderLinks() {
+  const cats = [...new Set(links.map(l => l.cat))];
+  const container = document.getElementById('linksContainer');
+  container.innerHTML = cats.map(cat => {
+    const catLinks = links.filter(l => l.cat === cat);
+    const color = LINK_COLORS[cat] || 'var(--ink3)';
+    return `<div class="link-group">
+      <div class="link-group-label" style="color:${color}">${cat}</div>
+      ${catLinks.map(l => `
+        <div class="link-item" onclick="${l.url ? `window.open('${escHtml(l.url)}','_blank')` : `editLink('${l.id}')`}">
+          <div class="link-dot" style="background:${color};opacity:0.6"></div>
+          <span class="link-text">${escHtml(l.label)}</span>
+          ${!l.url ? `<span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--ink3);letter-spacing:.06em">NO URL</span>` : ''}
+          <button class="link-edit" onclick="event.stopPropagation();editLink('${l.id}')" title="Edit">✎</button>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+  document.getElementById('m-links').textContent = links.length;
+}
+
+function openAddLink() {
+  editingLinkId = null;
+  document.getElementById('leditTitle').textContent = 'Add quick link';
+  document.getElementById('leditLabel').value = '';
+  document.getElementById('leditURL').value = '';
+  document.getElementById('leditCat').value = '';
+  document.getElementById('leditDelBtn').style.display = 'none';
+  document.getElementById('leditBackdrop').classList.add('open');
+  document.getElementById('leditLabel').focus();
+}
+
+function editLink(id) {
+  const l = links.find(x => x.id === id);
+  if (!l) return;
+  editingLinkId = id;
+  document.getElementById('leditTitle').textContent = 'Edit link';
+  document.getElementById('leditLabel').value = l.label;
+  document.getElementById('leditURL').value   = l.url || '';
+  document.getElementById('leditCat').value   = l.cat || '';
+  document.getElementById('leditDelBtn').style.display = '';
+  document.getElementById('leditBackdrop').classList.add('open');
+  document.getElementById('leditURL').focus();
+}
+
+function saveLEdit() {
+  const label = document.getElementById('leditLabel').value.trim();
+  const url   = document.getElementById('leditURL').value.trim();
+  const cat   = document.getElementById('leditCat').value.trim() || 'Other';
+  if (!label) { document.getElementById('leditLabel').focus(); return; }
+
+  if (editingLinkId) {
+    const l = links.find(x => x.id === editingLinkId);
+    if (l) { l.label = label; l.url = url; l.cat = cat; }
+  } else {
+    links.push({ id: 'l' + Date.now(), label, url, cat });
+  }
+  saveLinks();
+  renderLinks();
+  closeLEdit();
+}
+
+function deleteLEdit() {
+  if (!editingLinkId) return;
+  if (confirm('Remove this link?')) {
+    links = links.filter(x => x.id !== editingLinkId);
+    saveLinks();
+    renderLinks();
+    closeLEdit();
+  }
+}
+
+function closeLEdit() {
+  document.getElementById('leditBackdrop').classList.remove('open');
+  editingLinkId = null;
+}
+
+// ─── GOOGLE CALENDAR (OAuth via GIS) ───
+const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+const CAL_CLIENT_KEY = 'dc_gc_client_id_v1';
+const DC_KEYWORDS = [
+  'plc','department','dept','meeting','physics first','inservice','in-service',
+  'admin','principal','chair','science','math','curriculum','reassessment',
+  'assessment','finals','exam','supply','budget','parent','student',
+  'concern','behavior','absence','nsta','workshop','staff','faculty',
+  'professional','development','pd','collaboration','back to school','open house'
+];
+let calTokenClient = null;
+let calAccessToken = null;
+
+function initCalendar() {
+  if (!window.google) return;
+  const clientId = localStorage.getItem(CAL_CLIENT_KEY);
+  if (!clientId) return;
+  setupTokenClient(clientId);
+  calTokenClient.requestAccessToken({ prompt: '' });
+}
+
+function setupTokenClient(clientId) {
+  calTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) { showCalError('Sign-in failed: ' + resp.error); return; }
+      calAccessToken = resp.access_token;
+      calFetchEvents();
+    },
+    error_callback: () => {} // silent fail on restore attempt
+  });
+}
+
+function calSignIn() {
+  let clientId = localStorage.getItem(CAL_CLIENT_KEY);
+  if (!clientId) {
+    clientId = prompt('Paste your Google OAuth Client ID (from Google Cloud Console):');
+    if (!clientId) return;
+    localStorage.setItem(CAL_CLIENT_KEY, clientId.trim());
+    setupTokenClient(clientId.trim());
+  }
+  calTokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function calSignOut() {
+  if (calAccessToken) google.accounts.oauth2.revoke(calAccessToken);
+  calAccessToken = null;
+  document.getElementById('calEmpty').style.display = 'flex';
+  document.getElementById('calFeed').style.display  = 'none';
+  document.getElementById('calRefreshBtn').style.display = 'none';
+}
+
+function calRefreshAll() { calFetchEvents(); }
+
+async function calFetchEvents() {
+  if (!calAccessToken) { calSignIn(); return; }
+  document.getElementById('calEmpty').style.display = 'none';
+  document.getElementById('calFeed').style.display  = 'block';
+  document.getElementById('calFeed').innerHTML = '<div class="cal-loading">FETCHING CALENDARS…</div>';
+  document.getElementById('calRefreshBtn').style.display = 'block';
+
+  const now   = new Date();
+  const tMin  = now.toISOString();
+  const tMaxD = new Date(now); tMaxD.setDate(tMaxD.getDate() + 21);
+  const tMax  = tMaxD.toISOString();
+
+  try {
+    const listRes = await fetch(
+      'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+      { headers: { Authorization: 'Bearer ' + calAccessToken } }
+    );
+    if (listRes.status === 401) {
+      calAccessToken = null;
+      calTokenClient.requestAccessToken({ prompt: '' });
+      return;
+    }
+    const calendars = ((await listRes.json()).items || []).filter(c => c.selected !== false);
+
+    const allEvents = [];
+    await Promise.all(calendars.map(async cal => {
+      try {
+        const r = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events` +
+          `?timeMin=${encodeURIComponent(tMin)}&timeMax=${encodeURIComponent(tMax)}` +
+          `&singleEvents=true&orderBy=startTime&maxResults=50`,
+          { headers: { Authorization: 'Bearer ' + calAccessToken } }
+        );
+        ((await r.json()).items || []).forEach(ev => allEvents.push({
+          title:   ev.summary || '(No title)',
+          start:   ev.start?.dateTime || ev.start?.date,
+          allDay:  !ev.start?.dateTime,
+          calName: cal.summary,
+          color:   cal.backgroundColor || '#60A5FA',
+        }));
+      } catch(e) {}
+    }));
+
+    allEvents.sort((a,b) => new Date(a.start) - new Date(b.start));
+    renderCalFeed(allEvents, calendars.length);
+  } catch(err) {
+    showCalError('Could not load: ' + err.message);
+  }
+}
+
+function isDCRelevant(t) {
+  const l = (t||'').toLowerCase();
+  return DC_KEYWORDS.some(k => l.includes(k));
+}
+
+function fmtTime(start, allDay) {
+  if (allDay) return 'All day';
+  return new Date(start).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+}
+
+function fmtDay(start, allDay) {
+  const d = allDay ? new Date(start+'T12:00:00') : new Date(start);
+  const today = new Date(), tom = new Date(); tom.setDate(tom.getDate()+1);
+  if (d.toDateString()===today.toDateString()) return {label:'Today',isToday:true};
+  if (d.toDateString()===tom.toDateString())   return {label:'Tomorrow',isToday:false};
+  return {label:d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),isToday:false};
+}
+
+function getDayKey(start, allDay) {
+  return allDay ? start.slice(0,10) : new Date(start).toISOString().slice(0,10);
+}
+
+function renderCalFeed(events, calCount) {
+  const feed = document.getElementById('calFeed');
+  const todayKey = new Date().toISOString().slice(0,10);
+
+  let nextHtml = '';
+  if (events.length) {
+    const nev  = events[0];
+    const diff = new Date(nev.allDay ? nev.start+'T12:00:00' : nev.start) - new Date();
+    const mins = Math.floor(diff/60000), hrs = Math.floor(diff/3600000);
+    const cd   = mins<60?`in ${mins}m`:hrs<24?`in ${hrs}h`:`in ${Math.ceil(diff/86400000)}d`;
+    nextHtml = `<div class="cal-next-badge"><span class="cal-next-badge-text">▶ NEXT: ${escHtml(nev.title)} — ${cd}</span></div>`;
+  }
+
+  const hdr = `<div class="cal-header-row">
+    <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3)">${calCount} CALENDARS CONNECTED</span>
+    <button class="cal-signout" onclick="calSignOut()">SIGN OUT</button>
+  </div>`;
+
+  if (!events.length) { feed.innerHTML = hdr+nextHtml+'<div class="cal-loading" style="animation:none">NO EVENTS IN NEXT 21 DAYS</div>'; return; }
+
+  const dcEvs = events.filter(ev => getDayKey(ev.start,ev.allDay)!==todayKey && isDCRelevant(ev.title)).slice(0,6);
+  let dcHtml = '';
+  if (dcEvs.length) {
+    dcHtml = '<div class="cal-section-label">⭐ DC-RELEVANT UPCOMING</div>';
+    dcEvs.forEach(ev => {
+      const {label} = fmtDay(ev.start,ev.allDay);
+      dcHtml += `<div class="cal-event dc-flagged">
+        <div class="cal-event-dot" style="background:${ev.color}"></div>
+        <div class="cal-event-body">
+          <div class="cal-event-title">${escHtml(ev.title)}</div>
+          <div class="cal-event-meta">${label} · ${fmtTime(ev.start,ev.allDay)}</div>
+        </div></div>`;
+    });
+  }
+
+  const dayMap = {};
+  events.forEach(ev => { const k=getDayKey(ev.start,ev.allDay); if(!dayMap[k])dayMap[k]=[]; dayMap[k].push(ev); });
+  let allHtml = '<div class="cal-section-label">ALL EVENTS · NEXT 21 DAYS</div>';
+  Object.entries(dayMap).forEach(([,evs]) => {
+    const {label,isToday} = fmtDay(evs[0].start,evs[0].allDay);
+    allHtml += `<div class="cal-day-label ${isToday?'is-today':''}">${label}</div>`;
+    evs.forEach(ev => {
+      const flagged = isDCRelevant(ev.title);
+      allHtml += `<div class="cal-event ${flagged?'dc-flagged':''} ${isToday&&!flagged?'today-event':''}">
+        <div class="cal-event-dot" style="background:${ev.color}"></div>
+        <div class="cal-event-body">
+          <div class="cal-event-title">${escHtml(ev.title)}</div>
+          <div class="cal-event-meta">${fmtTime(ev.start,ev.allDay)} · ${escHtml(ev.calName)}</div>
+        </div></div>`;
+    });
+  });
+
+  feed.innerHTML = hdr + nextHtml + dcHtml + allHtml;
+}
+
+function showCalError(msg) {
+  document.getElementById('calFeed').innerHTML =
+    `<div class="cal-error">${escHtml(msg)}<br><br><button class="cal-signin-btn" onclick="calSignIn()" style="margin:0 auto">Try again</button></div>`;
+}
+
+window.addEventListener('load', () => {
+  if (window.google) initCalendar();
+  else document.querySelector('script[src*="gsi"]')?.addEventListener('load', initCalendar);
+});
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeLEdit();
+  if (e.key === 'Enter' && document.getElementById('leditBackdrop').classList.contains('open')) saveLEdit();
+});
+
+// ─── INIT ───
+loadTodos();
+loadScratch();
+loadLinks();
+renderTodos();
+renderLinks();
+updateMetrics();
+
+
+const DC_KEYWORDS = [
+  'plc','department','dept','meeting','physics first','inservice','in-service',
+  'admin','principal','chair','science','math','curriculum','reassessment',
+  'assessment','finals','exam','supply','budget','parent','student',
+  'concern','behavior','absence','nsta','workshop','staff','faculty',
+  'professional','development','pd','collaboration','back to school','open house'
+];
+
+const CAL_COLORS = ['#60A5FA','#F5C842','#2DD4BF','#4ADE80','#F87171','#A78BFA','#FB923C'];
+let calFeeds = [];
+let editingFeedId = null;
+
+function loadCalFeeds() {
+  try { calFeeds = JSON.parse(localStorage.getItem(CAL_FEEDS_KEY)) || []; }
+  catch { calFeeds = []; }
+  if (calFeeds.length > 0) calRefreshAll();
+  else showCalEmpty();
+}
+
+function showCalEmpty() {
+  document.getElementById('calEmpty').style.display = 'flex';
+  document.getElementById('calFeed').style.display  = 'none';
+  document.getElementById('calRefreshBtn').style.display = 'none';
+}
+
+// ── Feed manager modal ──
+function openCalManager() {
+  renderFeedList();
+  document.getElementById('calMgrBackdrop').classList.add('open');
+}
+
+function closeCalManager() {
+  document.getElementById('calMgrBackdrop').classList.remove('open');
+  editingFeedId = null;
+  document.getElementById('calMgrForm').style.display = 'none';
+}
+
+function renderFeedList() {
+  const list = document.getElementById('calMgrList');
+  if (calFeeds.length === 0) {
+    list.innerHTML = `<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;padding:.75rem 0">No feeds added yet</div>`;
+    return;
+  }
+  list.innerHTML = calFeeds.map(f => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="width:8px;height:8px;border-radius:50%;background:${f.color};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;color:var(--ink)">${escHtml(f.name)}</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(f.url.slice(0,48))}…</div>
+      </div>
+      <button onclick="editFeed('${f.id}')" style="font-family:'Share Tech Mono',monospace;font-size:9px;background:none;border:none;color:var(--ink3);cursor:pointer;letter-spacing:.06em">EDIT</button>
+    </div>`).join('');
+}
+
+function showAddFeed() {
+  editingFeedId = null;
+  document.getElementById('cmgrFeedName').value  = '';
+  document.getElementById('cmgrFeedUrl').value   = '';
+  document.getElementById('cmgrFeedColor').value = CAL_COLORS[calFeeds.length % CAL_COLORS.length];
+  document.getElementById('calMgrFormTitle').textContent = 'Add calendar feed';
+  document.getElementById('calMgrDelBtn').style.display  = 'none';
+  document.getElementById('calMgrForm').style.display    = 'block';
+  document.getElementById('cmgrFeedName').focus();
+}
+
+function editFeed(id) {
+  const f = calFeeds.find(x => x.id === id);
+  if (!f) return;
+  editingFeedId = id;
+  document.getElementById('cmgrFeedName').value  = f.name;
+  document.getElementById('cmgrFeedUrl').value   = f.url;
+  document.getElementById('cmgrFeedColor').value = f.color;
+  document.getElementById('calMgrFormTitle').textContent = 'Edit feed';
+  document.getElementById('calMgrDelBtn').style.display  = '';
+  document.getElementById('calMgrForm').style.display    = 'block';
+}
+
+function saveFeed() {
+  const name  = document.getElementById('cmgrFeedName').value.trim();
+  const url   = document.getElementById('cmgrFeedUrl').value.trim();
+  const color = document.getElementById('cmgrFeedColor').value;
+  if (!name || !url) return;
+
+  if (editingFeedId) {
+    const f = calFeeds.find(x => x.id === editingFeedId);
+    if (f) { f.name = name; f.url = url; f.color = color; }
+  } else {
+    calFeeds.push({ id: 'cf' + Date.now(), name, url, color });
+  }
+  localStorage.setItem(CAL_FEEDS_KEY, JSON.stringify(calFeeds));
+  document.getElementById('calMgrForm').style.display = 'none';
+  editingFeedId = null;
+  renderFeedList();
+}
+
+function deleteFeed() {
+  if (!editingFeedId) return;
+  if (!confirm('Remove this calendar feed?')) return;
+  calFeeds = calFeeds.filter(x => x.id !== editingFeedId);
+  localStorage.setItem(CAL_FEEDS_KEY, JSON.stringify(calFeeds));
+  editingFeedId = null;
+  document.getElementById('calMgrForm').style.display = 'none';
+  renderFeedList();
+}
+
+function saveAndLoad() {
+  closeCalManager();
+  if (calFeeds.length > 0) calRefreshAll();
+  else showCalEmpty();
+}
+
+// ── ICS fetch + parse ──
+async function fetchICS(url) {
+  const errors = [];
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const fullUrl = proxy + encodeURIComponent(url);
+      const res = await fetch(fullUrl, { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      if (text.includes('BEGIN:VCALENDAR')) return text;
+      // Got a response but not ICS — show first 120 chars for debugging
+      throw new Error(`Bad response: ${text.slice(0,120)}`);
+    } catch(e) {
+      errors.push(`${proxy.split('/')[2]}: ${e.message}`);
+    }
+  }
+  throw new Error(errors.join(' | '));
+}
+
+function parseICS(text) {
+  const events = [];
+  const lines  = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n')
+    // unfold continuation lines
+    .replace(/\n[ \t]/g,'').split('\n');
+
+  let ev = null;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line === 'BEGIN:VEVENT') { ev = {}; continue; }
+    if (line === 'END:VEVENT')   { if (ev) events.push(ev); ev = null; continue; }
+    if (!ev) continue;
+
+    const colon = line.indexOf(':');
+    if (colon < 0) continue;
+    const key = line.slice(0, colon).split(';')[0].toUpperCase();
+    const val = line.slice(colon + 1).trim();
+
+    if (key === 'SUMMARY')         ev.title   = val.replace(/\\,/g,',').replace(/\\n/g,' ');
+    if (key === 'DTSTART')         ev.start   = val;
+    if (key === 'DTEND')           ev.end     = val;
+    if (key === 'DTSTART;VALUE=DATE') { ev.start = val; ev.allDay = true; }
+    if (key === 'DTEND;VALUE=DATE')   { ev.end   = val; ev.allDay = true; }
+    if (line.startsWith('DTSTART;')) {
+      ev.start = val;
+      ev.allDay = line.includes('VALUE=DATE') && !line.includes('DATE-TIME');
+    }
+    if (line.startsWith('DTEND;')) {
+      ev.end = val;
+    }
+  }
+  return events;
+}
+
+function icsDateToDate(str) {
+  if (!str) return null;
+  // All-day: YYYYMMDD
+  if (/^\d{8}$/.test(str)) {
+    return new Date(
+      parseInt(str.slice(0,4)),
+      parseInt(str.slice(4,6)) - 1,
+      parseInt(str.slice(6,8)),
+      0, 0, 0
+    );
+  }
+  // UTC datetime: YYYYMMDDTHHmmssZ
+  if (str.endsWith('Z')) {
+    return new Date(
+      `${str.slice(0,4)}-${str.slice(4,6)}-${str.slice(6,8)}T${str.slice(9,11)}:${str.slice(11,13)}:${str.slice(13,15)}Z`
+    );
+  }
+  // Local datetime: YYYYMMDDTHHmmss
+  const s = str.replace('T','');
+  return new Date(
+    parseInt(s.slice(0,4)),
+    parseInt(s.slice(4,6)) - 1,
+    parseInt(s.slice(6,8)),
+    parseInt(s.slice(9,11) || '0'),
+    parseInt(s.slice(11,13) || '0'),
+    0
+  );
+}
+
+async function calRefreshAll() {
+  if (calFeeds.length === 0) { showCalEmpty(); return; }
+  document.getElementById('calEmpty').style.display = 'none';
+  document.getElementById('calRefreshBtn').style.display = 'block';
+
+  const feed = document.getElementById('calFeed');
+  feed.style.display = 'block';
+  feed.innerHTML = '<div class="cal-loading">FETCHING CALENDARS…</div>';
+
+  const now    = new Date();
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 21);
+  const allEvents = [];
+
+  await Promise.all(calFeeds.map(async f => {
+    try {
+      const text  = await fetchICS(f.url);
+      const items = parseICS(text);
+      items.forEach(ev => {
+        const startD = icsDateToDate(ev.start);
+        if (!startD) return;
+        if (startD < now || startD > cutoff) return;
+        allEvents.push({
+          title:   ev.title || '(No title)',
+          start:   startD,
+          allDay:  ev.allDay || /^\d{8}$/.test(ev.start || ''),
+          calName: f.name,
+          color:   f.color,
+        });
+      });
+    } catch(e) {
+      allEvents.push({ _error: true, calName: f.name, msg: e.message });
+    }
+  }));
+
+  const errors = allEvents.filter(e => e._error);
+  const events = allEvents.filter(e => !e._error)
+    .sort((a,b) => a.start - b.start);
+
+  renderICSFeed(events, errors);
+}
+
+function isDCRelevant(title) {
+  const lower = (title || '').toLowerCase();
+  return DC_KEYWORDS.some(kw => lower.includes(kw));
+}
+
+function fmtTime(date, allDay) {
+  if (allDay) return 'All day';
+  return date.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12:true });
+}
+
+function fmtDayLabel(date) {
+  const today = new Date();
+  const tom   = new Date(); tom.setDate(tom.getDate() + 1);
+  if (date.toDateString() === today.toDateString()) return { label: 'Today',    isToday: true };
+  if (date.toDateString() === tom.toDateString())   return { label: 'Tomorrow', isToday: false };
+  return {
+    label: date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }),
+    isToday: false
+  };
+}
+
+function renderICSFeed(events, errors) {
+  const feed = document.getElementById('calFeed');
+
+  // Next event badge
+  let nextHtml = '';
+  if (events.length > 0) {
+    const nev  = events[0];
+    const diff = nev.start - new Date();
+    const mins = Math.floor(diff / 60000);
+    const hrs  = Math.floor(diff / 3600000);
+    const days = Math.ceil(diff / 86400000);
+    const countdown = mins < 60 ? `in ${mins}m` : hrs < 24 ? `in ${hrs}h` : `in ${days}d`;
+    nextHtml = `<div class="cal-next-badge">
+      <span class="cal-next-badge-text">▶ NEXT: ${escHtml(nev.title)} — ${countdown}</span>
+    </div>`;
+  }
+
+  // Error notices
+  let errHtml = errors.map(e =>
+    `<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--red);padding:3px 0;letter-spacing:.04em">
+      ⚠ ${escHtml(e.calName)}: could not load
+    </div>`
+  ).join('');
+
+  // DC-flagged upcoming (skip today)
+  const today = new Date();
+  const todayStr = today.toDateString();
+  const dcFlagged = events
+    .filter(ev => ev.start.toDateString() !== todayStr && isDCRelevant(ev.title))
+    .slice(0, 6);
+
+  let dcHtml = '';
+  if (dcFlagged.length > 0) {
+    dcHtml = `<div class="cal-section-label">⭐ DC-RELEVANT UPCOMING</div>`;
+    dcFlagged.forEach(ev => {
+      const { label } = fmtDayLabel(ev.start);
+      dcHtml += `<div class="cal-event dc-flagged">
+        <div class="cal-event-dot" style="background:${ev.color}"></div>
+        <div class="cal-event-body">
+          <div class="cal-event-title">${escHtml(ev.title)}</div>
+          <div class="cal-event-meta">${label} · ${fmtTime(ev.start, ev.allDay)} · ${escHtml(ev.calName)}</div>
+        </div>
+      </div>`;
+    });
+  }
+
+  // All events grouped by day
+  if (events.length === 0 && errors.length === 0) {
+    feed.innerHTML = nextHtml + errHtml + dcHtml +
+      '<div class="cal-loading" style="animation:none">NO EVENTS IN NEXT 21 DAYS</div>';
+    return;
+  }
+
+  const dayMap = new Map();
+  events.forEach(ev => {
+    const key = ev.start.toDateString();
+    if (!dayMap.has(key)) dayMap.set(key, []);
+    dayMap.get(key).push(ev);
+  });
+
+  let allHtml = `<div class="cal-section-label">ALL EVENTS · NEXT 21 DAYS</div>`;
+  dayMap.forEach((evs, key) => {
+    const { label, isToday } = fmtDayLabel(evs[0].start);
+    allHtml += `<div class="cal-day-label ${isToday ? 'is-today' : ''}">${label}</div>`;
+    evs.forEach(ev => {
+      const flagged  = isDCRelevant(ev.title);
+      const todayEv  = isToday && !flagged;
+      allHtml += `<div class="cal-event ${flagged ? 'dc-flagged' : ''} ${todayEv ? 'today-event' : ''}">
+        <div class="cal-event-dot" style="background:${ev.color}"></div>
+        <div class="cal-event-body">
+          <div class="cal-event-title">${escHtml(ev.title)}</div>
+          <div class="cal-event-meta">${fmtTime(ev.start, ev.allDay)} · ${escHtml(ev.calName)}</div>
+        </div>
+      </div>`;
+    });
+  });
+
+  feed.innerHTML = nextHtml + errHtml + dcHtml + allHtml;
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeLEdit();
+  if (e.key === 'Enter' && document.getElementById('leditBackdrop').classList.contains('open')) saveLEdit();
+});
+
+// ─── INIT ───
+loadTodos();
+loadScratch();
+loadLinks();
+loadCalFeeds();
+renderTodos();
+renderLinks();
+updateMetrics();
+</script>
+</body>
+</html>
