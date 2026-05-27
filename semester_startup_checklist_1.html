@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DC Semester Startup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F2ED;
+    --surface: #FDFCFA;
+    --ink: #1A1612;
+    --ink-2: #5C5147;
+    --ink-3: #9C8E82;
+    --rule: #DDD8D0;
+    --accent: #C4440A;
+    --accent-light: #FAE8DF;
+    --week1: #1A3A2A;
+    --week1-light: #E4EDE8;
+    --week2: #0A2A4A;
+    --week2-light: #DDE7F0;
+    --critical: #C4440A;
+    --critical-light: #FAE8DF;
+    --done-text: #9C8E82;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 0 0 6rem;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--ink);
+    color: var(--bg);
+    padding: 2.5rem 3rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    border: 40px solid rgba(255,255,255,0.04);
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: 40%;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .header-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 400;
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 1rem;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: #E8A07A;
+  }
+
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .semester-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7);
+    padding: 4px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .semester-badge:hover { background: rgba(255,255,255,0.18); }
+
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .progress-bar-bg {
+    flex: 1;
+    height: 3px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: #E8A07A;
+    border-radius: 2px;
+    transition: width .5s cubic-bezier(.4,0,.2,1);
+    width: 0%;
+  }
+
+  .progress-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    white-space: nowrap;
+  }
+
+  /* ── Controls bar ── */
+  .controls {
+    background: var(--surface);
+    border-bottom: 1px solid var(--rule);
+    padding: .75rem 3rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .filter-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .filter-btn:hover { border-color: var(--ink-3); color: var(--ink); }
+  .filter-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  .ctrl-sep { flex: 1; }
+
+  .reset-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Main layout ── */
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 3rem 0;
+  }
+
+  /* ── Section headers ── */
+  .phase {
+    margin-bottom: 2.5rem;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: .75rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .phase-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+  }
+
+  .phase-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .phase-count {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+
+  /* ── Urgency group ── */
+  .urgency-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .urgency-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+
+  .urgency-label.critical { background: var(--critical-light); color: var(--critical); }
+  .urgency-label.important { background: #FFF8E6; color: #7A5800; }
+  .urgency-label.routine { background: var(--week1-light); color: var(--week1); }
+
+  /* ── Task items ── */
+  .task {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: background .15s;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+
+  .task:hover { background: rgba(0,0,0,0.025); }
+  .task.checked { opacity: .55; }
+  .task.checked .task-text { text-decoration: line-through; color: var(--done-text); }
+
+  .task-checkbox {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid var(--rule);
+    background: var(--surface);
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+
+  .task.checked .task-checkbox {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
+  .task.checked .task-checkbox::after {
+    content: '';
+    width: 10px; height: 6px;
+    border-left: 1.5px solid #fff;
+    border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translate(1px, -1px);
+    display: block;
+  }
+
+  .task-body { flex: 1; }
+
+  .task-text {
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--ink);
+    transition: color .15s;
+  }
+
+  .task-note {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 2px;
+    font-style: italic;
+  }
+
+  .task-tags {
+    display: flex;
+    gap: 4px;
+    margin-top: 5px;
+    flex-wrap: wrap;
+  }
+
+  .ttag {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .05em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid var(--rule);
+    color: var(--ink-3);
+  }
+
+  .ttag.math { border-color: #C0D8F0; color: var(--week2); background: var(--week2-light); }
+  .ttag.sci { border-color: #B8D8C4; color: var(--week1); background: var(--week1-light); }
+  .ttag.both { border-color: #E0D8F5; color: #3A2878; background: #F0ECFD; }
+  .ttag.admin { border-color: #F0D8C8; color: #6A2800; background: var(--critical-light); }
+  .ttag.physics-first { border-color: #FAC775; color: #633806; background: #FAEEDA; }
+
+  /* ── Completed celebration ── */
+  .all-done {
+    display: none;
+    text-align: center;
+    padding: 3rem 2rem;
+    border: 1px dashed var(--rule);
+    border-radius: 12px;
+    margin: 2rem 0;
+  }
+
+  .all-done.visible { display: block; }
+
+  .all-done-title {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 28px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .all-done-sub {
+    font-size: 13px;
+    color: var(--ink-3);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .05em;
+  }
+
+  /* ── Footer note ── */
+  .footer-note {
+    max-width: 860px;
+    margin: 2rem auto 0;
+    padding: 0 3rem;
+    font-size: 11px;
+    color: var(--ink-3);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .03em;
+  }
+
+  /* ── Semester modal ── */
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 340px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+
+  .modal h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+
+  .modal p {
+    font-size: 12px;
+    color: var(--ink-3);
+    margin-bottom: 1.25rem;
+  }
+
+  .modal input {
+    width: 100%;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--ink);
+    margin-bottom: 1rem;
+  }
+
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+  .modal-btns button {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--ink-2);
+    transition: all .15s;
+  }
+
+  .modal-btns button.primary {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .modal-btns button:hover { opacity: .8; }
+
+  @media (max-width: 640px) {
+    header, .controls, main, .footer-note { padding-left: 1.25rem; padding-right: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Department Chair · La Salle High School</div>
+  <h1>Semester <em>startup</em><br>checklist</h1>
+  <div class="header-meta">
+    <button class="semester-badge" onclick="openModal()" id="semLabel">Fall 2026–27 ▾</button>
+    <div class="progress-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+      <span class="progress-label" id="progressLabel">0 / 0</span>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+  <button class="filter-btn" onclick="setFilter('week1', this)">Week 1</button>
+  <button class="filter-btn" onclick="setFilter('week2', this)">Week 2</button>
+  <button class="filter-btn" onclick="setFilter('math', this)">Math</button>
+  <button class="filter-btn" onclick="setFilter('sci', this)">Science</button>
+  <button class="filter-btn" onclick="setFilter('admin', this)">Admin</button>
+  <button class="filter-btn" onclick="setFilter('todo', this)">Remaining</button>
+  <div class="ctrl-sep"></div>
+  <button class="reset-btn" onclick="confirmReset()">↺ Reset semester</button>
+</div>
+
+<main id="main">
+  <div class="all-done" id="allDone">
+    <div class="all-done-title">You're ready.</div>
+    <div class="all-done-sub">All tasks complete. Have a strong semester.</div>
+  </div>
+</main>
+
+<div class="footer-note" id="footerNote">
+  Progress saves automatically in your browser. Click the semester label to rename it. Reset clears all checkboxes for the new term.
+</div>
+
+<!-- Semester rename modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3>Rename semester</h3>
+    <p>This label appears at the top of your checklist.</p>
+    <input type="text" id="semInput" placeholder="e.g. Spring 2026–27" />
+    <div class="modal-btns">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="primary" onclick="saveSemester()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TASKS = [
+  // ── WEEK 1 ──
+  {
+    id: 'w1_c1', week: 'week1', urgency: 'critical',
+    text: 'Confirm department schedules are accurate for all teachers',
+    note: 'Catch section misassignments before the first day — harder to fix after.',
+    tags: ['both', 'admin']
+  },
+  {
+    id: 'w1_c2', week: 'week1', urgency: 'critical',
+    text: 'Collect and review all syllabi from math and science teachers',
+    note: 'Verify grade policies, reassessment language, and late work policies are consistent.',
+    tags: ['both']
+  },
+  {
+    id: 'w1_c3', week: 'week1', urgency: 'critical',
+    text: 'Confirm academic support scheduling script is running correctly',
+    note: 'Run a test pull from PowerSchool and verify FlexiSched is booking properly.',
+    tags: ['both', 'admin']
+  },
+  {
+    id: 'w1_c4', week: 'week1', urgency: 'critical',
+    text: 'Set first department meeting date and send calendar invite',
+    note: 'Aim for end of Week 1. Send agenda template at least 48 hrs in advance.',
+    tags: ['both']
+  },
+  {
+    id: 'w1_i1', week: 'week1', urgency: 'important',
+    text: 'Walk the science hallway — check labs are stocked and safety equipment is in place',
+    note: 'Especially goggles, eyewash stations, and chemical storage.',
+    tags: ['sci']
+  },
+  {
+    id: 'w1_i2', week: 'week1', urgency: 'important',
+    text: 'Confirm all supply orders placed last semester have been received',
+    tags: ['both', 'admin']
+  },
+  {
+    id: 'w1_i3', week: 'week1', urgency: 'important',
+    text: 'Send welcome-back email to both departments',
+    note: 'Introduce dual-DC role clearly, set tone, share key dates for the semester.',
+    tags: ['both']
+  },
+  {
+    id: 'w1_i4', week: 'week1', urgency: 'important',
+    text: 'Brief 1:1 check-in with each teacher (5–10 min hallway or email)',
+    note: 'Especially any new teachers or those who flagged concerns last semester.',
+    tags: ['both']
+  },
+  {
+    id: 'w1_i5', week: 'week1', urgency: 'important',
+    text: 'Verify Chemistry reassessment policy is communicated to students',
+    note: 'Teachers should have this in their syllabus. Flag if missing.',
+    tags: ['sci']
+  },
+  {
+    id: 'w1_r1', week: 'week1', urgency: 'routine',
+    text: 'Update shared department calendar with key semester dates',
+    note: 'Finals week, reassessment deadlines, PLC days, and any admin-mandated checkpoints.',
+    tags: ['both']
+  },
+  {
+    id: 'w1_r2', week: 'week1', urgency: 'routine',
+    text: 'Check Schoology / Google Classroom department channels are set up',
+    note: 'Per Gerry\'s suggestion — use as a running communication + social channel.',
+    tags: ['both']
+  },
+  {
+    id: 'w1_r3', week: 'week1', urgency: 'routine',
+    text: 'Confirm textbook and materials distribution is complete',
+    tags: ['both']
+  },
+  {
+    id: 'w1_pf1', week: 'week1', urgency: 'important',
+    text: 'Physics First: confirm where launch planning stands and who owns which piece',
+    note: 'Scope: Are we going this year or next? Who else needs to be in the loop?',
+    tags: ['sci', 'physics-first']
+  },
+
+  // ── WEEK 2 ──
+  {
+    id: 'w2_c1', week: 'week2', urgency: 'critical',
+    text: 'Run first department meeting — set semester priorities collectively',
+    note: 'Use the agenda template. Reserve time for Physics First discussion.',
+    tags: ['both']
+  },
+  {
+    id: 'w2_c2', week: 'week2', urgency: 'critical',
+    text: 'Submit any admin reports or forms due by end of Week 2',
+    note: 'Enrollment projections, department goals, or other requested deliverables.',
+    tags: ['admin']
+  },
+  {
+    id: 'w2_c3', week: 'week2', urgency: 'critical',
+    text: 'Confirm academic support is being utilized — check FlexiSched data',
+    note: 'Flag any students already repeating no-shows so teachers know early.',
+    tags: ['both', 'admin']
+  },
+  {
+    id: 'w2_i1', week: 'week2', urgency: 'important',
+    text: 'Identify any early classroom management or behavior concerns',
+    note: 'Proactively ask teachers rather than waiting for issues to escalate.',
+    tags: ['both']
+  },
+  {
+    id: 'w2_i2', week: 'week2', urgency: 'important',
+    text: 'Verify all teachers have submitted gradebook setup correctly in PowerSchool',
+    note: 'Categories, weights, and grading scale should match department standards.',
+    tags: ['both']
+  },
+  {
+    id: 'w2_i3', week: 'week2', urgency: 'important',
+    text: 'Follow up on any syllabus inconsistencies from Week 1 review',
+    tags: ['both']
+  },
+  {
+    id: 'w2_i4', week: 'week2', urgency: 'important',
+    text: 'Request admin behavior/cheating/absence data for department baseline',
+    note: 'Per Gerry\'s suggestion — push admin for regular reports to moderate departmental opinions.',
+    tags: ['admin']
+  },
+  {
+    id: 'w2_i5', week: 'week2', urgency: 'important',
+    text: 'Identify a research-based assessment for Math and one for Science',
+    note: 'E.g. Force Concept Inventory for Physics. Document which are in use.',
+    tags: ['both']
+  },
+  {
+    id: 'w2_r1', week: 'week2', urgency: 'routine',
+    text: 'Send start/stop/keep survey or informal check-in to teachers',
+    note: 'Two weeks in is a good early pulse. Keep it short — 3 questions max.',
+    tags: ['both']
+  },
+  {
+    id: 'w2_r2', week: 'week2', urgency: 'routine',
+    text: 'Plan a team-building touchpoint for the department (even just snacks at a meeting)',
+    note: 'Your teachers named this explicitly in the survey. Low-lift counts.',
+    tags: ['both']
+  },
+  {
+    id: 'w2_r3', week: 'week2', urgency: 'routine',
+    text: 'Review own workload — is the dual-DC pace sustainable so far?',
+    note: 'Your team literally said "take care of yourself." Build this into your week.',
+    tags: ['both']
+  },
+  {
+    id: 'w2_pf1', week: 'week2', urgency: 'important',
+    text: 'Physics First: schedule a planning session or identify schools to visit',
+    note: 'Over-formalize early per Gerry. Even a 30-min meeting with a clear agenda counts.',
+    tags: ['sci', 'physics-first']
+  },
+  {
+    id: 'w2_r4', week: 'week2', urgency: 'routine',
+    text: 'Confirm finals review schedule and communicate to department',
+    note: 'Use the finals + study guide analyzer to prep for your DC review.',
+    tags: ['both']
+  },
+];
+
+const STORAGE_KEY = 'dc_checklist_v1';
+const SEM_KEY = 'dc_sem_label_v1';
+let filter = 'all';
+let state = {};
+
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  state = raw ? JSON.parse(raw) : {};
+  const sem = localStorage.getItem(SEM_KEY) || 'Fall 2026–27';
+  document.getElementById('semLabel').textContent = sem + ' ▾';
+  document.getElementById('semInput').value = sem;
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function toggle(id) {
+  state[id] = !state[id];
+  save();
+  render();
+}
+
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function confirmReset() {
+  if (confirm('Clear all checkboxes for a new semester? This cannot be undone.')) {
+    state = {};
+    save();
+    render();
+  }
+}
+
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('semInput').focus();
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function saveSemester() {
+  const val = document.getElementById('semInput').value.trim() || 'Fall 2026–27';
+  localStorage.setItem(SEM_KEY, val);
+  document.getElementById('semLabel').textContent = val + ' ▾';
+  closeModal();
+}
+
+function urgencyOrder(u) {
+  return u === 'critical' ? 0 : u === 'important' ? 1 : 2;
+}
+
+function matchesFilter(task) {
+  if (filter === 'all') return true;
+  if (filter === 'week1') return task.week === 'week1';
+  if (filter === 'week2') return task.week === 'week2';
+  if (filter === 'math') return task.tags.includes('math') || task.tags.includes('both');
+  if (filter === 'sci') return task.tags.includes('sci') || task.tags.includes('both');
+  if (filter === 'admin') return task.tags.includes('admin');
+  if (filter === 'todo') return !state[task.id];
+  return true;
+}
+
+function render() {
+  const main = document.getElementById('main');
+  const visible = TASKS.filter(matchesFilter);
+  const total = TASKS.length;
+  const done = TASKS.filter(t => state[t.id]).length;
+
+  // progress
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = done + ' / ' + total;
+
+  // all done?
+  const allDone = document.getElementById('allDone');
+  if (done === total && total > 0 && filter === 'all') {
+    allDone.classList.add('visible');
+  } else {
+    allDone.classList.remove('visible');
+  }
+
+  // group visible tasks by week then urgency
+  const weeks = [
+    { key: 'week1', label: 'Week one', sub: 'Days 1–5 · before first dept meeting', color: '#1A3A2A' },
+    { key: 'week2', label: 'Week two', sub: 'Days 6–10 · after first dept meeting', color: '#0A2A4A' },
+  ];
+
+  const urgencies = [
+    { key: 'critical', label: 'Critical' },
+    { key: 'important', label: 'Important' },
+    { key: 'routine', label: 'Routine' },
+  ];
+
+  let html = '';
+  let anyVisible = false;
+
+  for (const week of weeks) {
+    const weekTasks = visible.filter(t => t.week === week.key);
+    if (weekTasks.length === 0) continue;
+    anyVisible = true;
+
+    const weekDone = weekTasks.filter(t => state[t.id]).length;
+    html += `<div class="phase">`;
+    html += `<div class="phase-header">
+      <span class="phase-title">${week.label}</span>
+      <span class="phase-sub">${week.sub}</span>
+      <span class="phase-count">${weekDone}/${weekTasks.length}</span>
+    </div>`;
+
+    for (const urg of urgencies) {
+      const group = weekTasks.filter(t => t.urgency === urg.key);
+      if (group.length === 0) continue;
+
+      html += `<div class="urgency-group">`;
+      html += `<span class="urgency-label ${urg.key}">${urg.label}</span>`;
+
+      for (const task of group) {
+        const checked = !!state[task.id];
+        const tagHtml = task.tags.map(t => `<span class="ttag ${t}">${t === 'physics-first' ? 'Physics First' : t}</span>`).join('');
+        html += `
+          <div class="task ${checked ? 'checked' : ''}" onclick="toggle('${task.id}')">
+            <div class="task-checkbox"></div>
+            <div class="task-body">
+              <div class="task-text">${task.text}</div>
+              ${task.note ? `<div class="task-note">${task.note}</div>` : ''}
+              <div class="task-tags">${tagHtml}</div>
+            </div>
+          </div>`;
+      }
+
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+  }
+
+  if (!anyVisible && filter === 'todo') {
+    html = `<div style="text-align:center;padding:3rem 0">
+      <div style="font-family:'DM Serif Display',serif;font-style:italic;font-size:22px;color:var(--ink);margin-bottom:8px">Nothing left to do.</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3)">All filtered tasks complete.</div>
+    </div>`;
+  }
+
+  // preserve the allDone div
+  main.innerHTML = document.getElementById('allDone').outerHTML + html;
+  // re-check visibility
+  if (done === total && total > 0 && filter === 'all') {
+    document.getElementById('allDone').classList.add('visible');
+  }
+}
+
+// Enter key in modal
+document.getElementById('semInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveSemester();
+  if (e.key === 'Escape') closeModal();
+});
+
+load();
+render();
+</script>
+</body>
+</html>

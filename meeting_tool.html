@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DC Meeting Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Karla:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #F7F4EE;
+  --paper2: #EDE9E0;
+  --paper3: #E2DDD2;
+  --ink: #1C1814;
+  --ink2: #5A5248;
+  --ink3: #9A9088;
+  --rule: #D8D2C6;
+  --rule2: #C8C2B4;
+  --red: #C43C1A;
+  --red-dim: #FAE9E3;
+  --teal: #1A6B5C;
+  --teal-dim: #E3F0ED;
+  --gold: #8B6914;
+  --gold-dim: #F5EDD8;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+
+body {
+  font-family: 'Karla', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* Grain overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 999;
+  opacity: .4;
+}
+
+/* ── Header ── */
+header {
+  background: var(--ink);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.header-inner {
+  display: flex;
+  align-items: stretch;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2.5rem;
+}
+
+.header-left {
+  padding: 2rem 2.5rem 2rem 0;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.header-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 8px;
+}
+
+h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: clamp(24px, 3.5vw, 36px);
+  color: #fff;
+  line-height: 1.1;
+}
+
+h1 em {
+  font-style: italic;
+  color: #D4A96A;
+}
+
+.header-right {
+  padding: 2rem 0 2rem 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.api-field-wrap {
+  flex: 1;
+}
+
+.api-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 6px;
+}
+
+.api-input {
+  width: 100%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 5px;
+  color: rgba(255,255,255,0.8);
+  outline: none;
+  transition: border-color .15s;
+  letter-spacing: .04em;
+}
+.api-input:focus { border-color: rgba(212,169,106,0.5); }
+.api-input::placeholder { color: rgba(255,255,255,0.2); }
+
+.api-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.25);
+  margin-top: 4px;
+  transition: color .2s;
+  min-height: 14px;
+}
+.api-status.ok { color: #6EC99A; }
+.api-status.err { color: #E87A7A; }
+
+/* ── Tabs ── */
+.tabs-bar {
+  background: var(--ink);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.tabs-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2.5rem;
+  display: flex;
+  gap: 0;
+}
+
+.tab {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.35);
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tab:hover { color: rgba(255,255,255,0.6); }
+
+.tab.active {
+  color: #D4A96A;
+  border-bottom-color: #D4A96A;
+}
+
+.tab-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+
+/* ── Layout ── */
+.workspace {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.panel-tab { display: none; }
+.panel-tab.active { display: contents; }
+
+/* ── Cards ── */
+.card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: .875rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--paper2);
+}
+
+.card-icon {
+  width: 28px; height: 28px;
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.card-title {
+  font-family: 'Fraunces', serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.card-sub {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 1px;
+}
+
+.card-body { padding: 1.25rem; }
+
+/* ── Inputs ── */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.field-row.full { grid-template-columns: 1fr; }
+.field-row.three { grid-template-columns: 1fr 1fr 1fr; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+.field input,
+.field select,
+.field textarea {
+  font-family: 'Karla', sans-serif;
+  font-size: 13px;
+  padding: 7px 10px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s;
+  resize: vertical;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--rule2);
+  background: #fff;
+}
+
+.field textarea { min-height: 120px; }
+
+/* ── Standing items ── */
+.standing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.standing-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 6px 10px;
+}
+
+.standing-item input[type="text"] {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: 'Karla', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  padding: 0;
+}
+
+.standing-mins {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink3);
+  width: 30px;
+  text-align: right;
+}
+
+.standing-mins input {
+  width: 30px;
+  text-align: right;
+  border: none;
+  background: transparent;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink2);
+  outline: none;
+  padding: 0;
+}
+
+.remove-btn {
+  background: none; border: none;
+  color: var(--ink3);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  transition: color .12s;
+}
+.remove-btn:hover { color: var(--red); }
+
+.add-item-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: none;
+  border: 1px dashed var(--rule);
+  border-radius: 5px;
+  padding: 6px 12px;
+  color: var(--ink3);
+  cursor: pointer;
+  width: 100%;
+  transition: all .12s;
+  margin-bottom: 12px;
+}
+.add-item-btn:hover { border-color: var(--rule2); color: var(--ink2); background: var(--paper); }
+
+/* ── Action button ── */
+.run-btn {
+  width: 100%;
+  font-family: 'Fraunces', serif;
+  font-size: 15px;
+  font-style: italic;
+  font-weight: 300;
+  padding: 11px 20px;
+  border-radius: 6px;
+  border: none;
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.run-btn:hover { background: #2E2820; }
+.run-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.run-btn .spinner {
+  width: 14px; height: 14px;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: none;
+}
+.run-btn.loading .spinner { display: block; }
+.run-btn.loading .btn-label { opacity: .6; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Output ── */
+.output-card {
+  grid-column: 1 / -1;
+}
+
+.output-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--ink3);
+}
+
+.output-empty-title {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 20px;
+  margin-bottom: 6px;
+  color: var(--ink3);
+}
+
+.output-empty-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: var(--rule2);
+}
+
+.output-body {
+  padding: 1.25rem;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--ink2);
+  white-space: pre-wrap;
+  font-family: 'Karla', sans-serif;
+  min-height: 120px;
+}
+
+.output-actions {
+  padding: .75rem 1.25rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper2);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.out-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--rule);
+  background: #fff;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all .12s;
+}
+.out-btn:hover { background: var(--paper3); }
+.out-btn.green { border-color: rgba(26,107,92,0.3); background: var(--teal-dim); color: var(--teal); }
+
+.char-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--ink3);
+  margin-left: auto;
+}
+
+/* ── Error ── */
+.error-box {
+  background: var(--red-dim);
+  border: 1px solid rgba(196,60,26,0.2);
+  border-radius: 5px;
+  padding: .75rem 1rem;
+  font-size: 12px;
+  color: var(--red);
+  margin-top: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  display: none;
+}
+
+/* ── Section divider ── */
+.section-rule {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 8px;
+  margin-top: 4px;
+}
+
+/* Notes tab full-width */
+.notes-workspace {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.span2 { grid-column: 1 / -1; }
+
+/* Output formatting */
+.output-body h3 {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: 15px;
+  color: var(--ink);
+  margin: 1rem 0 .4rem;
+}
+.output-body h3:first-child { margin-top: 0; }
+
+.output-body .time-block {
+  display: flex;
+  align-items: baseline;
+  gap: .75rem;
+  padding: .3rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.output-body .t-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink3);
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.output-body .t-item { flex: 1; color: var(--ink); font-size: 13.5px; }
+.output-body .t-dur {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink3);
+}
+
+@media (max-width: 700px) {
+  .workspace, .notes-workspace { grid-template-columns: 1fr; }
+  .output-card, .span2 { grid-column: 1; }
+  .header-inner { flex-direction: column; padding: 1.5rem; }
+  .header-right { padding: 1rem 0 0; }
+  .header-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 0 0 1rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="header-badge">La Salle · Math &amp; Science DC</div>
+      <h1>Meeting<br><em>toolkit</em></h1>
+    </div>
+    <div class="header-right">
+      <div class="api-field-wrap">
+        <div class="api-label">Anthropic API key</div>
+        <input class="api-input" type="password" id="apiKey" placeholder="sk-ant-api03-..." oninput="onApiInput()" autocomplete="off" />
+        <div class="api-status" id="apiStatus">Enter your key to enable AI generation</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="tabs-bar">
+  <div class="tabs-inner">
+    <div class="tab active" onclick="switchTab('agenda', this)">
+      <div class="tab-dot" style="background:#D4A96A"></div>
+      Agenda builder
+    </div>
+    <div class="tab" onclick="switchTab('notes', this)">
+      <div class="tab-dot" style="background:#7AB5E8"></div>
+      Notes cleaner
+    </div>
+  </div>
+</div>
+
+<!-- ═══ AGENDA TAB ═══ -->
+<div id="tab-agenda" class="panel-tab active">
+<div class="workspace">
+
+  <!-- Input card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#F5EDD8">📋</div>
+      <div>
+        <div class="card-title">Meeting details</div>
+        <div class="card-sub">Fill in what you know — Claude handles the rest</div>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="field-row">
+        <div class="field">
+          <label>Meeting type</label>
+          <select id="ag-type">
+            <option>Department PLC</option>
+            <option>Science dept only</option>
+            <option>Math dept only</option>
+            <option>Admin check-in</option>
+            <option>Physics First planning</option>
+            <option>1:1 teacher meeting</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Date &amp; time</label>
+          <input type="text" id="ag-datetime" placeholder="Mon Aug 10, 3:30 PM" />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Location</label>
+          <input type="text" id="ag-location" placeholder="Room 214" />
+        </div>
+        <div class="field">
+          <label>Total meeting length</label>
+          <select id="ag-length">
+            <option>30 minutes</option>
+            <option>45 minutes</option>
+            <option selected>60 minutes</option>
+            <option>75 minutes</option>
+            <option>90 minutes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-rule">Agenda items (bullet points are fine)</div>
+      <div class="field-row full">
+        <div class="field">
+          <textarea id="ag-items" placeholder="Academic support check-in&#10;Physics First launch timeline&#10;Reassessment policy questions&#10;Open floor"></textarea>
+        </div>
+      </div>
+
+      <div class="section-rule">Standing items</div>
+      <div class="standing-list" id="standing-list">
+        <div class="standing-item">
+          <input type="text" placeholder="Opening / check-in" value="Opening / check-in" />
+          <span class="standing-mins"><input type="number" value="5" min="1" max="30" /></span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
+          <button class="remove-btn" onclick="removeStanding(this)" title="Remove">×</button>
+        </div>
+        <div class="standing-item">
+          <input type="text" placeholder="Admin updates" value="Admin updates" />
+          <span class="standing-mins"><input type="number" value="5" min="1" max="30" /></span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
+          <button class="remove-btn" onclick="removeStanding(this)" title="Remove">×</button>
+        </div>
+        <div class="standing-item">
+          <input type="text" placeholder="Open concerns / parking lot" value="Open concerns" />
+          <span class="standing-mins"><input type="number" value="5" min="1" max="30" /></span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
+          <button class="remove-btn" onclick="removeStanding(this)" title="Remove">×</button>
+        </div>
+      </div>
+      <button class="add-item-btn" onclick="addStanding()">+ Add standing item</button>
+
+      <div class="field-row full">
+        <div class="field">
+          <label>Any context or notes for Claude</label>
+          <input type="text" id="ag-context" placeholder="e.g. Physics First is contentious — leave time for questions" />
+        </div>
+      </div>
+
+      <button class="run-btn" id="ag-btn" onclick="runAgenda()">
+        <div class="spinner"></div>
+        <span class="btn-label">Generate agenda</span>
+      </button>
+      <div class="error-box" id="ag-error"></div>
+    </div>
+  </div>
+
+  <!-- Tips card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E3F0ED">💡</div>
+      <div>
+        <div class="card-title">How it works</div>
+        <div class="card-sub">Tips for best results</div>
+      </div>
+    </div>
+    <div class="card-body" style="font-size:13px;color:var(--ink2);line-height:1.7">
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Bullet points are enough.</strong> Just type your agenda items one per line. Claude will estimate time per item, arrange them logically, and write a clean timed agenda you can copy and send.</p>
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Standing items are pre-filled</strong> with your usual opening, admin updates, and open floor. Edit or remove them — they always surround your main items.</p>
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Use the context field</strong> to flag anything sensitive: a topic that needs more time, someone who should own a particular item, or a decision you need to actually reach.</p>
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Output is copy-ready.</strong> The generated agenda is formatted to paste directly into an email or Schoology post.</p>
+      <hr style="border:none;border-top:1px solid var(--rule);margin:1rem 0">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.04em">Your API key is used only in your browser. It is never stored or sent anywhere except directly to Anthropic.</p>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="card output-card" id="ag-output-card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#F5EDD8">✉️</div>
+      <div>
+        <div class="card-title">Generated agenda</div>
+        <div class="card-sub">Ready to copy and send</div>
+      </div>
+    </div>
+    <div id="ag-output-body">
+      <div class="output-empty">
+        <div class="output-empty-title">No agenda yet</div>
+        <div class="output-empty-sub">Fill in the details and click generate</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══ NOTES TAB ═══ -->
+<div id="tab-notes" class="panel-tab">
+<div class="notes-workspace">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E6F1FB">📝</div>
+      <div>
+        <div class="card-title">Raw meeting notes</div>
+        <div class="card-sub">Paste everything — messy is fine</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Meeting date</label>
+          <input type="text" id="nt-date" placeholder="Monday, August 10" />
+        </div>
+        <div class="field">
+          <label>Meeting type</label>
+          <select id="nt-type">
+            <option>Department PLC</option>
+            <option>Science dept only</option>
+            <option>Math dept only</option>
+            <option>Admin check-in</option>
+            <option>Physics First planning</option>
+            <option>1:1 teacher meeting</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row full">
+        <div class="field">
+          <label>Raw notes</label>
+          <textarea id="nt-raw" style="min-height:200px" placeholder="Talked about physics first - gerry wants to move faster, others unsure. need to visit schools. Someone mentioned FCI assessment. Academic support numbers look ok. Reassessment - students abusing it? Cap at 2. Action: denny to email admin about finals schedule. Next meeting oct 6."></textarea>
+        </div>
+      </div>
+
+      <div class="field-row full">
+        <div class="field">
+          <label>Who was in the meeting (optional)</label>
+          <input type="text" id="nt-attendees" placeholder="Gerry, Mr. Chen, Ms. Rivera, Mr. Denny" />
+        </div>
+      </div>
+
+      <div class="section-rule">What do you need?</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="nt-actions" checked style="accent-color:var(--teal)"> Action items
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="nt-decisions" checked style="accent-color:var(--teal)"> Decisions made
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="nt-summary" checked style="accent-color:var(--teal)"> Brief summary
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="nt-followup" style="accent-color:var(--teal)"> Follow-up email draft
+        </label>
+      </div>
+
+      <button class="run-btn" id="nt-btn" onclick="runNotes()">
+        <div class="spinner"></div>
+        <span class="btn-label">Clean these notes</span>
+      </button>
+      <div class="error-box" id="nt-error"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E3F0ED">💡</div>
+      <div>
+        <div class="card-title">How it works</div>
+        <div class="card-sub">Tips for best results</div>
+      </div>
+    </div>
+    <div class="card-body" style="font-size:13px;color:var(--ink2);line-height:1.7">
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Don't clean up first.</strong> The messier and more stream-of-consciousness your notes are, the more useful this is. Abbreviations, half-sentences, and tangents are fine.</p>
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Action items get owners.</strong> If your notes mention names next to tasks ("Gerry to send schedule"), Claude will assign them. Otherwise it'll flag them as unassigned.</p>
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Check "Follow-up email draft"</strong> if you want the output to include a full send-ready email summarizing decisions and next steps.</p>
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Output is structured.</strong> You get clean sections for summary, decisions, and action items — easy to copy into your email template library.</p>
+      <hr style="border:none;border-top:1px solid var(--rule);margin:1rem 0">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.04em">Paste as much as you have. Claude handles the rest.</p>
+    </div>
+  </div>
+
+  <!-- Notes output -->
+  <div class="card span2" id="nt-output-card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E3F0ED">✅</div>
+      <div>
+        <div class="card-title">Cleaned notes &amp; action items</div>
+        <div class="card-sub">Ready to copy or forward</div>
+      </div>
+    </div>
+    <div id="nt-output-body">
+      <div class="output-empty">
+        <div class="output-empty-title">No notes cleaned yet</div>
+        <div class="output-empty-sub">Paste your raw notes and click clean</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── Tab switching ──
+function switchTab(name, el) {
+  document.querySelectorAll('.panel-tab').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── API key ──
+let apiKey = '';
+
+function onApiInput() {
+  apiKey = document.getElementById('apiKey').value.trim();
+  const status = document.getElementById('apiStatus');
+  if (!apiKey) {
+    status.textContent = 'Enter your key to enable AI generation';
+    status.className = 'api-status';
+  } else if (!apiKey.startsWith('sk-ant-')) {
+    status.textContent = 'Key format looks off — should start with sk-ant-';
+    status.className = 'api-status err';
+  } else {
+    status.textContent = 'Key looks good ✓';
+    status.className = 'api-status ok';
+  }
+}
+
+// ── Standing items ──
+function addStanding() {
+  const list = document.getElementById('standing-list');
+  const item = document.createElement('div');
+  item.className = 'standing-item';
+  item.innerHTML = `
+    <input type="text" placeholder="Item name" />
+    <span class="standing-mins"><input type="number" value="10" min="1" max="60" /></span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
+    <button class="remove-btn" onclick="removeStanding(this)" title="Remove">×</button>`;
+  list.appendChild(item);
+}
+
+function removeStanding(btn) {
+  btn.closest('.standing-item').remove();
+}
+
+function getStandingItems() {
+  const items = [];
+  document.querySelectorAll('#standing-list .standing-item').forEach(el => {
+    const name = el.querySelector('input[type="text"]').value.trim();
+    const mins = el.querySelector('input[type="number"]').value;
+    if (name) items.push({ name, mins: parseInt(mins) || 5 });
+  });
+  return items;
+}
+
+// ── Claude API call ──
+async function callClaude(systemPrompt, userPrompt, btnEl, errorEl) {
+  if (!apiKey) {
+    showError(errorEl, 'Please enter your Anthropic API key at the top of the page.');
+    return null;
+  }
+
+  btnEl.disabled = true;
+  btnEl.classList.add('loading');
+  errorEl.style.display = 'none';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msg = data?.error?.message || `API error ${res.status}`;
+      showError(errorEl, msg);
+      return null;
+    }
+
+    return data.content.map(b => b.text || '').join('');
+
+  } catch (err) {
+    showError(errorEl, 'Network error: ' + err.message);
+    return null;
+  } finally {
+    btnEl.disabled = false;
+    btnEl.classList.remove('loading');
+  }
+}
+
+function showError(el, msg) {
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ── AGENDA GENERATOR ──
+async function runAgenda() {
+  const type     = document.getElementById('ag-type').value;
+  const datetime = document.getElementById('ag-datetime').value.trim();
+  const location = document.getElementById('ag-location').value.trim();
+  const length   = document.getElementById('ag-length').value;
+  const items    = document.getElementById('ag-items').value.trim();
+  const context  = document.getElementById('ag-context').value.trim();
+  const standing = getStandingItems();
+
+  if (!items) {
+    showError(document.getElementById('ag-error'), 'Please add at least one agenda item.');
+    return;
+  }
+
+  const standingText = standing.map(s => `- ${s.name} (${s.mins} min standing item)`).join('\n');
+
+  const system = `You are a department chair's assistant helping format a clean, professional meeting agenda. 
+You write for a high school context (La Salle, Math & Science department). 
+Be concise, practical, and respect teachers' time.
+Output the agenda as plain text — no markdown headers, no asterisks, no bullet symbols from markdown.
+Use clean formatting with consistent indentation. Time slots should be precise and add up to the total meeting length.`;
+
+  const user = `Create a timed meeting agenda for the following:
+
+Meeting type: ${type}
+${datetime ? `Date/time: ${datetime}` : ''}
+${location ? `Location: ${location}` : ''}
+Total meeting length: ${length}
+
+Standing items (always include these, at the start and end as appropriate):
+${standingText || 'None'}
+
+Main agenda items:
+${items}
+
+${context ? `Additional context: ${context}` : ''}
+
+Format as a clean timed agenda I can paste into an email. Include:
+- A header line with meeting type, date, location, and total time
+- Each item with a time slot (e.g. 3:30 – 3:35) and its duration in parentheses
+- Brief one-line purpose for each main item
+- A "Prep / bring:" line at the bottom if anything seems worth noting
+
+Keep it tight. Teachers should be able to scan it in 20 seconds.`;
+
+  const result = await callClaude(system, user,
+    document.getElementById('ag-btn'),
+    document.getElementById('ag-error'));
+
+  if (result) renderAgendaOutput(result);
+}
+
+function renderAgendaOutput(text) {
+  const card = document.getElementById('ag-output-body');
+  card.innerHTML = `
+    <div class="output-body" id="ag-out-text">${escapeHtml(text)}</div>
+    <div class="output-actions">
+      <button class="out-btn green" onclick="copyOutput('ag-out-text', this)">Copy agenda</button>
+      <button class="out-btn" onclick="copyForEmail('ag-out-text', this)">Copy for email</button>
+      <span class="char-count" id="ag-char">${text.length} chars</span>
+    </div>`;
+}
+
+// ── NOTES CLEANER ──
+async function runNotes() {
+  const raw       = document.getElementById('nt-raw').value.trim();
+  const date      = document.getElementById('nt-date').value.trim();
+  const type      = document.getElementById('nt-type').value;
+  const attendees = document.getElementById('nt-attendees').value.trim();
+  const wantActions   = document.getElementById('nt-actions').checked;
+  const wantDecisions = document.getElementById('nt-decisions').checked;
+  const wantSummary   = document.getElementById('nt-summary').checked;
+  const wantEmail     = document.getElementById('nt-followup').checked;
+
+  if (!raw) {
+    showError(document.getElementById('nt-error'), 'Please paste some meeting notes first.');
+    return;
+  }
+
+  const wantSections = [];
+  if (wantSummary)   wantSections.push('1. SUMMARY — 2-3 sentences max');
+  if (wantDecisions) wantSections.push('2. DECISIONS — bullet list, each one a complete sentence');
+  if (wantActions)   wantSections.push('3. ACTION ITEMS — each item: owner name (or "Unassigned"), task description, and deadline if mentioned');
+  if (wantEmail)     wantSections.push('4. FOLLOW-UP EMAIL — a short send-ready email with subject line, covering decisions and next steps');
+
+  const system = `You are a department chair's assistant at a high school (La Salle, Math & Science). 
+You take raw, messy meeting notes and extract clean, structured summaries.
+Be accurate — only include what is clearly in the notes. Don't invent details.
+Write in plain text — no markdown, no asterisks. Use clean indentation and spacing.
+Keep action items crisp: who does what by when.`;
+
+  const user = `Clean up these meeting notes and extract the requested sections.
+
+Meeting: ${type}
+${date ? `Date: ${date}` : ''}
+${attendees ? `Attendees: ${attendees}` : ''}
+
+Raw notes:
+${raw}
+
+Please provide:
+${wantSections.join('\n')}
+
+Format each section with a clear heading (e.g. "SUMMARY", "DECISIONS", "ACTION ITEMS", "FOLLOW-UP EMAIL").
+Be concise. For action items, use this format:
+  → [Owner]: [Task] — [Deadline or "no deadline noted"]
+
+If an owner isn't clear from the notes, use "Unassigned" and note it needs clarification.`;
+
+  const result = await callClaude(system, user,
+    document.getElementById('nt-btn'),
+    document.getElementById('nt-error'));
+
+  if (result) renderNotesOutput(result);
+}
+
+function renderNotesOutput(text) {
+  const card = document.getElementById('nt-output-body');
+  card.innerHTML = `
+    <div class="output-body" id="nt-out-text">${escapeHtml(text)}</div>
+    <div class="output-actions">
+      <button class="out-btn green" onclick="copyOutput('nt-out-text', this)">Copy summary</button>
+      <button class="out-btn" onclick="copyForEmail('nt-out-text', this)">Copy for email</button>
+      <span class="char-count">${text.length} chars</span>
+    </div>`;
+}
+
+// ── Copy helpers ──
+function escapeHtml(str) {
+  return str
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
+
+async function copyOutput(id, btn) {
+  const text = document.getElementById(id).innerText;
+  await navigator.clipboard.writeText(text);
+  const orig = btn.textContent;
+  btn.textContent = '✓ Copied';
+  btn.style.background = 'var(--teal-dim)';
+  btn.style.color = 'var(--teal)';
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.style.background = '';
+    btn.style.color = '';
+  }, 2000);
+}
+
+async function copyForEmail(id, btn) {
+  const text = document.getElementById(id).innerText;
+  // wrap with a little email boilerplate
+  const wrapped = `Hi team,\n\nHere's a summary from our meeting:\n\n${text}\n\nReach out if you have questions.\n\nMr. Denny`;
+  await navigator.clipboard.writeText(wrapped);
+  const orig = btn.textContent;
+  btn.textContent = '✓ Copied with greeting';
+  setTimeout(() => { btn.textContent = orig; }, 2200);
+}
+</script>
+</body>
+</html>

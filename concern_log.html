@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DC Concern Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@400;500;600&family=Inconsolata:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper:    #F9F6F1;
+  --paper2:   #F1EDE5;
+  --paper3:   #E8E2D8;
+  --ink:      #1A1714;
+  --ink2:     #4A443C;
+  --ink3:     #8A8278;
+  --rule:     #D8D0C4;
+  --rule2:    #C8C0B4;
+
+  --open-bg:    #FEF3E2;
+  --open-fg:    #7A4A00;
+  --open-bd:    #E8C070;
+
+  --progress-bg: #E8F0FE;
+  --progress-fg: #1A3A7A;
+  --progress-bd: #8EB0E8;
+
+  --resolved-bg: #E8F5EE;
+  --resolved-fg: #0E4A2A;
+  --resolved-bd: #70C090;
+
+  --escalated-bg: #FDECEC;
+  --escalated-fg: #7A1A1A;
+  --escalated-bd: #E07070;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow:    0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+
+body {
+  font-family: 'Barlow', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* ─── TOP STRIP ─── */
+.top-strip {
+  background: var(--ink);
+  height: 4px;
+}
+
+/* ─── HEADER ─── */
+header {
+  background: var(--paper2);
+  border-bottom: 1px solid var(--rule);
+  padding: 0;
+}
+
+.header-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.75rem 2rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 2.5rem;
+}
+
+.header-text { flex: 1; }
+
+.header-kicker {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 5px;
+}
+
+h1 {
+  font-family: 'Libre Baskerville', serif;
+  font-size: clamp(20px, 2.5vw, 28px);
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.15;
+}
+
+h1 em {
+  font-style: italic;
+  color: var(--ink2);
+}
+
+.header-stats {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.stat {
+  text-align: right;
+}
+
+.stat-n {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.stat-label {
+  font-family: 'Inconsolata', monospace;
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.stat-sep {
+  width: 1px;
+  height: 36px;
+  background: var(--rule);
+  margin-bottom: 2px;
+}
+
+/* ─── TOOLBAR ─── */
+.toolbar {
+  background: var(--paper2);
+  border-bottom: 1px solid var(--rule);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.toolbar-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: .6rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 3px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all .12s;
+}
+.filter-pill:hover { border-color: var(--rule2); color: var(--ink2); }
+.filter-pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.toolbar-sep { flex: 1; }
+
+.search-wrap {
+  position: relative;
+}
+
+.search-input {
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  padding: 5px 10px 5px 28px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  width: 200px;
+  transition: border-color .15s;
+}
+.search-input:focus { border-color: var(--rule2); }
+
+.search-icon {
+  position: absolute;
+  left: 8px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink3);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.new-btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 3px;
+  border: none;
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity .12s;
+}
+.new-btn:hover { opacity: .85; }
+
+/* ─── MAIN LAYOUT ─── */
+.main-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.75rem 2rem 6rem;
+}
+
+/* ─── EMPTY STATE ─── */
+.empty-state {
+  text-align: center;
+  padding: 5rem 1rem;
+}
+
+.empty-title {
+  font-family: 'Libre Baskerville', serif;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink3);
+  margin-bottom: 6px;
+}
+
+.empty-sub {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--rule2);
+  text-transform: uppercase;
+}
+
+/* ─── CASE CARDS ─── */
+.cases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.case-card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-left: 3px solid transparent;
+  border-radius: 4px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: box-shadow .15s, border-color .15s;
+  overflow: hidden;
+}
+.case-card:hover { box-shadow: var(--shadow); }
+
+.case-card[data-status="open"]      { border-left-color: var(--open-bd); }
+.case-card[data-status="in-progress"] { border-left-color: var(--progress-bd); }
+.case-card[data-status="resolved"]  { border-left-color: var(--resolved-bd); }
+.case-card[data-status="escalated"] { border-left-color: var(--escalated-bd); }
+
+.case-summary {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.case-id {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--ink3);
+  flex-shrink: 0;
+  min-width: 72px;
+}
+
+.case-title-wrap { flex: 1; min-width: 0; }
+
+.case-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.case-meta {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.case-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.status-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 2px;
+  border: 1px solid;
+}
+
+.status-badge.open       { background: var(--open-bg);       color: var(--open-fg);       border-color: var(--open-bd); }
+.status-badge.in-progress { background: var(--progress-bg);   color: var(--progress-fg);   border-color: var(--progress-bd); }
+.status-badge.resolved   { background: var(--resolved-bg);   color: var(--resolved-fg);   border-color: var(--resolved-bd); }
+.status-badge.escalated  { background: var(--escalated-bg);  color: var(--escalated-fg);  border-color: var(--escalated-bd); }
+
+.case-date {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  color: var(--ink3);
+  min-width: 72px;
+  text-align: right;
+}
+
+.step-count {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  color: var(--ink3);
+  min-width: 48px;
+  text-align: right;
+}
+
+/* ─── MODAL OVERLAY ─── */
+.modal-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(20,18,15,0.55);
+  z-index: 100;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  background: #fff;
+  border-radius: 5px;
+  width: 100%;
+  max-width: 720px;
+  box-shadow: var(--shadow-lg);
+  animation: slideIn .18s ease-out;
+  margin: auto;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: baseline;
+  gap: .75rem;
+  background: var(--paper2);
+}
+
+.modal-kicker {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+.modal-title {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 18px;
+  font-weight: 400;
+  flex: 1;
+}
+
+.modal-close {
+  background: none; border: none;
+  font-size: 20px; color: var(--ink3);
+  cursor: pointer; line-height: 1;
+  padding: 0 2px;
+  transition: color .12s;
+}
+.modal-close:hover { color: var(--ink); }
+
+.modal-body { padding: 1.5rem; }
+
+/* Form fields inside modal */
+.form-row {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.form-row.col2 { grid-template-columns: 1fr 1fr; }
+.form-row.col3 { grid-template-columns: 1fr 1fr 1fr; }
+.form-row.col1 { grid-template-columns: 1fr; }
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-field label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  outline: none;
+  transition: border-color .12s, background .12s;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: var(--rule2);
+  background: #fff;
+}
+
+.form-field textarea { resize: vertical; min-height: 80px; }
+
+.form-field select option { background: #fff; }
+
+/* ─── SECTION DIVIDER in modal ─── */
+.modal-section {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  border-top: 1px solid var(--rule);
+  padding-top: .875rem;
+  margin: 1.25rem 0 .875rem;
+}
+
+/* ─── STEPS TIMELINE ─── */
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 1rem;
+}
+
+.step-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+
+.step-item:last-child { border-bottom: none; }
+
+.step-dot-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.step-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--rule2);
+  flex-shrink: 0;
+  border: 2px solid var(--paper);
+  outline: 1.5px solid var(--rule2);
+}
+
+.step-dot.first { background: var(--ink2); outline-color: var(--ink2); }
+
+.step-line {
+  flex: 1;
+  width: 1px;
+  background: var(--rule);
+  margin-top: 4px;
+}
+
+.step-content { flex: 1; }
+
+.step-header {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin-bottom: 3px;
+}
+
+.step-type {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.step-date {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  color: var(--ink3);
+}
+
+.step-text {
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.55;
+}
+
+.step-del {
+  background: none; border: none;
+  color: var(--rule2); cursor: pointer;
+  font-size: 14px; line-height: 1;
+  padding: 0 2px; flex-shrink: 0;
+  transition: color .12s;
+  margin-left: auto;
+}
+.step-del:hover { color: #C43C1A; }
+
+/* Add step row */
+.add-step-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.add-step-row select,
+.add-step-row input {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  outline: none;
+}
+
+.add-step-row select { min-width: 140px; }
+.add-step-row input:focus,
+.add-step-row select:focus { border-color: var(--rule2); background: #fff; }
+
+.add-step-btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 3px;
+  background: var(--paper3);
+  color: var(--ink2);
+  cursor: pointer;
+  transition: background .12s;
+  white-space: nowrap;
+}
+.add-step-btn:hover { background: var(--rule); }
+
+/* ─── MODAL FOOTER ─── */
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper2);
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.save-btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 3px;
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity .12s;
+}
+.save-btn:hover { opacity: .85; }
+
+.delete-btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: #C43C1A;
+  cursor: pointer;
+  transition: all .12s;
+  margin-left: auto;
+}
+.delete-btn:hover { background: #FDECEC; border-color: #E07070; }
+
+.cancel-btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all .12s;
+}
+.cancel-btn:hover { background: var(--paper3); }
+
+/* Export btn */
+.export-btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all .12s;
+}
+.export-btn:hover { background: var(--paper3); color: var(--ink2); }
+
+/* ─── PRINT ─── */
+@media print {
+  .toolbar, .new-btn, .modal-backdrop, header .header-stats { display: none; }
+  .case-card { break-inside: avoid; }
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 640px) {
+  .header-inner { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .form-row.col2, .form-row.col3 { grid-template-columns: 1fr; }
+  .case-date, .step-count, .case-id { display: none; }
+  .add-step-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-strip"></div>
+
+<header>
+  <div class="header-inner">
+    <div class="header-text">
+      <div class="header-kicker">La Salle · Department Chair · Confidential Records</div>
+      <h1>Student &amp; parent concern <em>log</em></h1>
+    </div>
+    <div class="header-stats" id="header-stats">
+      <div class="stat"><div class="stat-n" id="stat-open">0</div><div class="stat-label">Open</div></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><div class="stat-n" id="stat-progress">0</div><div class="stat-label">In progress</div></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><div class="stat-n" id="stat-total">0</div><div class="stat-label">Total</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <button class="filter-pill active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-pill" onclick="setFilter('open',this)">Open</button>
+    <button class="filter-pill" onclick="setFilter('in-progress',this)">In progress</button>
+    <button class="filter-pill" onclick="setFilter('escalated',this)">Escalated</button>
+    <button class="filter-pill" onclick="setFilter('resolved',this)">Resolved</button>
+    <div class="toolbar-sep"></div>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" type="text" placeholder="Search cases…" id="searchInput" oninput="render()">
+    </div>
+    <button class="export-btn" onclick="exportData()">Export JSON</button>
+    <button class="new-btn" onclick="openNew()">+ New case</button>
+  </div>
+</div>
+
+<div class="main-inner" id="mainInner">
+  <div class="empty-state" id="emptyState">
+    <div class="empty-title">No cases on record</div>
+    <div class="empty-sub">Click "New case" to log your first concern</div>
+  </div>
+  <div class="cases-list" id="casesList"></div>
+</div>
+
+<!-- ═══ MODAL ═══ -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="backdropClick(event)">
+<div class="modal" id="modal">
+
+  <div class="modal-header">
+    <span class="modal-kicker" id="modalKicker">New case</span>
+    <span class="modal-title" id="modalTitle">Log a concern</span>
+    <button class="modal-close" onclick="closeModal()">×</button>
+  </div>
+
+  <div class="modal-body">
+
+    <!-- Case details -->
+    <div class="form-row col2">
+      <div class="form-field">
+        <label>Student name</label>
+        <input type="text" id="f-student" placeholder="Last, First" />
+      </div>
+      <div class="form-field">
+        <label>Grade / year</label>
+        <select id="f-grade">
+          <option value="">— select —</option>
+          <option>9th</option><option>10th</option><option>11th</option><option selected>12th</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row col3">
+      <div class="form-field">
+        <label>Teacher involved</label>
+        <input type="text" id="f-teacher" placeholder="Last name" />
+      </div>
+      <div class="form-field">
+        <label>Course</label>
+        <input type="text" id="f-course" placeholder="e.g. AP Chemistry" />
+      </div>
+      <div class="form-field">
+        <label>Department</label>
+        <select id="f-dept">
+          <option>Math</option>
+          <option selected>Science</option>
+          <option>Both</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row col2">
+      <div class="form-field">
+        <label>Date received</label>
+        <input type="date" id="f-date" />
+      </div>
+      <div class="form-field">
+        <label>Received via</label>
+        <select id="f-via">
+          <option>Email — student</option>
+          <option>Email — parent</option>
+          <option>In-person — student</option>
+          <option>In-person — parent</option>
+          <option>Phone call</option>
+          <option>Admin referral</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row col1">
+      <div class="form-field">
+        <label>Concern type</label>
+        <select id="f-type">
+          <option>Grading dispute</option>
+          <option>Teacher conduct</option>
+          <option>Academic integrity</option>
+          <option>Reassessment denial</option>
+          <option>Classroom environment</option>
+          <option>Bias / unfair treatment</option>
+          <option>Grade miscalculation</option>
+          <option>Communication breakdown</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row col1">
+      <div class="form-field">
+        <label>Summary of concern</label>
+        <textarea id="f-summary" placeholder="Describe the concern as presented. Be factual and specific — this is your contemporaneous record." style="min-height:90px"></textarea>
+      </div>
+    </div>
+
+    <div class="form-row col2">
+      <div class="form-field">
+        <label>Status</label>
+        <select id="f-status">
+          <option value="open">Open</option>
+          <option value="in-progress">In progress</option>
+          <option value="escalated">Escalated to admin</option>
+          <option value="resolved">Resolved</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Severity / priority</label>
+        <select id="f-severity">
+          <option value="routine">Routine</option>
+          <option value="moderate">Moderate</option>
+          <option value="serious" selected>Serious</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row col1">
+      <div class="form-field">
+        <label>Private notes (not shared)</label>
+        <textarea id="f-private" placeholder="Your own observations, context, instincts. Keep this factual. Never write anything here you wouldn't want read aloud in a meeting." style="min-height:60px"></textarea>
+      </div>
+    </div>
+
+    <!-- Steps section -->
+    <div class="modal-section">Steps taken &amp; timeline</div>
+
+    <div class="steps-list" id="steps-list">
+      <div style="font-family:'Inconsolata',monospace;font-size:10px;color:var(--rule2);letter-spacing:.06em;text-transform:uppercase;padding:6px 0">No steps logged yet</div>
+    </div>
+
+    <div class="add-step-row">
+      <select id="step-type">
+        <option>Reviewed complaint</option>
+        <option>Spoke with student</option>
+        <option>Spoke with parent</option>
+        <option>Spoke with teacher</option>
+        <option>Reviewed grades/work</option>
+        <option>Met with all parties</option>
+        <option>Notified admin</option>
+        <option>Sent follow-up email</option>
+        <option>Decision made</option>
+        <option>Resolution communicated</option>
+        <option>Case closed</option>
+        <option>Other</option>
+      </select>
+      <input type="text" id="step-note" placeholder="Brief description of what happened or was decided…" />
+      <button class="add-step-btn" onclick="addStep()">Log step</button>
+    </div>
+
+    <!-- Resolution -->
+    <div class="modal-section">Resolution</div>
+
+    <div class="form-row col1">
+      <div class="form-field">
+        <label>Resolution summary</label>
+        <textarea id="f-resolution" placeholder="What was the final outcome? What did you decide, communicate, or refer? Leave blank if still open." style="min-height:70px"></textarea>
+      </div>
+    </div>
+
+    <div class="form-row col2">
+      <div class="form-field">
+        <label>Resolved date</label>
+        <input type="date" id="f-resolved-date" />
+      </div>
+      <div class="form-field">
+        <label>Referred to</label>
+        <select id="f-referred">
+          <option value="">— not referred —</option>
+          <option>Principal</option>
+          <option>Assistant Principal</option>
+          <option>Counselor</option>
+          <option>HR / administration</option>
+          <option>External body</option>
+        </select>
+      </div>
+    </div>
+
+  </div><!-- /modal-body -->
+
+  <div class="modal-footer">
+    <button class="save-btn" onclick="saveCase()">Save case</button>
+    <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+    <button class="delete-btn" id="deleteBtn" onclick="deleteCase()" style="display:none">Delete case</button>
+  </div>
+
+</div><!-- /modal -->
+</div><!-- /backdrop -->
+
+<script>
+// ─── DATA ───
+const STORAGE_KEY = 'dc_concern_log_v2';
+let cases = [];
+let editId = null;
+let tempSteps = [];
+let activeFilter = 'all';
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    cases = raw ? JSON.parse(raw) : [];
+  } catch(e) { cases = []; }
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cases));
+}
+
+function nextId() {
+  const year = new Date().getFullYear().toString().slice(-2);
+  const nums = cases.map(c => {
+    const m = c.id?.match(/(\d+)$/);
+    return m ? parseInt(m[1]) : 0;
+  });
+  const n = (Math.max(0, ...nums) + 1).toString().padStart(3, '0');
+  return `DC-${year}-${n}`;
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function fmt(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// ─── FILTER + RENDER ───
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function render() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+
+  let visible = cases.filter(c => {
+    if (activeFilter !== 'all' && c.status !== activeFilter) return false;
+    if (q) {
+      const hay = [c.student, c.teacher, c.course, c.summary, c.type, c.id]
+        .join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // sort: open/escalated first, then by date desc
+  visible.sort((a, b) => {
+    const order = { urgent: 0, serious: 1, moderate: 2, routine: 3 };
+    const statOrder = { escalated: 0, open: 1, 'in-progress': 2, resolved: 3 };
+    const sd = (statOrder[a.status] ?? 9) - (statOrder[b.status] ?? 9);
+    if (sd !== 0) return sd;
+    return (b.dateReceived || '').localeCompare(a.dateReceived || '');
+  });
+
+  // stats
+  document.getElementById('stat-open').textContent     = cases.filter(c => c.status === 'open').length;
+  document.getElementById('stat-progress').textContent = cases.filter(c => c.status === 'in-progress').length;
+  document.getElementById('stat-total').textContent    = cases.length;
+
+  const list = document.getElementById('casesList');
+  const empty = document.getElementById('emptyState');
+
+  if (visible.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    if (cases.length > 0 && (activeFilter !== 'all' || q)) {
+      empty.querySelector('.empty-title').textContent = 'No matching cases';
+      empty.querySelector('.empty-sub').textContent = 'Try a different filter or search';
+    } else {
+      empty.querySelector('.empty-title').textContent = 'No cases on record';
+      empty.querySelector('.empty-sub').textContent = 'Click "New case" to log your first concern';
+    }
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  list.innerHTML = visible.map(c => {
+    const statusLabel = { open: 'Open', 'in-progress': 'In progress', resolved: 'Resolved', escalated: 'Escalated' }[c.status] || c.status;
+    const sevDot = { urgent: '🔴', serious: '🟠', moderate: '🟡', routine: '⚪' }[c.severity] || '';
+    const steps = c.steps?.length || 0;
+    return `<div class="case-card" data-status="${c.status}" onclick="openEdit('${c.id}')">
+      <div class="case-summary">
+        <div class="case-id">${c.id}</div>
+        <div class="case-title-wrap">
+          <div class="case-title">${sevDot} ${escHtml(c.student || 'Unknown student')} — ${escHtml(c.type || 'Concern')}</div>
+          <div class="case-meta">${escHtml(c.teacher || '—')} · ${escHtml(c.course || '—')} · Received ${fmt(c.dateReceived)}</div>
+        </div>
+        <div class="case-right">
+          <span class="status-badge ${c.status}">${statusLabel}</span>
+          <span class="case-date">${fmt(c.dateReceived)}</span>
+          <span class="step-count">${steps} step${steps !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── MODAL ───
+function openNew() {
+  editId = null;
+  tempSteps = [{ type: 'Reviewed complaint', note: 'Complaint received and logged.', date: today() }];
+  clearForm();
+  document.getElementById('f-date').value = today();
+  document.getElementById('modalKicker').textContent = 'New case';
+  document.getElementById('modalTitle').textContent = 'Log a concern';
+  document.getElementById('deleteBtn').style.display = 'none';
+  renderSteps();
+  document.getElementById('modalBackdrop').classList.add('open');
+  document.getElementById('f-student').focus();
+}
+
+function openEdit(id) {
+  const c = cases.find(x => x.id === id);
+  if (!c) return;
+  editId = id;
+  tempSteps = JSON.parse(JSON.stringify(c.steps || []));
+
+  document.getElementById('f-student').value     = c.student || '';
+  document.getElementById('f-grade').value       = c.grade || '';
+  document.getElementById('f-teacher').value     = c.teacher || '';
+  document.getElementById('f-course').value      = c.course || '';
+  document.getElementById('f-dept').value        = c.dept || 'Science';
+  document.getElementById('f-date').value        = c.dateReceived || '';
+  document.getElementById('f-via').value         = c.via || 'Email — student';
+  document.getElementById('f-type').value        = c.type || 'Teacher conduct';
+  document.getElementById('f-summary').value     = c.summary || '';
+  document.getElementById('f-status').value      = c.status || 'open';
+  document.getElementById('f-severity').value    = c.severity || 'serious';
+  document.getElementById('f-private').value     = c.privateNotes || '';
+  document.getElementById('f-resolution').value  = c.resolution || '';
+  document.getElementById('f-resolved-date').value = c.resolvedDate || '';
+  document.getElementById('f-referred').value    = c.referred || '';
+
+  document.getElementById('modalKicker').textContent = c.id;
+  document.getElementById('modalTitle').textContent  = (c.student || 'Case') + ' — ' + (c.type || 'Concern');
+  document.getElementById('deleteBtn').style.display = '';
+
+  renderSteps();
+  document.getElementById('modalBackdrop').classList.add('open');
+}
+
+function clearForm() {
+  ['f-student','f-grade','f-teacher','f-course','f-date','f-summary',
+   'f-private','f-resolution','f-resolved-date'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('f-dept').value     = 'Science';
+  document.getElementById('f-via').value      = 'Email — student';
+  document.getElementById('f-type').value     = 'Teacher conduct';
+  document.getElementById('f-status').value   = 'open';
+  document.getElementById('f-severity').value = 'serious';
+  document.getElementById('f-referred').value = '';
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('open');
+  editId = null;
+  tempSteps = [];
+}
+
+function backdropClick(e) {
+  if (e.target === document.getElementById('modalBackdrop')) closeModal();
+}
+
+// ─── STEPS ───
+function renderSteps() {
+  const list = document.getElementById('steps-list');
+  if (tempSteps.length === 0) {
+    list.innerHTML = `<div style="font-family:'Inconsolata',monospace;font-size:10px;color:var(--rule2);letter-spacing:.06em;text-transform:uppercase;padding:6px 0">No steps logged yet</div>`;
+    return;
+  }
+  list.innerHTML = tempSteps.map((s, i) => `
+    <div class="step-item">
+      <div class="step-dot-col">
+        <div class="step-dot ${i === 0 ? 'first' : ''}"></div>
+        ${i < tempSteps.length - 1 ? '<div class="step-line"></div>' : ''}
+      </div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="step-type">${escHtml(s.type)}</span>
+          <span class="step-date">${fmt(s.date)}</span>
+        </div>
+        <div class="step-text">${escHtml(s.note)}</div>
+      </div>
+      <button class="step-del" onclick="removeStep(${i})" title="Remove step">×</button>
+    </div>`).join('');
+}
+
+function addStep() {
+  const type = document.getElementById('step-type').value;
+  const note = document.getElementById('step-note').value.trim();
+  if (!note) { document.getElementById('step-note').focus(); return; }
+  tempSteps.push({ type, note, date: today() });
+  document.getElementById('step-note').value = '';
+  renderSteps();
+}
+
+function removeStep(i) {
+  if (confirm('Remove this step from the record?')) {
+    tempSteps.splice(i, 1);
+    renderSteps();
+  }
+}
+
+// ─── SAVE / DELETE ───
+function saveCase() {
+  const student = document.getElementById('f-student').value.trim();
+  if (!student) { document.getElementById('f-student').focus(); alert('Please enter the student name.'); return; }
+
+  const summary = document.getElementById('f-summary').value.trim();
+  if (!summary) { document.getElementById('f-summary').focus(); alert('Please enter a summary of the concern.'); return; }
+
+  const data = {
+    id:           editId || nextId(),
+    student,
+    grade:        document.getElementById('f-grade').value,
+    teacher:      document.getElementById('f-teacher').value.trim(),
+    course:       document.getElementById('f-course').value.trim(),
+    dept:         document.getElementById('f-dept').value,
+    dateReceived: document.getElementById('f-date').value,
+    via:          document.getElementById('f-via').value,
+    type:         document.getElementById('f-type').value,
+    summary,
+    status:       document.getElementById('f-status').value,
+    severity:     document.getElementById('f-severity').value,
+    privateNotes: document.getElementById('f-private').value.trim(),
+    resolution:   document.getElementById('f-resolution').value.trim(),
+    resolvedDate: document.getElementById('f-resolved-date').value,
+    referred:     document.getElementById('f-referred').value,
+    steps:        JSON.parse(JSON.stringify(tempSteps)),
+    updatedAt:    new Date().toISOString(),
+    createdAt:    editId ? (cases.find(c => c.id === editId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+  };
+
+  if (editId) {
+    const idx = cases.findIndex(c => c.id === editId);
+    if (idx !== -1) cases[idx] = data;
+  } else {
+    cases.push(data);
+  }
+
+  save();
+  render();
+  closeModal();
+}
+
+function deleteCase() {
+  if (!editId) return;
+  const c = cases.find(x => x.id === editId);
+  if (!c) return;
+  if (!confirm(`Permanently delete case ${c.id} for ${c.student}? This cannot be undone.`)) return;
+  cases = cases.filter(x => x.id !== editId);
+  save();
+  render();
+  closeModal();
+}
+
+// ─── EXPORT ───
+function exportData() {
+  const blob = new Blob([JSON.stringify(cases, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `dc-concern-log-${today()}.json`;
+  a.click();
+}
+
+// ─── UTIL ───
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── KEYBOARD ───
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+load();
+render();
+</script>
+</body>
+</html>
