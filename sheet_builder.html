@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worksheet &amp; Test Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --slate:#1B2430; --slate2:#232E3C; --slate3:#2E3B4B;
+  --edge:#3A4859; --edge2:#4A5A6E;
+  --chalk:#E8EDF2; --chalk2:#9AA9BA; --chalk3:#66768A;
+  --flask:#4FD1C5; --flask-dim:rgba(79,209,197,.12);
+  --amber:#F0B429; --amber-dim:rgba(240,180,41,.14);
+  --rose:#F56565; --violet:#A78BFA;
+  --paper:#FFFFFF; --ink:#16202B; --rule:#C8D0D8;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px}
+body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--chalk);min-height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--slate2);border-bottom:1px solid var(--edge);padding:.6rem 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:40}
+.brand-mark{font-family:'Newsreader',serif;font-size:19px;font-weight:600;letter-spacing:-.01em}
+.brand-mark em{font-style:italic;color:var(--flask)}
+.mode-switch{display:flex;background:var(--slate);border:1px solid var(--edge);border-radius:5px;padding:2px;margin-left:.5rem}
+.mode-btn{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:3px;border:none;background:transparent;color:var(--chalk3);cursor:pointer;transition:all .13s}
+.mode-btn.active{background:var(--flask-dim);color:var(--flask)}
+.tb-spacer{flex:1}
+.btn{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:6px 14px;border-radius:4px;border:1px solid var(--edge2);background:transparent;color:var(--chalk2);cursor:pointer;transition:all .13s;white-space:nowrap}
+.btn:hover{background:var(--slate3);color:var(--chalk)}
+.btn-primary{background:var(--flask-dim);border-color:rgba(79,209,197,.35);color:var(--flask)}
+.btn-primary:hover{background:rgba(79,209,197,.22)}
+
+/* ── LAYOUT ── */
+.wrap{display:grid;grid-template-columns:410px 1fr;gap:1px;background:var(--edge);min-height:calc(100vh - 45px)}
+.side{background:var(--slate);overflow-y:auto;max-height:calc(100vh - 45px)}
+.stage{background:var(--slate3);padding:1.75rem;overflow-y:auto;max-height:calc(100vh - 45px)}
+.stage-inner{display:flex;flex-direction:column;align-items:center;gap:1.75rem}
+
+/* ── PANES ── */
+.pane{padding:1.05rem 1.2rem;border-bottom:1px solid var(--edge)}
+.pane-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--chalk3);margin-bottom:.7rem;display:flex;align-items:center;justify-content:space-between}
+.fgrid{display:grid;gap:9px}
+.fgrid.two{grid-template-columns:1fr 1fr}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk3)}
+.f input,.f select,.f textarea{font-family:'Space Grotesk',sans-serif;font-size:13px;padding:7px 10px;background:var(--slate2);border:1px solid var(--edge);border-radius:4px;color:var(--chalk);outline:none;transition:border-color .13s}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--flask)}
+.f input::placeholder,.f textarea::placeholder{color:var(--chalk3)}
+.f textarea{resize:vertical;min-height:64px;line-height:1.5}
+
+/* ── VERSION CONTROLS ── */
+.ver-strip{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:.7rem}
+.ver-chip{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:4px;border:1px solid var(--edge);background:var(--slate2);color:var(--chalk3);cursor:pointer;transition:all .13s}
+.ver-chip:hover{border-color:var(--edge2)}
+.ver-chip.on{background:var(--amber-dim);border-color:rgba(240,180,41,.4);color:var(--amber)}
+.opt-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;color:var(--chalk2)}
+.opt-row input[type=checkbox]{accent-color:var(--flask);width:14px;height:14px;cursor:pointer}
+.opt-row label{cursor:pointer;flex:1;line-height:1.35}
+.opt-hint{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.04em;line-height:1.6;margin-top:.4rem}
+
+/* ── SECTIONS ── */
+.sec-card{background:var(--slate2);border:1px solid var(--edge);border-left:2px solid var(--violet);border-radius:5px;padding:8px 10px;margin-bottom:6px}
+.sec-card input{width:100%;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500;padding:5px 7px;background:var(--slate);border:1px solid var(--edge);border-radius:3px;color:var(--chalk);outline:none}
+
+/* ── QUESTION TYPES ── */
+.qtypes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:.6rem}
+.qtype{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--slate2);border:1px solid var(--edge);border-radius:4px;cursor:pointer;transition:all .13s;text-align:left}
+.qtype:hover{border-color:var(--edge2);background:var(--slate3)}
+.qtype-icon{font-size:14px;flex-shrink:0}
+.qtype-name{font-size:11px;font-weight:500;color:var(--chalk2);line-height:1.25}
+
+/* ── QUESTION CARDS ── */
+.qlist{display:flex;flex-direction:column;gap:6px}
+.qcard{background:var(--slate2);border:1px solid var(--edge);border-radius:5px;padding:9px 10px}
+.qcard.is-section{border-left:2px solid var(--violet)}
+.qcard.locked{border-left:2px solid var(--amber)}
+.qcard-head{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.qnum{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--flask);min-width:18px}
+.qbadge{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--slate3);color:var(--chalk3)}
+.qbadge.sec{background:rgba(167,139,250,.15);color:var(--violet)}
+.qcard-actions{margin-left:auto;display:flex;gap:2px}
+.icon-btn{background:none;border:none;color:var(--chalk3);cursor:pointer;font-size:12px;padding:1px 4px;border-radius:3px;transition:all .12s;line-height:1}
+.icon-btn:hover{color:var(--chalk);background:var(--slate3)}
+.icon-btn.danger:hover{color:var(--rose)}
+.icon-btn.on{color:var(--amber)}
+.qcard textarea{width:100%;font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px 8px;background:var(--slate);border:1px solid var(--edge);border-radius:4px;color:var(--chalk);outline:none;resize:vertical;min-height:44px;line-height:1.45}
+.qcard textarea:focus{border-color:var(--flask)}
+.qopts{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.qopt-row{display:flex;align-items:center;gap:6px}
+.qopt-letter{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--chalk3);width:14px;flex-shrink:0}
+.qopt-row input{flex:1;font-family:'Space Grotesk',sans-serif;font-size:11.5px;padding:4px 7px;background:var(--slate);border:1px solid var(--edge);border-radius:3px;color:var(--chalk);outline:none}
+.qopt-row input:focus{border-color:var(--flask)}
+.mini-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;background:none;border:1px dashed var(--edge);border-radius:3px;padding:4px 8px;color:var(--chalk3);cursor:pointer;width:100%;transition:all .12s;margin-top:4px}
+.mini-btn:hover{border-color:var(--edge2);color:var(--chalk2)}
+.inline-num{width:52px;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 6px;background:var(--slate);border:1px solid var(--edge);border-radius:3px;color:var(--chalk);outline:none}
+.qmeta-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.06em;text-transform:uppercase;flex-wrap:wrap}
+.empty-q{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk3);text-align:center;padding:1.4rem 0}
+
+/* ── PAPER ── */
+.paper{background:var(--paper);color:var(--ink);width:8.5in;min-height:11in;padding:.65in .7in;box-shadow:0 8px 40px rgba(0,0,0,.4);font-family:'Newsreader',serif;position:relative}
+.ver-tag{position:absolute;top:.3in;right:.3in;font-family:'Space Grotesk',sans-serif;font-size:13pt;font-weight:700;letter-spacing:.06em;color:var(--ink);border:1.5px solid var(--ink);border-radius:3px;padding:2px 10px}
+
+.ws-head{border-bottom:2px solid var(--ink);padding-bottom:.26in;margin-bottom:.28in}
+.ws-meta-row{display:flex;gap:.28in;margin-bottom:.2in;align-items:flex-end}
+.ws-field{display:flex;align-items:flex-end;gap:6px;font-family:'Space Grotesk',sans-serif}
+.ws-field.name{flex:1}
+.ws-field-label{font-size:10.5pt;font-weight:500;white-space:nowrap;padding-bottom:1px}
+.ws-field-line{border-bottom:1px solid var(--ink);flex:1;min-width:.8in;height:17px}
+.ws-field.period .ws-field-line{width:.5in;flex:none}
+.ws-field.date .ws-field-line{width:1in;flex:none}
+.ws-title{font-family:'Newsreader',serif;font-size:19pt;font-weight:600;line-height:1.15;margin-bottom:3px;letter-spacing:-.01em;padding-right:.7in}
+.ws-course{font-family:'Space Grotesk',sans-serif;font-size:9.5pt;color:#5A6470;letter-spacing:.02em}
+.ws-instructions{font-family:'Space Grotesk',sans-serif;font-size:9.5pt;line-height:1.5;color:#3A4652;background:#F4F6F8;border-left:2px solid var(--ink);padding:7px 11px;margin-bottom:.26in}
+
+.ws-section{font-family:'Space Grotesk',sans-serif;font-size:11pt;font-weight:600;letter-spacing:.02em;border-bottom:1px solid var(--ink);padding-bottom:3px;margin:.26in 0 .18in;break-after:avoid}
+.ws-section:first-child{margin-top:0}
+
+.ws-q{margin-bottom:.2in;break-inside:avoid}
+.ws-q-head{display:flex;gap:9px;align-items:baseline}
+.ws-q-num{font-family:'Space Grotesk',sans-serif;font-size:11pt;font-weight:600;min-width:.24in;flex-shrink:0}
+.ws-q-text{font-size:11.5pt;line-height:1.45;flex:1}
+.ws-q-pts{font-family:'IBM Plex Mono',monospace;font-size:8pt;color:#7A8694;white-space:nowrap;padding-left:8px}
+.ws-choices{margin:7px 0 0 .34in;display:grid;gap:5px}
+.ws-choices.two-col{grid-template-columns:1fr 1fr;gap:5px .2in}
+.ws-choice{display:flex;gap:7px;align-items:baseline;font-size:10.5pt;line-height:1.35}
+.ws-choice-letter{font-family:'Space Grotesk',sans-serif;font-weight:500;flex-shrink:0}
+.ws-choice-bubble{width:11px;height:11px;border:1.2px solid var(--ink);border-radius:50%;flex-shrink:0;align-self:center}
+.ws-lines{margin:9px 0 0 .34in}
+.ws-line{border-bottom:1px solid var(--rule);height:.28in}
+.ws-workbox{margin:9px 0 0 .34in;border:1px solid var(--rule);border-radius:2px}
+.ws-workbox-label{font-family:'IBM Plex Mono',monospace;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#8A96A4;padding:4px 8px 0}
+.ws-grid-box{margin:9px 0 0 .34in;border:1px solid var(--rule);background-image:linear-gradient(var(--rule) .5px,transparent .5px),linear-gradient(90deg,var(--rule) .5px,transparent .5px);background-size:.2in .2in;opacity:.85}
+.ws-answer-blank{display:inline-block;border-bottom:1px solid var(--ink);min-width:1.1in;margin:0 4px}
+.ws-footer{margin-top:.28in;padding-top:.13in;border-top:1px solid var(--rule);display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:7.5pt;color:#8A96A4;letter-spacing:.05em}
+
+/* answer key */
+.key-paper{background:#FFFDF5}
+.key-tag{position:absolute;top:.3in;right:.3in;font-family:'Space Grotesk',sans-serif;font-size:11pt;font-weight:700;letter-spacing:.06em;background:var(--ink);color:#fff;border-radius:3px;padding:3px 11px}
+.key-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px .3in;margin-top:.2in}
+.key-item{display:flex;gap:7px;align-items:baseline;font-family:'Space Grotesk',sans-serif;font-size:10.5pt;border-bottom:1px solid var(--rule);padding-bottom:3px}
+.key-n{font-weight:600;min-width:.22in}
+.key-blank{flex:1;color:#B0BAC6}
+
+/* ── PRINT ── */
+@media print{
+  body{background:#fff}
+  .topbar,.side{display:none!important}
+  .wrap{display:block}
+  .stage{padding:0;max-height:none;overflow:visible;background:#fff}
+  .stage-inner{display:block;gap:0}
+  .paper{box-shadow:none;width:100%;min-height:0;padding:.45in .55in;page-break-after:always}
+  .paper:last-child{page-break-after:auto}
+  @page{size:letter;margin:.35in}
+}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--edge);border-radius:3px}
+@media(max-width:1050px){.wrap{grid-template-columns:1fr}.side{max-height:none}.paper{width:100%}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand-mark">Sheet <em>Builder</em></span>
+  <div class="mode-switch">
+    <button class="mode-btn active" id="modeWS" onclick="setMode('worksheet')">Worksheet</button>
+    <button class="mode-btn" id="modeTest" onclick="setMode('test')">Test</button>
+  </div>
+  <div class="tb-spacer"></div>
+  <button class="btn" onclick="newSheet()">New</button>
+  <button class="btn" onclick="saveSheet()">Save</button>
+  <button class="btn" onclick="openLoad()">Open</button>
+  <button class="btn" id="reshuffleBtn" onclick="reshuffle()" style="display:none">↻ Reshuffle</button>
+  <button class="btn btn-primary" onclick="window.print()">Print / PDF</button>
+</div>
+
+<div class="wrap">
+  <div class="side">
+
+    <div class="pane">
+      <div class="pane-label">Details</div>
+      <div class="fgrid">
+        <div class="f">
+          <label id="titleLabel">Title</label>
+          <input type="text" id="wsTitle" placeholder="Stoichiometry Practice" oninput="render()">
+        </div>
+        <div class="fgrid two">
+          <div class="f"><label>Course</label><input type="text" id="wsCourse" placeholder="Honors Chemistry" oninput="render()"></div>
+          <div class="f"><label>Unit / Chapter</label><input type="text" id="wsUnit" placeholder="Unit 6" oninput="render()"></div>
+        </div>
+        <div class="f">
+          <label>Instructions (optional)</label>
+          <textarea id="wsInstr" placeholder="Show all work. Circle your final answer. Include units." oninput="render()"></textarea>
+        </div>
+        <div class="fgrid two">
+          <div class="f"><label>Date line</label>
+            <select id="wsDate" onchange="render()"><option value="yes">Show</option><option value="no">Hide</option></select>
+          </div>
+          <div class="f"><label>Point values</label>
+            <select id="wsPts" onchange="render()"><option value="no">Hide</option><option value="yes">Show</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEST-ONLY: versions -->
+    <div class="pane" id="versionPane" style="display:none">
+      <div class="pane-label">Versions</div>
+      <div class="ver-strip" id="verStrip"></div>
+      <div class="opt-row">
+        <input type="checkbox" id="optShuffleQ" checked onchange="reshuffle()">
+        <label for="optShuffleQ">Shuffle question order between versions</label>
+      </div>
+      <div class="opt-row">
+        <input type="checkbox" id="optShuffleC" checked onchange="reshuffle()">
+        <label for="optShuffleC">Scramble multiple-choice answers</label>
+      </div>
+      <div class="opt-row">
+        <input type="checkbox" id="optKey" onchange="render()">
+        <label for="optKey">Print a blank answer key sheet per version</label>
+      </div>
+      <div class="opt-hint">
+        Shuffling stays inside each section. Lock a question with 🔒 to pin it in place across all versions.
+      </div>
+    </div>
+
+    <div class="pane">
+      <div class="pane-label">Add</div>
+      <div class="qtypes">
+        <button class="qtype" onclick="addQ('short')"><span class="qtype-icon">✍️</span><span class="qtype-name">Short answer</span></button>
+        <button class="qtype" onclick="addQ('mc')"><span class="qtype-icon">🔘</span><span class="qtype-name">Multiple choice</span></button>
+        <button class="qtype" onclick="addQ('work')"><span class="qtype-icon">🧮</span><span class="qtype-name">Show your work</span></button>
+        <button class="qtype" onclick="addQ('graph')"><span class="qtype-icon">📈</span><span class="qtype-name">Graph / grid</span></button>
+        <button class="qtype" onclick="addQ('long')"><span class="qtype-icon">📝</span><span class="qtype-name">Long response</span></button>
+        <button class="qtype" onclick="addQ('fill')"><span class="qtype-icon">␣</span><span class="qtype-name">Fill in blank</span></button>
+      </div>
+      <button class="mini-btn" onclick="addQ('section')" style="border-color:rgba(167,139,250,.4);color:var(--violet)">+ Section heading</button>
+    </div>
+
+    <div class="pane">
+      <div class="pane-label"><span>Questions</span><span id="qCount" style="color:var(--flask)">0</span></div>
+      <div class="qlist" id="qList"><div class="empty-q">Nothing yet — add above</div></div>
+    </div>
+
+  </div>
+
+  <div class="stage"><div class="stage-inner" id="stage"></div></div>
+</div>
+
+<div id="loadModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;align-items:center;justify-content:center" onclick="if(event.target===this)closeLoad()">
+  <div style="background:var(--slate2);border:1px solid var(--edge2);border-radius:6px;padding:1.4rem;width:420px;max-height:70vh;overflow-y:auto">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk3);margin-bottom:1rem">Saved sheets</div>
+    <div id="savedList"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem"><button class="btn" onclick="closeLoad()">Close</button></div>
+  </div>
+</div>
+
+<script>
+const SAVE_KEY='dc_sheets_v2';
+let mode='worksheet';
+let questions=[];
+let versionCount=2;
+let seeds={};                       // version letter -> shuffle seed
+
+const TYPE_LABEL={short:'Short answer',mc:'Multiple choice',work:'Show work',graph:'Graph',long:'Long response',fill:'Fill in blank',section:'Section'};
+const DEFAULTS={short:{lines:2},mc:{options:['','','','']},work:{height:1.4},graph:{height:2.6},long:{lines:6},fill:{},section:{}};
+const LETTERS=['A','B','C','D','E','F'];
+
+const uid=()=>'q'+Date.now()+Math.random().toString(36).slice(2,6);
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+/* seeded RNG so versions stay stable until reshuffled */
+function rng(seed){let s=seed;return()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296;};}
+function shuffleSeeded(arr,rand){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* ── MODE ── */
+function setMode(m){
+  mode=m;
+  document.getElementById('modeWS').classList.toggle('active',m==='worksheet');
+  document.getElementById('modeTest').classList.toggle('active',m==='test');
+  document.getElementById('versionPane').style.display=m==='test'?'':'none';
+  document.getElementById('reshuffleBtn').style.display=m==='test'?'':'none';
+  document.getElementById('titleLabel').textContent=m==='test'?'Test title':'Title';
+  document.getElementById('wsTitle').placeholder=m==='test'?'Unit 6 Exam — Stoichiometry':'Stoichiometry Practice';
+  if(m==='test'&&!Object.keys(seeds).length)reshuffle();
+  renderVerStrip();render();
+}
+
+function renderVerStrip(){
+  document.getElementById('verStrip').innerHTML=LETTERS.map((L,i)=>
+    `<button class="ver-chip ${i<versionCount?'on':''}" onclick="setVersions(${i+1})" title="${i+1} version${i?'s':''}">${L}</button>`).join('');
+}
+
+function setVersions(n){versionCount=n;reshuffle();renderVerStrip();}
+
+function reshuffle(){
+  seeds={};
+  LETTERS.slice(0,versionCount).forEach((L,i)=>seeds[L]=Math.floor(Math.random()*1e9)+i*7919);
+  render();
+}
+
+/* ── QUESTIONS ── */
+function addQ(type){
+  questions.push({id:uid(),type,text:'',pts:type==='section'?0:1,locked:false,...structuredClone(DEFAULTS[type])});
+  renderEditor();render();
+  setTimeout(()=>{const e=document.querySelectorAll('.qcard textarea, .sec-input');e[e.length-1]?.focus();},30);
+}
+function delQ(id){questions=questions.filter(q=>q.id!==id);renderEditor();render();}
+function moveQ(id,d){const i=questions.findIndex(q=>q.id===id),j=i+d;if(i<0||j<0||j>=questions.length)return;[questions[i],questions[j]]=[questions[j],questions[i]];renderEditor();render();}
+function dupQ(id){const i=questions.findIndex(q=>q.id===id);if(i<0)return;const c=structuredClone(questions[i]);c.id=uid();questions.splice(i+1,0,c);renderEditor();render();}
+function updQ(id,f,v){const q=questions.find(x=>x.id===id);if(q){q[f]=v;render();}}
+function toggleLock(id){const q=questions.find(x=>x.id===id);if(q){q.locked=!q.locked;renderEditor();render();}}
+function updOpt(id,i,v){const q=questions.find(x=>x.id===id);if(q){q.options[i]=v;render();}}
+function addOpt(id){const q=questions.find(x=>x.id===id);if(q&&q.options.length<6){q.options.push('');renderEditor();render();}}
+function delOpt(id,i){const q=questions.find(x=>x.id===id);if(q&&q.options.length>2){q.options.splice(i,1);renderEditor();render();}}
+
+/* ── EDITOR ── */
+function renderEditor(){
+  const list=document.getElementById('qList');
+  document.getElementById('qCount').textContent=questions.filter(q=>q.type!=='section').length;
+  if(!questions.length){list.innerHTML='<div class="empty-q">Nothing yet — add above</div>';return;}
+
+  let n=0;
+  list.innerHTML=questions.map(q=>{
+    if(q.type==='section'){
+      return `<div class="qcard is-section">
+        <div class="qcard-head">
+          <span class="qbadge sec">Section</span>
+          <div class="qcard-actions">
+            <button class="icon-btn" onclick="moveQ('${q.id}',-1)">↑</button>
+            <button class="icon-btn" onclick="moveQ('${q.id}',1)">↓</button>
+            <button class="icon-btn danger" onclick="delQ('${q.id}')">×</button>
+          </div>
+        </div>
+        <input class="sec-input" type="text" value="${esc(q.text)}" placeholder="Part I — Multiple Choice"
+          oninput="updQ('${q.id}','text',this.value)"
+          style="width:100%;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500;padding:5px 7px;background:var(--slate);border:1px solid var(--edge);border-radius:3px;color:var(--chalk);outline:none">
+      </div>`;
+    }
+
+    n++;
+    let extra='';
+    if(q.type==='mc'){
+      extra=`<div class="qopts">`+q.options.map((o,oi)=>`
+        <div class="qopt-row">
+          <span class="qopt-letter">${String.fromCharCode(97+oi)})</span>
+          <input type="text" value="${esc(o)}" placeholder="Choice ${String.fromCharCode(97+oi)}" oninput="updOpt('${q.id}',${oi},this.value)">
+          ${q.options.length>2?`<button class="icon-btn danger" onclick="delOpt('${q.id}',${oi})">×</button>`:''}
+        </div>`).join('')+
+        (q.options.length<6?`<button class="mini-btn" onclick="addOpt('${q.id}')">+ Add choice</button>`:'')+`</div>`;
+    }
+    if(q.type==='short'||q.type==='long'){
+      extra=`<div class="qmeta-row"><span>Lines</span>
+        <input class="inline-num" type="number" min="1" max="20" value="${q.lines}" oninput="updQ('${q.id}','lines',Math.max(1,Math.min(20,+this.value||1)))"></div>`;
+    }
+    if(q.type==='work'||q.type==='graph'){
+      extra=`<div class="qmeta-row"><span>Height (in)</span>
+        <input class="inline-num" type="number" min="0.5" max="6" step="0.2" value="${q.height}" oninput="updQ('${q.id}','height',Math.max(.5,Math.min(6,+this.value||1)))"></div>`;
+    }
+
+    const ptsField=`<span style="margin-left:auto">Pts</span>
+      <input class="inline-num" type="number" min="0" max="50" value="${q.pts}" oninput="updQ('${q.id}','pts',Math.max(0,+this.value||0))">`;
+
+    return `<div class="qcard ${q.locked?'locked':''}">
+      <div class="qcard-head">
+        <span class="qnum">${n}.</span>
+        <span class="qbadge">${TYPE_LABEL[q.type]}</span>
+        <div class="qcard-actions">
+          ${mode==='test'?`<button class="icon-btn ${q.locked?'on':''}" onclick="toggleLock('${q.id}')" title="${q.locked?'Unlock position':'Lock in place across versions'}">${q.locked?'🔒':'🔓'}</button>`:''}
+          <button class="icon-btn" onclick="moveQ('${q.id}',-1)">↑</button>
+          <button class="icon-btn" onclick="moveQ('${q.id}',1)">↓</button>
+          <button class="icon-btn" onclick="dupQ('${q.id}')">⧉</button>
+          <button class="icon-btn danger" onclick="delQ('${q.id}')">×</button>
+        </div>
+      </div>
+      <textarea placeholder="Type the question…" oninput="updQ('${q.id}','text',this.value)">${esc(q.text)}</textarea>
+      ${extra}
+      <div class="qmeta-row">${ptsField}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── ORDER FOR A VERSION ── */
+function orderFor(letter){
+  if(mode!=='test'||letter==='A'&&!seeds[letter])return questions;
+  const shuffleQ=document.getElementById('optShuffleQ')?.checked;
+  if(!shuffleQ)return questions;
+
+  const rand=rng(seeds[letter]||1);
+  // split into blocks by section header; shuffle within each block, keep locked in place
+  const out=[];let block=[];
+  const flush=()=>{
+    if(!block.length)return;
+    const lockedIdx=block.map((q,i)=>q.locked?i:-1).filter(i=>i>=0);
+    const movable=block.filter(q=>!q.locked);
+    const shuffled=shuffleSeeded(movable,rand);
+    const merged=[];let si=0;
+    block.forEach((q,i)=>merged.push(lockedIdx.includes(i)?q:shuffled[si++]));
+    out.push(...merged);block=[];
+  };
+  questions.forEach(q=>{
+    if(q.type==='section'){flush();out.push(q);}
+    else block.push(q);
+  });
+  flush();
+  return out;
+}
+
+function choicesFor(q,letter){
+  if(mode!=='test'||!document.getElementById('optShuffleC')?.checked)return q.options;
+  const rand=rng((seeds[letter]||1)+q.id.length*31);
+  return shuffleSeeded(q.options,rand);
+}
+
+/* ── PAPER RENDER ── */
+function buildPaper(letter){
+  const title=document.getElementById('wsTitle').value.trim();
+  const course=document.getElementById('wsCourse').value.trim();
+  const unit=document.getElementById('wsUnit').value.trim();
+  const instr=document.getElementById('wsInstr').value.trim();
+  const showDate=document.getElementById('wsDate').value==='yes';
+  const showPts=document.getElementById('wsPts').value==='yes';
+  const courseLine=[course,unit].filter(Boolean).join('  ·  ');
+  const list=orderFor(letter);
+  const qOnly=list.filter(q=>q.type!=='section');
+  const totalPts=qOnly.reduce((s,q)=>s+(+q.pts||0),0);
+
+  let h=`<div class="paper">`;
+  if(mode==='test'&&versionCount>1)h+=`<div class="ver-tag">${letter}</div>`;
+
+  h+=`<div class="ws-head">
+    <div class="ws-meta-row">
+      <div class="ws-field name"><span class="ws-field-label">Name</span><span class="ws-field-line"></span></div>
+      <div class="ws-field period"><span class="ws-field-label">Period</span><span class="ws-field-line"></span></div>
+      ${showDate?`<div class="ws-field date"><span class="ws-field-label">Date</span><span class="ws-field-line"></span></div>`:''}
+    </div>
+    <div class="ws-title">${esc(title)||(mode==='test'?'Untitled test':'Untitled worksheet')}</div>
+    ${courseLine?`<div class="ws-course">${esc(courseLine)}</div>`:''}
+  </div>`;
+
+  if(instr)h+=`<div class="ws-instructions">${esc(instr).replace(/\n/g,'<br>')}</div>`;
+
+  if(!list.length){
+    h+=`<div style="text-align:center;padding:1.5in 0;color:#B0BAC6;font-family:'Space Grotesk',sans-serif;font-size:10pt">Questions appear here as you add them</div>`;
+  }
+
+  let n=0;
+  list.forEach(q=>{
+    if(q.type==='section'){
+      h+=`<div class="ws-section">${esc(q.text)||'Section'}</div>`;return;
+    }
+    n++;
+    const pts=showPts?`<span class="ws-q-pts">(${q.pts} pt${q.pts==1?'':'s'})</span>`:'';
+    let body='';
+
+    if(q.type==='mc'){
+      const opts=choicesFor(q,letter);
+      const shown=opts.filter(o=>o.trim()!=='').length?opts.filter(o=>o.trim()!==''):opts;
+      const short=shown.every(o=>o.length<22);
+      body=`<div class="ws-choices ${short&&shown.length===4?'two-col':''}">`+
+        shown.map((o,oi)=>`<div class="ws-choice">
+          <span class="ws-choice-bubble"></span>
+          <span class="ws-choice-letter">${String.fromCharCode(97+oi)})</span>
+          <span>${esc(o)}</span></div>`).join('')+`</div>`;
+    }
+    if(q.type==='short'||q.type==='long')
+      body=`<div class="ws-lines">`+Array(q.lines).fill('<div class="ws-line"></div>').join('')+`</div>`;
+    if(q.type==='work')
+      body=`<div class="ws-workbox" style="height:${q.height}in"><div class="ws-workbox-label">Work</div></div>`;
+    if(q.type==='graph')
+      body=`<div class="ws-grid-box" style="height:${q.height}in"></div>`;
+
+    let txt=esc(q.text)||'<span style="color:#B0BAC6">…</span>';
+    if(q.type==='fill')txt=txt.replace(/_{2,}/g,'<span class="ws-answer-blank"></span>');
+
+    h+=`<div class="ws-q"><div class="ws-q-head">
+      <span class="ws-q-num">${n}.</span>
+      <span class="ws-q-text">${txt}</span>${pts}
+    </div>${body}</div>`;
+  });
+
+  if(qOnly.length){
+    h+=`<div class="ws-footer">
+      <span>${esc(course||'La Salle High School')}${mode==='test'&&versionCount>1?` · Version ${letter}`:''}</span>
+      <span>${qOnly.length} question${qOnly.length===1?'':'s'}${showPts?` · ${totalPts} points`:''}</span>
+    </div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+function buildKey(letter){
+  const title=document.getElementById('wsTitle').value.trim();
+  const list=orderFor(letter).filter(q=>q.type!=='section');
+  if(!list.length)return '';
+  let h=`<div class="paper key-paper"><div class="key-tag">KEY · ${letter}</div>
+    <div class="ws-head" style="border-bottom-width:1px;padding-bottom:.16in;margin-bottom:.2in">
+      <div class="ws-title" style="font-size:15pt">${esc(title)||'Untitled test'}</div>
+      <div class="ws-course">Answer key — version ${letter}</div>
+    </div><div class="key-grid">`;
+  list.forEach((q,i)=>{
+    h+=`<div class="key-item"><span class="key-n">${i+1}.</span><span class="key-blank">_____</span></div>`;
+  });
+  h+=`</div></div>`;
+  return h;
+}
+
+function render(){
+  const stage=document.getElementById('stage');
+  if(mode==='worksheet'){stage.innerHTML=buildPaper('A');return;}
+  const wantKey=document.getElementById('optKey')?.checked;
+  let h='';
+  LETTERS.slice(0,versionCount).forEach(L=>{
+    h+=buildPaper(L);
+    if(wantKey)h+=buildKey(L);
+  });
+  stage.innerHTML=h;
+}
+
+/* ── SAVE / LOAD ── */
+function currentSheet(){
+  return{mode,title:document.getElementById('wsTitle').value,course:document.getElementById('wsCourse').value,
+    unit:document.getElementById('wsUnit').value,instr:document.getElementById('wsInstr').value,
+    date:document.getElementById('wsDate').value,pts:document.getElementById('wsPts').value,
+    versionCount,questions,savedAt:Date.now()};
+}
+function saveSheet(){
+  const s=currentSheet();
+  if(!s.title.trim()){alert('Give it a title before saving.');document.getElementById('wsTitle').focus();return;}
+  let all=[];try{all=JSON.parse(localStorage.getItem(SAVE_KEY))||[];}catch{}
+  const i=all.findIndex(x=>x.title===s.title&&x.mode===s.mode);
+  if(i>=0)all[i]=s;else all.push(s);
+  localStorage.setItem(SAVE_KEY,JSON.stringify(all));flash('Saved');
+}
+function openLoad(){
+  let all=[];try{all=JSON.parse(localStorage.getItem(SAVE_KEY))||[];}catch{}
+  document.getElementById('savedList').innerHTML=all.length?all.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--edge)">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:${s.mode==='test'?'var(--amber-dim)':'var(--flask-dim)'};color:${s.mode==='test'?'var(--amber)':'var(--flask)'}">${s.mode==='test'?'Test':'WS'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;color:var(--chalk)">${esc(s.title)}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);margin-top:2px">${esc([s.course,s.unit].filter(Boolean).join(' · '))} · ${s.questions.filter(q=>q.type!=='section').length} q</div>
+      </div>
+      <button class="btn" onclick="loadSheet(${i})">Open</button>
+      <button class="icon-btn danger" onclick="delSheet(${i})">×</button>
+    </div>`).join('')
+    :`<div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk3);padding:1rem 0;text-align:center">Nothing saved yet</div>`;
+  document.getElementById('loadModal').style.display='flex';
+}
+function closeLoad(){document.getElementById('loadModal').style.display='none';}
+function loadSheet(i){
+  let all=[];try{all=JSON.parse(localStorage.getItem(SAVE_KEY))||[];}catch{}
+  const s=all[i];if(!s)return;
+  document.getElementById('wsTitle').value=s.title||'';
+  document.getElementById('wsCourse').value=s.course||'';
+  document.getElementById('wsUnit').value=s.unit||'';
+  document.getElementById('wsInstr').value=s.instr||'';
+  document.getElementById('wsDate').value=s.date||'yes';
+  document.getElementById('wsPts').value=s.pts||'no';
+  questions=s.questions||[];versionCount=s.versionCount||2;
+  setMode(s.mode||'worksheet');renderEditor();closeLoad();
+}
+function delSheet(i){
+  if(!confirm('Delete this saved sheet?'))return;
+  let all=[];try{all=JSON.parse(localStorage.getItem(SAVE_KEY))||[];}catch{}
+  all.splice(i,1);localStorage.setItem(SAVE_KEY,JSON.stringify(all));openLoad();
+}
+function newSheet(){
+  if(questions.length&&!confirm('Clear the current sheet? Save it first if you want to keep it.'))return;
+  ['wsTitle','wsCourse','wsUnit','wsInstr'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('wsDate').value='yes';document.getElementById('wsPts').value='no';
+  questions=[];renderEditor();render();
+}
+function flash(m){
+  const e=document.createElement('div');e.textContent=m;
+  e.style.cssText=`position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--flask);color:var(--slate);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 18px;border-radius:4px;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,.35)`;
+  document.body.appendChild(e);setTimeout(()=>e.remove(),1600);
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeLoad();
+  if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveSheet();}
+});
+
+renderVerStrip();renderEditor();render();
+</script>
+</body>
+</html>
