@@ -833,16 +833,30 @@ function onApiInput() {
   apiKey = document.getElementById('apiKey').value.trim();
   const status = document.getElementById('apiStatus');
   if (!apiKey) {
+    localStorage.removeItem('dc_meeting_apikey');
     status.textContent = 'Enter your key to enable AI generation';
     status.className = 'api-status';
   } else if (!apiKey.startsWith('sk-ant-')) {
     status.textContent = 'Key format looks off — should start with sk-ant-';
     status.className = 'api-status err';
   } else {
-    status.textContent = 'Key looks good ✓';
+    localStorage.setItem('dc_meeting_apikey', apiKey);
+    status.textContent = 'Key saved ✓ — stays in this browser';
     status.className = 'api-status ok';
   }
 }
+
+// Restore saved key on load
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('dc_meeting_apikey');
+  if (saved) {
+    document.getElementById('apiKey').value = saved;
+    apiKey = saved;
+    const status = document.getElementById('apiStatus');
+    status.textContent = 'Key saved ✓ — stays in this browser';
+    status.className = 'api-status ok';
+  }
+});
 
 // ── Standing items ──
 function addStanding() {
@@ -885,10 +899,15 @@ async function callClaude(systemPrompt, userPrompt, btnEl, errorEl) {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 2000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
