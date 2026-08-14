@@ -146,14 +146,15 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 
 /* ── PRINT ── */
 @media print{
-  body{background:#fff}
+  html,body{background:#fff;margin:0;padding:0}
   .topbar,.side{display:none!important}
   .wrap{display:block}
   .stage{padding:0;max-height:none;overflow:visible;background:#fff}
   .stage-inner{display:block;gap:0}
-  .paper{box-shadow:none;width:100%;min-height:0;padding:.45in .55in;page-break-after:always}
+  .paper{box-shadow:none;width:100%;min-height:0;padding:.5in .6in;page-break-after:always}
   .paper:last-child{page-break-after:auto}
-  @page{size:letter;margin:.35in}
+  /* margin:0 suppresses the browser's own URL/date header and footer */
+  @page{size:letter;margin:0}
 }
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -215,6 +216,17 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .item-lvl.honors{background:rgba(167,139,250,.18);color:var(--violet);border-color:rgba(167,139,250,.4)}
 .item-lvl.regular{background:var(--flask-dim);color:var(--flask);border-color:rgba(79,209,197,.4)}
 
+/* Lab header — generous write-in lines, no date, tag kept clear of fields */
+.lab-meta-row{display:flex;gap:.35in;align-items:flex-end;margin-bottom:.16in}
+.lab-field{display:flex;align-items:flex-end;gap:7px;font-family:'Space Grotesk',sans-serif}
+.lab-field.grow{flex:1}
+.lab-field.period{flex:0 0 auto}
+.lab-flabel{font-size:10.5pt;font-weight:500;white-space:nowrap;padding-bottom:1px}
+.lab-fline{border-bottom:1px solid var(--ink);flex:1;height:19px;min-width:2.4in}
+.lab-field.period .lab-fline{width:.75in;flex:none;min-width:0}
+.lab-title{padding-right:1.5in}
+.ver-tag.lab-ver{font-size:9pt;letter-spacing:.08em;padding:3px 9px;top:.28in;right:.28in}
+
 /* Lab paper */
 .lab-sec{font-family:'Space Grotesk',sans-serif;font-size:11.5pt;font-weight:600;letter-spacing:.02em;border-bottom:1.5px solid var(--ink);padding-bottom:3px;margin:.24in 0 .14in;break-after:avoid;display:flex;align-items:baseline;gap:8px}
 .lab-sec:first-of-type{margin-top:0}
@@ -274,7 +286,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
           <label>Instructions (optional)</label>
           <textarea id="wsInstr" placeholder="Show all work. Circle your final answer. Include units." oninput="render()"></textarea>
         </div>
-        <div class="fgrid two">
+        <div class="fgrid two" id="dateRow">
           <div class="f"><label>Date line</label>
             <select id="wsDate" onchange="render()"><option value="yes">Show</option><option value="no">Hide</option></select>
           </div>
@@ -313,11 +325,11 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
       <div class="pane-label" style="margin-top:.9rem">Printing for</div>
       <div class="lvl-pick">
         <button class="lvl-btn active" id="lvlBoth" onclick="setLevel('both')">Both</button>
-        <button class="lvl-btn" id="lvlReg" onclick="setLevel('regular')">Regular</button>
+        <button class="lvl-btn" id="lvlReg" onclick="setLevel('regular')">College Prep</button>
         <button class="lvl-btn" id="lvlHon" onclick="setLevel('honors')">Honors</button>
       </div>
       <div class="opt-hint" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.04em;line-height:1.7">
-        Every question, step, and rule has its own <b>B</b>/<b style="color:var(--violet)">H</b>/<b style="color:var(--flask)">R</b> chip — click to cycle. Tag one honors question and it vanishes from the regular packet while staying in honors. Section headers auto-hide when all their items are filtered out.
+        Every question, step, and rule has its own <b>B</b>/<b style="color:var(--violet)">H</b>/<b style="color:var(--flask)">CP</b> chip — click to cycle. Tag one honors question and it vanishes from the regular packet while staying in honors. Section headers auto-hide when all their items are filtered out.
       </div>
       <div class="fgrid two" style="margin-top:.8rem">
         <div class="f"><label>Class period (min)</label>
@@ -431,6 +443,7 @@ function setMode(m){
   document.getElementById('labList').style.display=isLab?'':'none';
   document.getElementById('apiKey').style.display=isLab?'':'none';
   document.getElementById('listLabel').textContent=isLab?'Lab sections':'Questions';
+  document.getElementById('dateRow').style.display=isLab?'none':'';
 
   document.getElementById('titleLabel').textContent=isLab?'Lab title':(isTest?'Test title':'Title');
   document.getElementById('wsTitle').placeholder=isLab?'Determining the Molar Volume of a Gas'
@@ -743,7 +756,7 @@ function cycleItemLevel(id,f,i){
 
 function lvlChip(id,f,i,lvl){
   const l=lvl||'both';
-  const txt=l==='both'?'B':l==='honors'?'H':'R';
+  const txt=l==='both'?'B':l==='honors'?'H':'CP';
   return `<button class="item-lvl ${l}" onclick="cycleItemLevel('${id}','${f}',${i})"
     title="Both / Honors only / Regular only">${txt}</button>`;
 }
@@ -812,7 +825,7 @@ function renderTimeMeter(){
 
   el.innerHTML=`<div class="tm-top">
       <span class="tm-total ${state}">${Math.round(t)}<span style="font-size:11px;opacity:.6"> min</span></span>
-      <span class="tm-cap">CAP ${cap} · ${lvls.length>1?worst.l.toUpperCase()+' IS LONGEST':worst.l.toUpperCase()}</span>
+      <span class="tm-cap">CAP ${cap} · ${(worst.l==='regular'?'COLLEGE PREP':'HONORS')}${lvls.length>1?' IS LONGEST':''}</span>
     </div>
     <div class="tm-bar"><div class="tm-fill ${state}" style="width:${pct}%"></div></div>
     <div class="tm-break">
@@ -882,7 +895,7 @@ function renderLabEditor(){
         ${b.steps.length>1?`<button class="icon-btn danger" onclick="delArr('${b.id}','steps',${i})" style="padding-top:7px">×</button>`:''}
       </div>`).join('')+
       `<button class="mini-btn" onclick="addArr('${b.id}','steps',{t:'',min:5,lvl:'both'})">+ Add step</button>
-       <div class="qmeta-row"><span>Reg</span><span style="color:var(--flask)">${itemsFor(b,'steps','regular').reduce((s,x)=>s+(+x.min||0),0)} min</span>
+       <div class="qmeta-row"><span>CP</span><span style="color:var(--flask)">${itemsFor(b,'steps','regular').reduce((s,x)=>s+(+x.min||0),0)} min</span>
          <span style="margin-left:8px">Hon</span><span style="color:var(--violet)">${itemsFor(b,'steps','honors').reduce((s,x)=>s+(+x.min||0),0)} min</span></div>`;
     }
 
@@ -938,16 +951,17 @@ function buildLabPaper(lvl){
   const t=timeFor(lvl);
 
   let h=`<div class="paper">`;
-  if(printLevel==='both')h+=`<div class="ver-tag" style="font-size:10pt">${lvl==='honors'?'HONORS':'REGULAR'}</div>`;
+  if(printLevel==='both')h+=`<div class="ver-tag lab-ver">${lvl==='honors'?'HONORS':'COLLEGE PREP'}</div>`;
 
   h+=`<div class="ws-head">
-    <div class="ws-meta-row">
-      <div class="ws-field name"><span class="ws-field-label">Name</span><span class="ws-field-line"></span></div>
-      <div class="ws-field name"><span class="ws-field-label">Partner(s)</span><span class="ws-field-line"></span></div>
-      <div class="ws-field period"><span class="ws-field-label">Period</span><span class="ws-field-line"></span></div>
-      ${showDate?`<div class="ws-field date"><span class="ws-field-label">Date</span><span class="ws-field-line"></span></div>`:''}
+    <div class="lab-meta-row">
+      <div class="lab-field grow"><span class="lab-flabel">Name</span><span class="lab-fline"></span></div>
+      <div class="lab-field period"><span class="lab-flabel">Period</span><span class="lab-fline"></span></div>
     </div>
-    <div class="ws-title">${esc(title)||'Untitled lab'}</div>
+    <div class="lab-meta-row">
+      <div class="lab-field grow"><span class="lab-flabel">Partner(s)</span><span class="lab-fline"></span></div>
+    </div>
+    <div class="ws-title lab-title">${esc(title)||'Untitled lab'}</div>
     ${courseLine?`<div class="ws-course">${esc(courseLine)}</div>`:''}
   </div>`;
 
@@ -1023,7 +1037,7 @@ function buildLabPaper(lvl){
 
   if(list.length){
     h+=`<div class="ws-footer">
-      <span>${esc(course||'La Salle High School')}${printLevel==='both'?` · ${lvl==='honors'?'Honors':'Regular'}`:''}</span>
+      <span>${esc(course||'La Salle High School')}${printLevel==='both'?` · ${lvl==='honors'?'Honors':'College Prep'}`:''}</span>
       <span>Est. ${Math.round(t.total)} of ${cap} min</span>
     </div>`;
   }
@@ -1037,7 +1051,7 @@ function labContext(lvl){
   return list.map(b=>{
     const head=`## ${b.title||BLK[b.kind].sec} (${b.kind}${b.level!=='both'?', '+b.level+' only':''})`;
     if(b.text)return head+'\n'+b.text;
-    const tag=x=>x.lvl&&x.lvl!=='both'?` (${x.lvl} only)`:'';
+    const tag=x=>x.lvl&&x.lvl!=='both'?` (${x.lvl==='regular'?'CP':'honors'} only)`:'';
     if(b.items)return head+'\n'+itemsFor(b,'items',lvl).filter(x=>x.t.trim()).map(x=>'- '+x.t+tag(x)).join('\n');
     if(b.questions)return head+'\n'+itemsFor(b,'questions',lvl).map((q,i)=>`${i+1}. ${q.t}${tag(q)}`).join('\n');
     if(b.steps)return head+'\n'+itemsFor(b,'steps',lvl).map((s,i)=>`${i+1}. [${s.min}min] ${s.t}${tag(s)}`).join('\n');
@@ -1070,7 +1084,8 @@ function aiShow(t){const el=document.getElementById('aiOut');el.style.display='b
 function aiSys(){
   const cap=+document.getElementById('labCap').value||70;
   return `You help a high school science teacher (La Salle, chemistry & physics) build lab packets.
-Two audiences share this lab: a regular section and an honors section.
+Two audiences share this lab: a College Preparatory (CP) section and an Honors section.
+When a question or step suits only one, say which.
 HARD CONSTRAINT: the entire lab — setup, procedure, writing, cleanup — must finish inside ${cap} minutes.
 Never propose additions that would push it over. Fewer, better questions beat more questions.
 Write in plain text. No markdown headers, no asterisks, no preamble. Output only what is asked for.`;
@@ -1179,7 +1194,7 @@ async function aiTimeCheck(btn){
 ${labContext('honors')}
 
 My current estimates:
-- Regular section: ${Math.round(reg.total)} min (procedure ${Math.round(reg.proc)}, pre-lab ${Math.round(reg.pre)}, analysis ${Math.round(reg.ana)}, writing ${Math.round(reg.other)}, setup ${reg.overhead})
+- College Prep section: ${Math.round(reg.total)} min (procedure ${Math.round(reg.proc)}, pre-lab ${Math.round(reg.pre)}, analysis ${Math.round(reg.ana)}, writing ${Math.round(reg.other)}, setup ${reg.overhead})
 - Honors section: ${Math.round(hon.total)} min
 - Class period: ${cap} min
 
