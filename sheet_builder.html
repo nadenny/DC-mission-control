@@ -151,10 +151,16 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
   .wrap{display:block}
   .stage{padding:0;max-height:none;overflow:visible;background:#fff}
   .stage-inner{display:block;gap:0}
-  .paper{box-shadow:none;width:100%;min-height:0;padding:.5in .6in;page-break-after:always}
+  /* Page margin comes from @page so EVERY page gets it, not just page 1 */
+  .paper{box-shadow:none;width:auto;min-height:0;padding:0;page-break-after:always}
   .paper:last-child{page-break-after:auto}
-  /* margin:0 suppresses the browser's own URL/date header and footer */
-  @page{size:letter;margin:0}
+  @page{size:letter;margin:.55in}
+
+  /* Keep sections from splitting badly across pages */
+  .lab-sec{page-break-after:avoid;break-after:avoid}
+  .lab-step,.ws-q,.lab-safety{page-break-inside:avoid;break-inside:avoid}
+  .lab-table{page-break-inside:avoid;break-inside:avoid}
+  .ws-head{page-break-after:avoid;break-after:avoid}
 }
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:transparent}
