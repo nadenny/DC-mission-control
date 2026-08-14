@@ -543,6 +543,26 @@ h1 em {
   .header-right { padding: 1rem 0 0; }
   .header-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 0 0 1rem; }
 }
+/* ── ARCHIVE ── */
+.arch-filter{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:3px;border:1px solid var(--rule);background:transparent;color:var(--ink3);cursor:pointer;transition:all .12s}
+.arch-filter:hover{border-color:var(--rule2);color:var(--ink2)}
+.arch-filter.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.arch-card{border:1px solid var(--rule);border-radius:5px;margin-bottom:8px;background:#fff;overflow:hidden;transition:box-shadow .15s}
+.arch-card:hover{box-shadow:var(--shadow-sm)}
+.arch-card.open{border-color:var(--rule2);box-shadow:var(--shadow)}
+.arch-head{display:flex;align-items:center;gap:.75rem;padding:11px 14px;cursor:pointer;transition:background .12s}
+.arch-head:hover{background:var(--paper2)}
+.arch-title{font-family:'Fraunces',serif;font-size:15px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arch-meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.03em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arch-tag{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid}
+.arch-tag.agenda{background:#F5EDD8;color:#8B6914;border-color:#D9C48E}
+.arch-tag.notes{background:#E3F0ED;color:#1A6B5C;border-color:#8FC4B6}
+.arch-chev{font-size:11px;color:var(--ink3);width:12px;text-align:center}
+.arch-body{padding:0 14px 14px;border-top:1px solid var(--rule)}
+.arch-sec-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);padding:.875rem 0 .5rem}
+.arch-content{font-family:'Karla',sans-serif;font-size:12.5px;line-height:1.7;color:var(--ink2);white-space:pre-wrap;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:11px 13px;max-height:280px;overflow-y:auto}
+.arch-actions{display:flex;gap:7px;align-items:center;margin-top:.875rem;flex-wrap:wrap}
+
 </style>
 </head>
 <body>
@@ -572,6 +592,10 @@ h1 em {
     <div class="tab" onclick="switchTab('notes', this)">
       <div class="tab-dot" style="background:#7AB5E8"></div>
       Notes cleaner
+    </div>
+    <div class="tab" onclick="switchTab('archive', this)">
+      <div class="tab-dot" style="background:#6EC99A"></div>
+      Meeting archive <span id="archCount" style="font-size:9px;opacity:.6;margin-left:2px"></span>
     </div>
   </div>
 </div>
@@ -817,6 +841,33 @@ h1 em {
 </div>
 </div>
 
+<!-- ═══ ARCHIVE TAB ═══ -->
+<div id="tab-archive" class="panel-tab">
+<div style="max-width:1100px;margin:0 auto;padding:2rem 2.5rem 5rem">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E3F0ED">🗄️</div>
+      <div style="flex:1">
+        <div class="card-title">Meeting archive</div>
+        <div class="card-sub" id="archStat">0 meetings</div>
+      </div>
+      <button class="out-btn" onclick="exportArchive()">Export all as .txt</button>
+    </div>
+    <div style="padding:.875rem 1.25rem;border-bottom:1px solid var(--rule);display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;background:var(--paper)">
+      <button class="arch-filter active" onclick="setArchFilter('all',this)">All</button>
+      <button class="arch-filter" onclick="setArchFilter('agenda',this)">With agenda</button>
+      <button class="arch-filter" onclick="setArchFilter('notes',this)">With notes</button>
+      <div style="flex:1"></div>
+      <input id="archSearch" type="text" placeholder="Search meetings…" oninput="renderArchive()"
+        style="font-family:'Karla',sans-serif;font-size:12px;padding:5px 10px;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink);outline:none;width:200px">
+    </div>
+    <div style="padding:1rem 1.25rem" id="archList"></div>
+  </div>
+
+</div>
+</div>
+
 <script>
 // ── Tab switching ──
 function switchTab(name, el) {
@@ -824,6 +875,7 @@ function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
+  if (name === 'archive') renderArchive();
 }
 
 // ── API key ──
@@ -848,6 +900,8 @@ function onApiInput() {
 
 // Restore saved key on load
 window.addEventListener('load', () => {
+  loadArchive();
+  renderArchive();
   const saved = localStorage.getItem('dc_meeting_apikey');
   if (saved) {
     document.getElementById('apiKey').value = saved;
@@ -991,11 +1045,13 @@ Keep it tight. Teachers should be able to scan it in 20 seconds.`;
 }
 
 function renderAgendaOutput(text) {
+  lastAgenda = text;
   const card = document.getElementById('ag-output-body');
   card.innerHTML = `
     <div class="output-body" id="ag-out-text">${escapeHtml(text)}</div>
     <div class="output-actions">
-      <button class="out-btn green" onclick="copyOutput('ag-out-text', this)">Copy agenda</button>
+      <button class="out-btn green" onclick="saveToArchive('agenda', this)">💾 Save to archive</button>
+      <button class="out-btn" onclick="copyOutput('ag-out-text', this)">Copy agenda</button>
       <button class="out-btn" onclick="copyForEmail('ag-out-text', this)">Copy for email</button>
       <span class="char-count" id="ag-char">${text.length} chars</span>
     </div>`;
@@ -1055,14 +1111,201 @@ If an owner isn't clear from the notes, use "Unassigned" and note it needs clari
 }
 
 function renderNotesOutput(text) {
+  lastNotes = text;
   const card = document.getElementById('nt-output-body');
   card.innerHTML = `
     <div class="output-body" id="nt-out-text">${escapeHtml(text)}</div>
     <div class="output-actions">
-      <button class="out-btn green" onclick="copyOutput('nt-out-text', this)">Copy summary</button>
+      <button class="out-btn green" onclick="saveToArchive('notes', this)">💾 Save to archive</button>
+      <button class="out-btn" onclick="copyOutput('nt-out-text', this)">Copy summary</button>
       <button class="out-btn" onclick="copyForEmail('nt-out-text', this)">Copy for email</button>
       <span class="char-count">${text.length} chars</span>
     </div>`;
+}
+
+// ══════════════ MEETING ARCHIVE ══════════════
+const ARCH_KEY = 'dc_meeting_archive_v1';
+let lastAgenda = '';
+let lastNotes  = '';
+let archive    = [];
+let archFilter = 'all';
+let openCard   = null;
+
+function loadArchive() {
+  try { archive = JSON.parse(localStorage.getItem(ARCH_KEY)) || []; }
+  catch { archive = []; }
+  updateArchCount();
+}
+
+function persistArchive() {
+  localStorage.setItem(ARCH_KEY, JSON.stringify(archive));
+  updateArchCount();
+}
+
+function updateArchCount() {
+  const el = document.getElementById('archCount');
+  if (el) el.textContent = archive.length ? `(${archive.length})` : '';
+}
+
+function saveToArchive(kind, btn) {
+  const isAgenda = kind === 'agenda';
+  const content  = isAgenda ? lastAgenda : lastNotes;
+  if (!content) return;
+
+  const type = isAgenda
+    ? document.getElementById('ag-type').value
+    : document.getElementById('nt-type').value;
+  const dateRaw = isAgenda
+    ? document.getElementById('ag-datetime').value.trim()
+    : document.getElementById('nt-date').value.trim();
+
+  const entry = {
+    id: 'm' + Date.now(),
+    kind,
+    type,
+    dateLabel: dateRaw || new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    content,
+    attendees: isAgenda ? '' : document.getElementById('nt-attendees').value.trim(),
+    rawNotes:  isAgenda ? '' : document.getElementById('nt-raw').value.trim(),
+    savedAt: Date.now()
+  };
+
+  // If an agenda and cleaned notes exist for the same meeting label, merge them
+  const twin = archive.find(a =>
+    a.dateLabel === entry.dateLabel && a.type === entry.type && a.kind !== kind
+  );
+  if (twin) {
+    twin[isAgenda ? 'agendaText' : 'notesText'] = content;
+    twin[isAgenda ? 'notesText' : 'agendaText'] = twin.content;
+    twin.kind = 'both';
+    if (!isAgenda) { twin.attendees = entry.attendees; twin.rawNotes = entry.rawNotes; }
+    delete twin.content;
+  } else {
+    entry[isAgenda ? 'agendaText' : 'notesText'] = content;
+    delete entry.content;
+    archive.unshift(entry);
+  }
+
+  persistArchive();
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Saved to archive';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  }
+  renderArchive();
+}
+
+function setArchFilter(f, el) {
+  archFilter = f;
+  document.querySelectorAll('.arch-filter').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderArchive();
+}
+
+function renderArchive() {
+  const list = document.getElementById('archList');
+  if (!list) return;
+
+  const q = (document.getElementById('archSearch')?.value || '').toLowerCase();
+
+  let items = archive.filter(a => {
+    if (archFilter !== 'all') {
+      if (archFilter === 'agenda' && !a.agendaText) return false;
+      if (archFilter === 'notes'  && !a.notesText)  return false;
+    }
+    if (q) {
+      const hay = [a.type, a.dateLabel, a.attendees, a.agendaText, a.notesText].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('archStat').textContent =
+    `${items.length} of ${archive.length} meeting${archive.length === 1 ? '' : 's'}`;
+
+  if (!items.length) {
+    list.innerHTML = `<div style="text-align:center;padding:3rem 1rem">
+      <div style="font-family:'Fraunces',serif;font-style:italic;font-size:19px;color:var(--ink3);margin-bottom:6px">
+        ${archive.length ? 'No matching meetings' : 'Nothing archived yet'}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--rule2)">
+        ${archive.length ? 'Try a different search or filter' : 'Generate an agenda or clean notes, then click Save to archive'}</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = items.map(a => {
+    const isOpen = openCard === a.id;
+    const tags = [];
+    if (a.agendaText) tags.push('<span class="arch-tag agenda">Agenda</span>');
+    if (a.notesText)  tags.push('<span class="arch-tag notes">Notes</span>');
+
+    return `<div class="arch-card ${isOpen ? 'open' : ''}">
+      <div class="arch-head" onclick="toggleCard('${a.id}')">
+        <div style="flex:1;min-width:0">
+          <div class="arch-title">${escapeHtml(a.type)}</div>
+          <div class="arch-meta">${escapeHtml(a.dateLabel)}${a.attendees ? ' · ' + escapeHtml(a.attendees) : ''}</div>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
+          ${tags.join('')}
+          <span class="arch-chev">${isOpen ? '▾' : '▸'}</span>
+        </div>
+      </div>
+      ${isOpen ? `<div class="arch-body">
+        ${a.agendaText ? `<div class="arch-sec-label">Agenda</div>
+          <div class="arch-content" id="arch-ag-${a.id}">${escapeHtml(a.agendaText)}</div>` : ''}
+        ${a.notesText ? `<div class="arch-sec-label" style="margin-top:1rem">Cleaned notes &amp; action items</div>
+          <div class="arch-content" id="arch-nt-${a.id}">${escapeHtml(a.notesText)}</div>` : ''}
+        <div class="arch-actions">
+          ${a.agendaText ? `<button class="out-btn" onclick="copyOutput('arch-ag-${a.id}', this)">Copy agenda</button>` : ''}
+          ${a.notesText  ? `<button class="out-btn" onclick="copyOutput('arch-nt-${a.id}', this)">Copy notes</button>` : ''}
+          ${a.rawNotes   ? `<button class="out-btn" onclick="reloadRaw('${a.id}')">Reopen raw notes</button>` : ''}
+          <button class="out-btn" onclick="delArchive('${a.id}')" style="margin-left:auto;color:var(--red);border-color:rgba(196,60,26,.25)">Delete</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(id) {
+  openCard = openCard === id ? null : id;
+  renderArchive();
+}
+
+function delArchive(id) {
+  const a = archive.find(x => x.id === id);
+  if (!a) return;
+  if (!confirm(`Delete the archived record for ${a.type} on ${a.dateLabel}?`)) return;
+  archive = archive.filter(x => x.id !== id);
+  if (openCard === id) openCard = null;
+  persistArchive();
+  renderArchive();
+}
+
+function reloadRaw(id) {
+  const a = archive.find(x => x.id === id);
+  if (!a || !a.rawNotes) return;
+  document.getElementById('nt-raw').value       = a.rawNotes;
+  document.getElementById('nt-date').value      = a.dateLabel;
+  document.getElementById('nt-attendees').value = a.attendees || '';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab')[1].classList.add('active');
+  document.querySelectorAll('.panel-tab').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-notes').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function exportArchive() {
+  if (!archive.length) return;
+  const txt = archive.map(a =>
+    `${'═'.repeat(60)}\n${a.type} — ${a.dateLabel}\n${a.attendees ? 'Attendees: ' + a.attendees + '\n' : ''}${'═'.repeat(60)}\n\n` +
+    (a.agendaText ? `--- AGENDA ---\n${a.agendaText}\n\n` : '') +
+    (a.notesText  ? `--- NOTES & ACTION ITEMS ---\n${a.notesText}\n\n` : '')
+  ).join('\n');
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `dc-meeting-archive-${new Date().toISOString().slice(0,10)}.txt`;
+  link.click();
 }
 
 // ── Copy helpers ──
