@@ -158,6 +158,76 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--edge);border-radius:3px}
+/* ── LAB MODE ── */
+.time-meter{background:var(--slate2);border:1px solid var(--edge);border-radius:5px;padding:10px 12px;margin-bottom:.7rem}
+.tm-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
+.tm-total{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500;line-height:1}
+.tm-total.ok{color:var(--flask)}
+.tm-total.warn{color:var(--amber)}
+.tm-total.over{color:var(--rose)}
+.tm-cap{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.08em}
+.tm-bar{height:5px;background:var(--slate);border-radius:3px;overflow:hidden;margin-bottom:7px}
+.tm-fill{height:100%;border-radius:3px;transition:width .4s ease,background .3s}
+.tm-fill.ok{background:var(--flask)}
+.tm-fill.warn{background:var(--amber)}
+.tm-fill.over{background:var(--rose)}
+.tm-break{display:flex;flex-wrap:wrap;gap:4px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.03em}
+.tm-break b{color:var(--chalk2);font-weight:500}
+.tm-msg{font-size:11px;line-height:1.5;margin-top:7px;padding-top:7px;border-top:1px solid var(--edge)}
+.tm-msg.ok{color:var(--flask)}
+.tm-msg.warn{color:var(--amber)}
+.tm-msg.over{color:var(--rose)}
+
+.lvl-pick{display:flex;background:var(--slate);border:1px solid var(--edge);border-radius:4px;padding:2px;margin-bottom:.7rem}
+.lvl-btn{flex:1;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 6px;border-radius:3px;border:none;background:transparent;color:var(--chalk3);cursor:pointer;transition:all .13s}
+.lvl-btn.active{background:var(--flask-dim);color:var(--flask)}
+
+.blk-types{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:.6rem}
+.blk-btn{display:flex;align-items:center;gap:6px;padding:7px 9px;background:var(--slate2);border:1px solid var(--edge);border-radius:4px;cursor:pointer;transition:all .13s;text-align:left}
+.blk-btn:hover{border-color:var(--edge2);background:var(--slate3)}
+.blk-ico{font-size:13px;flex-shrink:0}
+.blk-nm{font-size:10.5px;font-weight:500;color:var(--chalk2);line-height:1.2}
+
+.lab-card{background:var(--slate2);border:1px solid var(--edge);border-radius:5px;padding:9px 10px;margin-bottom:6px}
+.lab-card.honors{border-left:2px solid var(--violet)}
+.lab-card.regular{border-left:2px solid var(--flask)}
+.lab-head{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.lab-kind{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--slate3);color:var(--chalk3)}
+.lab-lvl-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px;cursor:pointer;border:1px solid var(--edge);background:transparent;color:var(--chalk3);transition:all .12s}
+.lab-lvl-tag.both{background:var(--slate3);color:var(--chalk2)}
+.lab-lvl-tag.honors{background:rgba(167,139,250,.16);color:var(--violet);border-color:rgba(167,139,250,.35)}
+.lab-lvl-tag.regular{background:var(--flask-dim);color:var(--flask);border-color:rgba(79,209,197,.35)}
+.lab-acts{margin-left:auto;display:flex;gap:2px}
+.lab-card textarea,.lab-card input[type=text]{width:100%;font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px 8px;background:var(--slate);border:1px solid var(--edge);border-radius:4px;color:var(--chalk);outline:none;line-height:1.45}
+.lab-card textarea{resize:vertical;min-height:42px}
+.lab-card textarea:focus,.lab-card input:focus{border-color:var(--flask)}
+.step-row{display:flex;align-items:flex-start;gap:5px;margin-bottom:4px}
+.step-n{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--chalk3);width:15px;padding-top:8px;flex-shrink:0}
+.step-min{width:42px;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px 4px;background:var(--slate);border:1px solid var(--edge);border-radius:3px;color:var(--amber);outline:none;text-align:center;flex-shrink:0}
+.ai-bar{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-top:7px;border-top:1px solid var(--edge)}
+.ai-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:3px;border:1px solid rgba(240,180,41,.3);background:var(--amber-dim);color:var(--amber);cursor:pointer;transition:all .12s}
+.ai-btn:hover{background:rgba(240,180,41,.22)}
+.ai-btn:disabled{opacity:.5;cursor:wait}
+
+/* Lab paper */
+.lab-sec{font-family:'Space Grotesk',sans-serif;font-size:11.5pt;font-weight:600;letter-spacing:.02em;border-bottom:1.5px solid var(--ink);padding-bottom:3px;margin:.24in 0 .14in;break-after:avoid;display:flex;align-items:baseline;gap:8px}
+.lab-sec:first-of-type{margin-top:0}
+.lab-sec-time{font-family:'IBM Plex Mono',monospace;font-size:8pt;font-weight:400;color:#7A8694;margin-left:auto}
+.lab-prose{font-size:11pt;line-height:1.5;margin-bottom:.1in}
+.lab-list{margin:0 0 .1in .28in;font-size:10.5pt;line-height:1.6}
+.lab-list li{margin-bottom:2px}
+.lab-safety{background:#FFF4F0;border:1px solid #E8B4A0;border-left:3px solid #C43C1A;border-radius:3px;padding:9px 12px;margin-bottom:.14in}
+.lab-safety-hd{font-family:'Space Grotesk',sans-serif;font-size:9.5pt;font-weight:600;color:#8B2500;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.lab-safety ul{margin:0 0 0 .2in;font-size:10pt;line-height:1.55;color:#5A2010}
+.lab-step{display:flex;gap:9px;margin-bottom:6px;break-inside:avoid}
+.lab-step-n{font-family:'Space Grotesk',sans-serif;font-size:10.5pt;font-weight:600;min-width:.22in;flex-shrink:0}
+.lab-step-t{flex:1;font-size:10.5pt;line-height:1.5}
+.lab-step-chk{width:12px;height:12px;border:1.2px solid var(--ink);border-radius:2px;flex-shrink:0;margin-top:3px}
+.lab-table{width:100%;border-collapse:collapse;margin:6px 0 .14in;font-family:'Space Grotesk',sans-serif}
+.lab-table th{border:1px solid var(--ink);background:#F0F3F6;font-size:9.5pt;font-weight:600;padding:5px 7px;text-align:left}
+.lab-table td{border:1px solid var(--rule);height:.3in;padding:3px 7px}
+.lab-hon-mark{font-family:'IBM Plex Mono',monospace;font-size:7.5pt;letter-spacing:.06em;background:#EEEBFB;color:#4A3A9A;border:1px solid #C4B8F0;border-radius:2px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+
 @media(max-width:1050px){.wrap{grid-template-columns:1fr}.side{max-height:none}.paper{width:100%}}
 </style>
 </head>
@@ -168,8 +238,11 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
   <div class="mode-switch">
     <button class="mode-btn active" id="modeWS" onclick="setMode('worksheet')">Worksheet</button>
     <button class="mode-btn" id="modeTest" onclick="setMode('test')">Test</button>
+    <button class="mode-btn" id="modeLab" onclick="setMode('lab')">Lab</button>
   </div>
   <div class="tb-spacer"></div>
+  <input type="password" id="apiKey" placeholder="sk-ant-… (for AI)" oninput="onApiInput()" autocomplete="off"
+    style="display:none;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:5px 9px;background:var(--slate);border:1px solid var(--edge);border-radius:4px;color:var(--chalk2);outline:none;width:150px">
   <button class="btn" onclick="newSheet()">New</button>
   <button class="btn" onclick="saveSheet()">Save</button>
   <button class="btn" onclick="openLoad()">Open</button>
@@ -227,7 +300,64 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
       </div>
     </div>
 
-    <div class="pane">
+    <!-- LAB-ONLY: time budget + level -->
+    <div class="pane" id="labControlPane" style="display:none">
+      <div class="pane-label">Time budget</div>
+      <div class="time-meter" id="timeMeter"></div>
+      <div class="pane-label" style="margin-top:.9rem">Printing for</div>
+      <div class="lvl-pick">
+        <button class="lvl-btn active" id="lvlBoth" onclick="setLevel('both')">Both</button>
+        <button class="lvl-btn" id="lvlReg" onclick="setLevel('regular')">Regular</button>
+        <button class="lvl-btn" id="lvlHon" onclick="setLevel('honors')">Honors</button>
+      </div>
+      <div class="opt-hint" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.04em;line-height:1.7">
+        Tag any block <b style="color:var(--violet)">HON</b> or <b style="color:var(--flask)">REG</b> to include it only in that version. Untagged blocks print in both.
+      </div>
+      <div class="fgrid two" style="margin-top:.8rem">
+        <div class="f"><label>Class period (min)</label>
+          <input type="number" id="labCap" value="70" min="20" max="180" oninput="render()">
+        </div>
+        <div class="f"><label>Setup + cleanup</label>
+          <input type="number" id="labOverhead" value="12" min="0" max="40" oninput="render()">
+        </div>
+      </div>
+    </div>
+
+    <!-- LAB-ONLY: block palette -->
+    <div class="pane" id="labAddPane" style="display:none">
+      <div class="pane-label">Add a section</div>
+      <div class="blk-types">
+        <button class="blk-btn" onclick="addBlk('objective')"><span class="blk-ico">🎯</span><span class="blk-nm">Objective</span></button>
+        <button class="blk-btn" onclick="addBlk('background')"><span class="blk-ico">📖</span><span class="blk-nm">Background</span></button>
+        <button class="blk-btn" onclick="addBlk('materials')"><span class="blk-ico">🧪</span><span class="blk-nm">Materials</span></button>
+        <button class="blk-btn" onclick="addBlk('safety')"><span class="blk-ico">⚠️</span><span class="blk-nm">Safety</span></button>
+        <button class="blk-btn" onclick="addBlk('prelab')"><span class="blk-ico">❓</span><span class="blk-nm">Pre-lab Qs</span></button>
+        <button class="blk-btn" onclick="addBlk('procedure')"><span class="blk-ico">🔬</span><span class="blk-nm">Procedure</span></button>
+        <button class="blk-btn" onclick="addBlk('datatable')"><span class="blk-ico">📊</span><span class="blk-nm">Data table</span></button>
+        <button class="blk-btn" onclick="addBlk('observations')"><span class="blk-ico">👁️</span><span class="blk-nm">Observations</span></button>
+        <button class="blk-btn" onclick="addBlk('analysis')"><span class="blk-ico">🧠</span><span class="blk-nm">Analysis Qs</span></button>
+        <button class="blk-btn" onclick="addBlk('conclusion')"><span class="blk-ico">✅</span><span class="blk-nm">Conclusion</span></button>
+      </div>
+      <button class="mini-btn" onclick="labStarter()" style="border-color:rgba(240,180,41,.4);color:var(--amber)">⚡ Insert full lab skeleton</button>
+    </div>
+
+    <!-- LAB-ONLY: AI assist -->
+    <div class="pane" id="labAIPane" style="display:none">
+      <div class="pane-label">AI assist</div>
+      <div class="ai-bar" style="border:none;padding:0;margin:0">
+        <button class="ai-btn" onclick="aiPolishProcedure(this)">✨ Polish procedure</button>
+        <button class="ai-btn" onclick="aiGenQuestions('analysis',this)">✨ Better analysis Qs</button>
+        <button class="ai-btn" onclick="aiGenQuestions('prelab',this)">✨ Pre-lab Qs</button>
+        <button class="ai-btn" onclick="aiSafety(this)">✨ Safety check</button>
+        <button class="ai-btn" onclick="aiTimeCheck(this)">✨ Time reality-check</button>
+      </div>
+      <div id="aiOut" style="display:none;margin-top:.7rem;font-size:11.5px;line-height:1.6;color:var(--chalk2);background:var(--slate2);border:1px solid var(--edge);border-radius:4px;padding:9px 11px;white-space:pre-wrap;max-height:240px;overflow-y:auto"></div>
+      <div class="opt-hint" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.04em;line-height:1.7;margin-top:.6rem">
+        Everything respects your time budget — Claude is told the remaining minutes and won't overload the packet.
+      </div>
+    </div>
+
+    <div class="pane" id="qAddPane">
       <div class="pane-label">Add</div>
       <div class="qtypes">
         <button class="qtype" onclick="addQ('short')"><span class="qtype-icon">✍️</span><span class="qtype-name">Short answer</span></button>
@@ -241,8 +371,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
     </div>
 
     <div class="pane">
-      <div class="pane-label"><span>Questions</span><span id="qCount" style="color:var(--flask)">0</span></div>
+      <div class="pane-label"><span id="listLabel">Questions</span><span id="qCount" style="color:var(--flask)">0</span></div>
       <div class="qlist" id="qList"><div class="empty-q">Nothing yet — add above</div></div>
+      <div class="qlist" id="labList" style="display:none"></div>
     </div>
 
   </div>
@@ -279,14 +410,30 @@ function shuffleSeeded(arr,rand){const a=[...arr];for(let i=a.length-1;i>0;i--){
 /* ── MODE ── */
 function setMode(m){
   mode=m;
+  const isLab=m==='lab', isTest=m==='test';
   document.getElementById('modeWS').classList.toggle('active',m==='worksheet');
-  document.getElementById('modeTest').classList.toggle('active',m==='test');
-  document.getElementById('versionPane').style.display=m==='test'?'':'none';
-  document.getElementById('reshuffleBtn').style.display=m==='test'?'':'none';
-  document.getElementById('titleLabel').textContent=m==='test'?'Test title':'Title';
-  document.getElementById('wsTitle').placeholder=m==='test'?'Unit 6 Exam — Stoichiometry':'Stoichiometry Practice';
-  if(m==='test'&&!Object.keys(seeds).length)reshuffle();
-  renderVerStrip();render();
+  document.getElementById('modeTest').classList.toggle('active',isTest);
+  document.getElementById('modeLab').classList.toggle('active',isLab);
+
+  document.getElementById('versionPane').style.display=isTest?'':'none';
+  document.getElementById('reshuffleBtn').style.display=isTest?'':'none';
+  document.getElementById('labControlPane').style.display=isLab?'':'none';
+  document.getElementById('labAddPane').style.display=isLab?'':'none';
+  document.getElementById('labAIPane').style.display=isLab?'':'none';
+  document.getElementById('qAddPane').style.display=isLab?'none':'';
+  document.getElementById('qList').style.display=isLab?'none':'';
+  document.getElementById('labList').style.display=isLab?'':'none';
+  document.getElementById('apiKey').style.display=isLab?'':'none';
+  document.getElementById('listLabel').textContent=isLab?'Lab sections':'Questions';
+
+  document.getElementById('titleLabel').textContent=isLab?'Lab title':(isTest?'Test title':'Title');
+  document.getElementById('wsTitle').placeholder=isLab?'Determining the Molar Volume of a Gas'
+    :(isTest?'Unit 6 Exam — Stoichiometry':'Stoichiometry Practice');
+
+  if(isTest&&!Object.keys(seeds).length)reshuffle();
+  renderVerStrip();
+  if(isLab)renderLabEditor();else renderEditor();
+  render();
 }
 
 function renderVerStrip(){
@@ -508,8 +655,481 @@ function buildKey(letter){
   return h;
 }
 
+/* ════════════ LAB MODE ════════════ */
+let blocks=[];
+let printLevel='both';
+let apiKey='';
+
+const BLK={
+  objective:   {icon:'🎯',label:'Objective',      sec:'Objective'},
+  background:  {icon:'📖',label:'Background',     sec:'Background'},
+  materials:   {icon:'🧪',label:'Materials',      sec:'Materials'},
+  safety:      {icon:'⚠️',label:'Safety',         sec:'Safety'},
+  prelab:      {icon:'❓',label:'Pre-lab Qs',     sec:'Pre-Lab Questions'},
+  procedure:   {icon:'🔬',label:'Procedure',      sec:'Procedure'},
+  datatable:   {icon:'📊',label:'Data table',     sec:'Data'},
+  observations:{icon:'👁️',label:'Observations',   sec:'Observations'},
+  analysis:    {icon:'🧠',label:'Analysis Qs',    sec:'Analysis Questions'},
+  conclusion:  {icon:'✅',label:'Conclusion',     sec:'Conclusion'},
+};
+
+/* minutes-per-thing estimates */
+const T={prelabQ:1.5, analysisQ:2.2, analysisQHon:3, obsLine:0.6, concLine:0.9, readProse:0.5, readList:0.3};
+
+function onApiInput(){apiKey=document.getElementById('apiKey').value.trim();}
+
+function newBlk(kind){
+  const b={id:uid(),kind,level:'both',title:BLK[kind].sec};
+  if(kind==='objective'||kind==='background')b.text='';
+  if(kind==='materials'||kind==='safety')b.items=[''];
+  if(kind==='prelab'||kind==='analysis')b.questions=[{t:'',lines:3}];
+  if(kind==='procedure')b.steps=[{t:'',min:5}];
+  if(kind==='datatable'){b.cols=['Trial','Mass (g)','Volume (mL)'];b.rows=5;}
+  if(kind==='observations')b.lines=6;
+  if(kind==='conclusion')b.lines=8;
+  return b;
+}
+
+function addBlk(kind){blocks.push(newBlk(kind));renderLabEditor();render();
+  setTimeout(()=>{const e=document.querySelectorAll('#labList textarea,#labList input[type=text]');e[e.length-1]?.focus();},30);}
+function delBlk(id){blocks=blocks.filter(b=>b.id!==id);renderLabEditor();render();}
+function moveBlk(id,d){const i=blocks.findIndex(b=>b.id===id),j=i+d;if(i<0||j<0||j>=blocks.length)return;
+  [blocks[i],blocks[j]]=[blocks[j],blocks[i]];renderLabEditor();render();}
+function updBlk(id,f,v){const b=blocks.find(x=>x.id===id);if(b){b[f]=v;render();}}
+function cycleLevel(id){const b=blocks.find(x=>x.id===id);if(!b)return;
+  b.level=b.level==='both'?'honors':b.level==='honors'?'regular':'both';renderLabEditor();render();}
+
+/* array item helpers */
+function updArr(id,f,i,v,sub){const b=blocks.find(x=>x.id===id);if(!b)return;
+  if(sub)b[f][i][sub]=v;else b[f][i]=v;render();}
+function addArr(id,f,def){const b=blocks.find(x=>x.id===id);if(!b)return;
+  b[f].push(structuredClone(def));renderLabEditor();render();}
+function delArr(id,f,i){const b=blocks.find(x=>x.id===id);if(!b||b[f].length<=1)return;
+  b[f].splice(i,1);renderLabEditor();render();}
+
+function labStarter(){
+  if(blocks.length&&!confirm('Replace current lab sections with a full skeleton?'))return;
+  blocks=['objective','materials','safety','prelab','procedure','datatable','observations','analysis','conclusion'].map(newBlk);
+  renderLabEditor();render();
+}
+
+/* ── TIME BUDGET ── */
+function levelMatch(b){
+  if(printLevel==='both')return true;
+  return b.level==='both'||b.level===printLevel;
+}
+function blocksFor(lvl){
+  return blocks.filter(b=>b.level==='both'||b.level===lvl);
+}
+
+function timeFor(lvl){
+  const list=blocksFor(lvl);
+  let proc=0,pre=0,ana=0,other=0;
+  list.forEach(b=>{
+    if(b.kind==='procedure')proc+=b.steps.reduce((s,x)=>s+(+x.min||0),0);
+    else if(b.kind==='prelab')pre+=b.questions.length*T.prelabQ;
+    else if(b.kind==='analysis')ana+=b.questions.length*(lvl==='honors'?T.analysisQHon:T.analysisQ);
+    else if(b.kind==='observations')other+=b.lines*T.obsLine;
+    else if(b.kind==='conclusion')other+=b.lines*T.concLine;
+    else if(b.kind==='background')other+=T.readProse*Math.max(1,Math.ceil((b.text||'').length/400));
+    else if(b.kind==='materials'||b.kind==='safety')other+=T.readList;
+  });
+  const overhead=+document.getElementById('labOverhead').value||0;
+  return {proc,pre,ana,other,overhead,total:proc+pre+ana+other+overhead};
+}
+
+function renderTimeMeter(){
+  const el=document.getElementById('timeMeter');
+  if(!el)return;
+  const cap=+document.getElementById('labCap').value||70;
+  const lvls=printLevel==='both'?['regular','honors']:[printLevel];
+  const worst=lvls.map(l=>({l,...timeFor(l)})).sort((a,b)=>b.total-a.total)[0];
+  const t=worst.total, pct=Math.min(100,(t/cap)*100);
+  const state=t>cap?'over':t>cap*0.88?'warn':'ok';
+  const msg=state==='over'
+    ? `Over by ${Math.ceil(t-cap)} min. Cut questions or trim procedure steps.`
+    : state==='warn'
+    ? `Tight — only ${Math.floor(cap-t)} min of slack. Fine if your class starts promptly.`
+    : `${Math.floor(cap-t)} min of slack. Room to add depth if you want it.`;
+
+  el.innerHTML=`<div class="tm-top">
+      <span class="tm-total ${state}">${Math.round(t)}<span style="font-size:11px;opacity:.6"> min</span></span>
+      <span class="tm-cap">CAP ${cap} · ${lvls.length>1?worst.l.toUpperCase()+' IS LONGEST':worst.l.toUpperCase()}</span>
+    </div>
+    <div class="tm-bar"><div class="tm-fill ${state}" style="width:${pct}%"></div></div>
+    <div class="tm-break">
+      <span><b>${Math.round(worst.proc)}</b> procedure</span>
+      <span><b>${Math.round(worst.pre)}</b> pre-lab</span>
+      <span><b>${Math.round(worst.ana)}</b> analysis</span>
+      <span><b>${Math.round(worst.other)}</b> writing</span>
+      <span><b>${worst.overhead}</b> setup</span>
+    </div>
+    <div class="tm-msg ${state}">${msg}</div>`;
+}
+
+function setLevel(l){
+  printLevel=l;
+  ['Both','Reg','Hon'].forEach((s,i)=>
+    document.getElementById('lvl'+s).classList.toggle('active',['both','regular','honors'][i]===l));
+  render();
+}
+
+/* ── LAB EDITOR ── */
+function renderLabEditor(){
+  const list=document.getElementById('labList');
+  document.getElementById('qCount').textContent=blocks.length;
+  if(!blocks.length){list.innerHTML='<div class="empty-q">No sections yet — add above<br>or insert a full skeleton</div>';return;}
+
+  list.innerHTML=blocks.map(b=>{
+    const meta=BLK[b.kind];
+    let body='';
+
+    if(b.kind==='objective'||b.kind==='background'){
+      body=`<textarea placeholder="${b.kind==='objective'?'In this lab you will determine…':'Relevant theory, equations, context…'}"
+        oninput="updBlk('${b.id}','text',this.value)">${esc(b.text)}</textarea>`;
+    }
+
+    if(b.kind==='materials'||b.kind==='safety'){
+      body=b.items.map((it,i)=>`<div class="step-row">
+        <span class="step-n">${b.kind==='safety'?'⚠':'·'}</span>
+        <input type="text" value="${esc(it)}" placeholder="${b.kind==='safety'?'Wear goggles at all times':'50 mL graduated cylinder'}"
+          oninput="updArr('${b.id}','items',${i},this.value)">
+        ${b.items.length>1?`<button class="icon-btn danger" onclick="delArr('${b.id}','items',${i})" style="padding-top:7px">×</button>`:''}
+      </div>`).join('')+
+      `<button class="mini-btn" onclick="addArr('${b.id}','items','')">+ Add ${b.kind==='safety'?'rule':'item'}</button>`;
+    }
+
+    if(b.kind==='prelab'||b.kind==='analysis'){
+      body=b.questions.map((q,i)=>`<div class="step-row">
+        <span class="step-n">${i+1}.</span>
+        <textarea placeholder="Question…" oninput="updArr('${b.id}','questions',${i},this.value,'t')"
+          style="min-height:38px">${esc(q.t)}</textarea>
+        <input class="step-min" type="number" min="1" max="12" value="${q.lines}" title="Answer lines"
+          oninput="updArr('${b.id}','questions',${i},+this.value||1,'lines')" style="color:var(--chalk3)">
+        ${b.questions.length>1?`<button class="icon-btn danger" onclick="delArr('${b.id}','questions',${i})" style="padding-top:7px">×</button>`:''}
+      </div>`).join('')+
+      `<button class="mini-btn" onclick="addArr('${b.id}','questions',{t:'',lines:3})">+ Add question</button>`;
+    }
+
+    if(b.kind==='procedure'){
+      body=b.steps.map((s,i)=>`<div class="step-row">
+        <span class="step-n">${i+1}.</span>
+        <textarea placeholder="Describe the step…" oninput="updArr('${b.id}','steps',${i},this.value,'t')"
+          style="min-height:38px">${esc(s.t)}</textarea>
+        <input class="step-min" type="number" min="0" max="60" value="${s.min}" title="Minutes"
+          oninput="updArr('${b.id}','steps',${i},+this.value||0,'min')">
+        ${b.steps.length>1?`<button class="icon-btn danger" onclick="delArr('${b.id}','steps',${i})" style="padding-top:7px">×</button>`:''}
+      </div>`).join('')+
+      `<button class="mini-btn" onclick="addArr('${b.id}','steps',{t:'',min:5})">+ Add step</button>
+       <div class="qmeta-row"><span>Total</span><span style="color:var(--amber)">${b.steps.reduce((s,x)=>s+(+x.min||0),0)} min</span></div>`;
+    }
+
+    if(b.kind==='datatable'){
+      body=`<div class="qmeta-row" style="margin-top:0"><span>Columns</span></div>`+
+        b.cols.map((c,i)=>`<div class="step-row">
+          <span class="step-n">${i+1}</span>
+          <input type="text" value="${esc(c)}" placeholder="Column header" oninput="updArr('${b.id}','cols',${i},this.value)">
+          ${b.cols.length>1?`<button class="icon-btn danger" onclick="delArr('${b.id}','cols',${i})" style="padding-top:7px">×</button>`:''}
+        </div>`).join('')+
+        `<button class="mini-btn" onclick="addArr('${b.id}','cols','')">+ Add column</button>
+         <div class="qmeta-row"><span>Data rows</span>
+           <input class="inline-num" type="number" min="1" max="20" value="${b.rows}" oninput="updBlk('${b.id}','rows',Math.max(1,+this.value||1))"></div>`;
+    }
+
+    if(b.kind==='observations'||b.kind==='conclusion'){
+      body=`<div class="qmeta-row" style="margin-top:0"><span>Lines</span>
+        <input class="inline-num" type="number" min="1" max="30" value="${b.lines}"
+          oninput="updBlk('${b.id}','lines',Math.max(1,+this.value||1))"></div>`;
+    }
+
+    return `<div class="lab-card ${b.level}">
+      <div class="lab-head">
+        <span class="lab-kind">${meta.icon} ${meta.label}</span>
+        <button class="lab-lvl-tag ${b.level}" onclick="cycleLevel('${b.id}')"
+          title="Click to cycle: Both → Honors only → Regular only">${b.level==='both'?'BOTH':b.level==='honors'?'HON':'REG'}</button>
+        <div class="lab-acts">
+          <button class="icon-btn" onclick="moveBlk('${b.id}',-1)">↑</button>
+          <button class="icon-btn" onclick="moveBlk('${b.id}',1)">↓</button>
+          <button class="icon-btn danger" onclick="delBlk('${b.id}')">×</button>
+        </div>
+      </div>
+      <input type="text" value="${esc(b.title)}" placeholder="Section heading"
+        oninput="updBlk('${b.id}','title',this.value)"
+        style="margin-bottom:6px;font-weight:500;font-size:11.5px">
+      ${body}
+    </div>`;
+  }).join('');
+
+  renderTimeMeter();
+}
+
+/* ── LAB PAPER ── */
+function buildLabPaper(lvl){
+  const title=document.getElementById('wsTitle').value.trim();
+  const course=document.getElementById('wsCourse').value.trim();
+  const unit=document.getElementById('wsUnit').value.trim();
+  const instr=document.getElementById('wsInstr').value.trim();
+  const showDate=document.getElementById('wsDate').value==='yes';
+  const cap=+document.getElementById('labCap').value||70;
+  const courseLine=[course,unit].filter(Boolean).join('  ·  ');
+  const list=blocksFor(lvl);
+  const t=timeFor(lvl);
+
+  let h=`<div class="paper">`;
+  if(printLevel==='both')h+=`<div class="ver-tag" style="font-size:10pt">${lvl==='honors'?'HONORS':'REGULAR'}</div>`;
+
+  h+=`<div class="ws-head">
+    <div class="ws-meta-row">
+      <div class="ws-field name"><span class="ws-field-label">Name</span><span class="ws-field-line"></span></div>
+      <div class="ws-field name"><span class="ws-field-label">Partner(s)</span><span class="ws-field-line"></span></div>
+      <div class="ws-field period"><span class="ws-field-label">Period</span><span class="ws-field-line"></span></div>
+      ${showDate?`<div class="ws-field date"><span class="ws-field-label">Date</span><span class="ws-field-line"></span></div>`:''}
+    </div>
+    <div class="ws-title">${esc(title)||'Untitled lab'}</div>
+    ${courseLine?`<div class="ws-course">${esc(courseLine)}</div>`:''}
+  </div>`;
+
+  if(instr)h+=`<div class="ws-instructions">${esc(instr).replace(/\n/g,'<br>')}</div>`;
+
+  if(!list.length){
+    h+=`<div style="text-align:center;padding:1.5in 0;color:#B0BAC6;font-family:'Space Grotesk',sans-serif;font-size:10pt">Lab sections appear here as you add them</div>`;
+  }
+
+  let qn=0;
+  list.forEach(b=>{
+    const honTag=b.level==='honors'?`<span class="lab-hon-mark">HONORS</span>`:'';
+    let secTime='';
+    if(b.kind==='procedure'){
+      const m=b.steps.reduce((s,x)=>s+(+x.min||0),0);
+      if(m)secTime=`<span class="lab-sec-time">≈ ${m} min</span>`;
+    }
+    h+=`<div class="lab-sec">${esc(b.title)||BLK[b.kind].sec}${honTag}${secTime}</div>`;
+
+    if(b.kind==='objective'||b.kind==='background'){
+      h+=`<div class="lab-prose">${esc(b.text).replace(/\n/g,'<br>')||'<span style="color:#B0BAC6">…</span>'}</div>`;
+    }
+
+    if(b.kind==='materials'){
+      const items=b.items.filter(x=>x.trim());
+      h+=`<ul class="lab-list">${(items.length?items:['…']).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+    }
+
+    if(b.kind==='safety'){
+      const items=b.items.filter(x=>x.trim());
+      h+=`<div class="lab-safety">
+        <div class="lab-safety-hd">⚠ Safety — read before you begin</div>
+        <ul>${(items.length?items:['…']).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+      </div>`;
+    }
+
+    if(b.kind==='prelab'||b.kind==='analysis'){
+      b.questions.forEach(q=>{
+        qn++;
+        h+=`<div class="ws-q"><div class="ws-q-head">
+          <span class="ws-q-num">${qn}.</span>
+          <span class="ws-q-text">${esc(q.t)||'<span style="color:#B0BAC6">…</span>'}</span>
+        </div><div class="ws-lines">${Array(q.lines).fill('<div class="ws-line"></div>').join('')}</div></div>`;
+      });
+    }
+
+    if(b.kind==='procedure'){
+      b.steps.forEach((s,i)=>{
+        h+=`<div class="lab-step">
+          <span class="lab-step-chk"></span>
+          <span class="lab-step-n">${i+1}.</span>
+          <span class="lab-step-t">${esc(s.t)||'<span style="color:#B0BAC6">…</span>'}</span>
+        </div>`;
+      });
+    }
+
+    if(b.kind==='datatable'){
+      const cols=b.cols.filter(c=>c.trim());
+      const cs=cols.length?cols:['Trial','Value'];
+      h+=`<table class="lab-table"><thead><tr>${cs.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+      for(let r=0;r<b.rows;r++)h+=`<tr>${cs.map(()=>'<td></td>').join('')}</tr>`;
+      h+=`</tbody></table>`;
+    }
+
+    if(b.kind==='observations'||b.kind==='conclusion'){
+      h+=`<div class="ws-lines" style="margin-left:0">${Array(b.lines).fill('<div class="ws-line"></div>').join('')}</div>`;
+    }
+  });
+
+  if(list.length){
+    h+=`<div class="ws-footer">
+      <span>${esc(course||'La Salle High School')}${printLevel==='both'?` · ${lvl==='honors'?'Honors':'Regular'}`:''}</span>
+      <span>Est. ${Math.round(t.total)} of ${cap} min</span>
+    </div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+/* ── AI ASSIST ── */
+function labContext(lvl){
+  const list=blocksFor(lvl);
+  return list.map(b=>{
+    const head=`## ${b.title||BLK[b.kind].sec} (${b.kind}${b.level!=='both'?', '+b.level+' only':''})`;
+    if(b.text)return head+'\n'+b.text;
+    if(b.items)return head+'\n'+b.items.filter(x=>x.trim()).map(x=>'- '+x).join('\n');
+    if(b.questions)return head+'\n'+b.questions.map((q,i)=>`${i+1}. ${q.t}`).join('\n');
+    if(b.steps)return head+'\n'+b.steps.map((s,i)=>`${i+1}. [${s.min}min] ${s.t}`).join('\n');
+    if(b.cols)return head+'\nColumns: '+b.cols.join(' | ')+` (${b.rows} rows)`;
+    return head+`\n(${b.lines} lines for writing)`;
+  }).join('\n\n');
+}
+
+async function callAI(system,user,btn){
+  if(!apiKey){aiShow('Paste your Anthropic API key in the top bar first (sk-ant-…).');return null;}
+  const orig=btn.textContent;btn.disabled=true;btn.textContent='Thinking…';
+  aiShow('Working…');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,
+        'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5-20250929',max_tokens:2000,system,
+        messages:[{role:'user',content:user}]})
+    });
+    const d=await r.json();
+    if(!r.ok){aiShow('API error: '+(d?.error?.message||r.status));return null;}
+    return d.content.map(b=>b.text||'').join('');
+  }catch(e){aiShow('Network error: '+e.message);return null;}
+  finally{btn.disabled=false;btn.textContent=orig;}
+}
+
+function aiShow(t){const el=document.getElementById('aiOut');el.style.display='block';el.textContent=t;}
+
+function aiSys(){
+  const cap=+document.getElementById('labCap').value||70;
+  return `You help a high school science teacher (La Salle, chemistry & physics) build lab packets.
+Two audiences share this lab: a regular section and an honors section.
+HARD CONSTRAINT: the entire lab — setup, procedure, writing, cleanup — must finish inside ${cap} minutes.
+Never propose additions that would push it over. Fewer, better questions beat more questions.
+Write in plain text. No markdown headers, no asterisks, no preamble. Output only what is asked for.`;
+}
+
+async function aiPolishProcedure(btn){
+  const proc=blocks.find(b=>b.kind==='procedure');
+  if(!proc){aiShow('Add a Procedure section first.');return;}
+  const t=timeFor('honors');
+  const cap=+document.getElementById('labCap').value||70;
+  const res=await callAI(aiSys(),
+`Rewrite these lab procedure steps to be clearer and safer for high school students.
+Keep the same number of steps and the same total time. Each step should be one concrete action a student can follow without asking a question.
+Current total procedure time: ${Math.round(t.proc)} min. Whole lab currently: ${Math.round(t.total)} of ${cap} min.
+
+Current steps:
+${proc.steps.map((s,i)=>`${i+1}. [${s.min}min] ${s.t}`).join('\n')}
+
+Return ONLY the numbered steps, one per line, formatted exactly as:
+1. |5| step text here
+where the number between pipes is the minutes for that step.`,btn);
+  if(!res)return;
+  const parsed=res.split('\n').map(l=>l.trim()).filter(l=>/^\d+\./.test(l)).map(l=>{
+    const m=l.match(/^\d+\.\s*\|?(\d+)\|?\s*(.+)$/);
+    return m?{t:m[2].trim(),min:+m[1]}:null;
+  }).filter(Boolean);
+  if(parsed.length){
+    proc.steps=parsed;renderLabEditor();render();
+    aiShow(`✓ Rewrote ${parsed.length} steps. Review them in the editor — nothing is final until you say so.`);
+  }else aiShow(res);
+}
+
+async function aiGenQuestions(kind,btn){
+  const cap=+document.getElementById('labCap').value||70;
+  const t=timeFor('honors');
+  const slack=cap-t.total;
+  const perQ=kind==='analysis'?T.analysisQHon:T.prelabQ;
+  const room=Math.max(0,Math.floor(slack/perQ));
+
+  if(room<1){aiShow(`No time left in the budget (${Math.round(t.total)} of ${cap} min).\nCut something before adding questions.`);return;}
+
+  const label=kind==='analysis'?'analysis':'pre-lab';
+  const res=await callAI(aiSys(),
+`Here is the lab packet so far:
+
+${labContext('honors')}
+
+Write ${Math.min(room,5)} strong ${label} questions for this lab.
+Time budget allows AT MOST ${room} more ${label} questions — do not exceed that.
+
+${kind==='analysis'
+  ? 'Mix levels: some computational, some conceptual, at least one asking students to evaluate error or limitations. Mark any question that is genuinely honors-level with (HONORS) at the end.'
+  : 'These are answered BEFORE lab begins — they should check that students understand the purpose, key safety risks, and any prerequisite concept or calculation.'}
+
+Return ONLY the questions, one per line, numbered. No preamble.`,btn);
+  if(!res)return;
+
+  const qs=res.split('\n').map(l=>l.trim()).filter(l=>/^\d+[\.\)]/.test(l))
+    .map(l=>l.replace(/^\d+[\.\)]\s*/,''));
+  if(!qs.length){aiShow(res);return;}
+
+  let blk=blocks.find(b=>b.kind===kind);
+  if(!blk){blk=newBlk(kind);blk.questions=[];blocks.push(blk);}
+  qs.forEach(q=>{
+    const hon=/\(HONORS\)\s*$/i.test(q);
+    blk.questions.push({t:q.replace(/\s*\(HONORS\)\s*$/i,''),lines:kind==='analysis'?4:3});
+    if(hon&&blk.level==='both')blk.level='both';
+  });
+  if(blk.questions.length&&blk.questions[0].t==='')blk.questions.shift();
+  renderLabEditor();render();
+  aiShow(`✓ Added ${qs.length} ${label} question${qs.length>1?'s':''}. Time now ${Math.round(timeFor('honors').total)} of ${cap} min.`);
+}
+
+async function aiSafety(btn){
+  if(!blocks.length){aiShow('Build some of the lab first.');return;}
+  const res=await callAI(aiSys(),
+`Review this lab for safety gaps.
+
+${labContext('honors')}
+
+List the specific safety rules this packet should state, given the materials and procedure shown.
+Be concrete — reference the actual chemicals, equipment, or hazards present. Skip generic filler like "be careful."
+If the procedure itself has a safety problem, say so plainly first.
+
+Return ONLY the safety rules, one per line, no numbering, no preamble.`,btn);
+  if(!res)return;
+  const rules=res.split('\n').map(l=>l.replace(/^[-•*\d.)\s]+/,'').trim()).filter(l=>l.length>8);
+  if(!rules.length){aiShow(res);return;}
+  let blk=blocks.find(b=>b.kind==='safety');
+  if(!blk){blk=newBlk('safety');blk.items=[];blocks.splice(Math.min(2,blocks.length),0,blk);}
+  blk.items=blk.items.filter(x=>x.trim()).concat(rules);
+  renderLabEditor();render();
+  aiShow(`✓ Added ${rules.length} safety rules. Review them — you know your lab space better than I do.`);
+}
+
+async function aiTimeCheck(btn){
+  if(!blocks.length){aiShow('Build some of the lab first.');return;}
+  const cap=+document.getElementById('labCap').value||70;
+  const reg=timeFor('regular'),hon=timeFor('honors');
+  const res=await callAI(aiSys(),
+`Reality-check the timing on this lab. My estimates may be optimistic.
+
+${labContext('honors')}
+
+My current estimates:
+- Regular section: ${Math.round(reg.total)} min (procedure ${Math.round(reg.proc)}, pre-lab ${Math.round(reg.pre)}, analysis ${Math.round(reg.ana)}, writing ${Math.round(reg.other)}, setup ${reg.overhead})
+- Honors section: ${Math.round(hon.total)} min
+- Class period: ${cap} min
+
+Tell me, in under 150 words:
+1. Which specific steps I am probably underestimating, and roughly by how much.
+2. The single highest-value cut if this runs long.
+3. Whether anything here is unrealistic for a ${cap}-minute period regardless of trimming.
+
+Be blunt. Plain text, no headers.`,btn);
+  if(res)aiShow(res);
+}
+
 function render(){
   const stage=document.getElementById('stage');
+  if(mode==='lab'){
+    renderTimeMeter();
+    const lvls=printLevel==='both'?['regular','honors']:[printLevel];
+    stage.innerHTML=lvls.map(l=>buildLabPaper(l)).join('');
+    return;
+  }
   if(mode==='worksheet'){stage.innerHTML=buildPaper('A');return;}
   const wantKey=document.getElementById('optKey')?.checked;
   let h='';
@@ -525,7 +1145,10 @@ function currentSheet(){
   return{mode,title:document.getElementById('wsTitle').value,course:document.getElementById('wsCourse').value,
     unit:document.getElementById('wsUnit').value,instr:document.getElementById('wsInstr').value,
     date:document.getElementById('wsDate').value,pts:document.getElementById('wsPts').value,
-    versionCount,questions,savedAt:Date.now()};
+    versionCount,questions,blocks,
+    labCap:document.getElementById('labCap').value,
+    labOverhead:document.getElementById('labOverhead').value,
+    savedAt:Date.now()};
 }
 function saveSheet(){
   const s=currentSheet();
@@ -539,10 +1162,10 @@ function openLoad(){
   let all=[];try{all=JSON.parse(localStorage.getItem(SAVE_KEY))||[];}catch{}
   document.getElementById('savedList').innerHTML=all.length?all.map((s,i)=>`
     <div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--edge)">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:${s.mode==='test'?'var(--amber-dim)':'var(--flask-dim)'};color:${s.mode==='test'?'var(--amber)':'var(--flask)'}">${s.mode==='test'?'Test':'WS'}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:${s.mode==='test'?'var(--amber-dim)':s.mode==='lab'?'rgba(167,139,250,.16)':'var(--flask-dim)'};color:${s.mode==='test'?'var(--amber)':s.mode==='lab'?'var(--violet)':'var(--flask)'}">${s.mode==='test'?'Test':s.mode==='lab'?'Lab':'WS'}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:500;color:var(--chalk)">${esc(s.title)}</div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);margin-top:2px">${esc([s.course,s.unit].filter(Boolean).join(' · '))} · ${s.questions.filter(q=>q.type!=='section').length} q</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);margin-top:2px">${esc([s.course,s.unit].filter(Boolean).join(' · '))} · ${s.mode==='lab'?(s.blocks||[]).length+' sections':s.questions.filter(q=>q.type!=='section').length+' q'}</div>
       </div>
       <button class="btn" onclick="loadSheet(${i})">Open</button>
       <button class="icon-btn danger" onclick="delSheet(${i})">×</button>
@@ -560,8 +1183,10 @@ function loadSheet(i){
   document.getElementById('wsInstr').value=s.instr||'';
   document.getElementById('wsDate').value=s.date||'yes';
   document.getElementById('wsPts').value=s.pts||'no';
-  questions=s.questions||[];versionCount=s.versionCount||2;
-  setMode(s.mode||'worksheet');renderEditor();closeLoad();
+  questions=s.questions||[];versionCount=s.versionCount||2;blocks=s.blocks||[];
+  if(s.labCap)document.getElementById('labCap').value=s.labCap;
+  if(s.labOverhead)document.getElementById('labOverhead').value=s.labOverhead;
+  setMode(s.mode||'worksheet');closeLoad();
 }
 function delSheet(i){
   if(!confirm('Delete this saved sheet?'))return;
@@ -572,7 +1197,9 @@ function newSheet(){
   if(questions.length&&!confirm('Clear the current sheet? Save it first if you want to keep it.'))return;
   ['wsTitle','wsCourse','wsUnit','wsInstr'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('wsDate').value='yes';document.getElementById('wsPts').value='no';
-  questions=[];renderEditor();render();
+  questions=[];blocks=[];
+  if(mode==='lab')renderLabEditor();else renderEditor();
+  render();
 }
 function flash(m){
   const e=document.createElement('div');e.textContent=m;
