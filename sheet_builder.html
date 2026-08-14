@@ -217,13 +217,14 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .item-lvl.regular{background:var(--flask-dim);color:var(--flask);border-color:rgba(79,209,197,.4)}
 
 /* Lab header — generous write-in lines, no date, tag kept clear of fields */
-.lab-meta-row{display:flex;gap:.35in;align-items:flex-end;margin-bottom:.16in}
+.lab-meta-row{display:flex;gap:.3in;align-items:flex-end;margin-bottom:.16in}
 .lab-field{display:flex;align-items:flex-end;gap:7px;font-family:'Space Grotesk',sans-serif}
-.lab-field.grow{flex:1}
+.lab-field.grow{flex:0 0 auto}
 .lab-field.period{flex:0 0 auto}
 .lab-flabel{font-size:10.5pt;font-weight:500;white-space:nowrap;padding-bottom:1px}
-.lab-fline{border-bottom:1px solid var(--ink);flex:1;height:19px;min-width:2.4in}
-.lab-field.period .lab-fline{width:.75in;flex:none;min-width:0}
+.lab-fline{border-bottom:1px solid var(--ink);height:19px}
+.lab-field.grow .lab-fline{width:2.7in}
+.lab-field.period .lab-fline{width:.7in}
 .lab-title{padding-right:1.5in}
 .ver-tag.lab-ver{font-size:9pt;letter-spacing:.08em;padding:3px 9px;top:.28in;right:.28in}
 
