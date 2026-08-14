@@ -563,6 +563,33 @@ h1 em {
 .arch-content{font-family:'Karla',sans-serif;font-size:12.5px;line-height:1.7;color:var(--ink2);white-space:pre-wrap;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:11px 13px;max-height:280px;overflow-y:auto}
 .arch-actions{display:flex;gap:7px;align-items:center;margin-top:.875rem;flex-wrap:wrap}
 
+/* ── PEOPLE LOG ── */
+.pe-cat{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:3px;border:1px solid var(--rule);background:transparent;color:var(--ink3);cursor:pointer;transition:all .12s}
+.pe-cat:hover{border-color:var(--rule2)}
+.pe-cat.on[data-c="Accomplishment"]{background:#F5EDD8;color:#8B6914;border-color:#D9C48E}
+.pe-cat.on[data-c="Growth"]{background:#E3F0ED;color:#1A6B5C;border-color:#8FC4B6}
+.pe-cat.on[data-c="Concern"]{background:#FAE9E3;color:#C43C1A;border-color:#E8AF9A}
+.pe-cat.on[data-c="Note"]{background:#E8EEF6;color:#2A4A7A;border-color:#A8BFDC}
+.pe-person-card{border:1px solid var(--rule);border-radius:5px;margin-bottom:8px;background:#fff;overflow:hidden}
+.pe-person-head{display:flex;align-items:center;gap:.75rem;padding:11px 14px;cursor:pointer;transition:background .12s}
+.pe-person-head:hover{background:var(--paper2)}
+.pe-person-name{font-family:'Fraunces',serif;font-size:16px;color:var(--ink)}
+.pe-counts{display:flex;gap:5px}
+.pe-pill{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.06em;padding:2px 7px;border-radius:2px;border:1px solid}
+.pe-pill.a{background:#F5EDD8;color:#8B6914;border-color:#D9C48E}
+.pe-pill.g{background:#E3F0ED;color:#1A6B5C;border-color:#8FC4B6}
+.pe-pill.c{background:#FAE9E3;color:#C43C1A;border-color:#E8AF9A}
+.pe-pill.n{background:#E8EEF6;color:#2A4A7A;border-color:#A8BFDC}
+.pe-body{padding:0 14px 14px;border-top:1px solid var(--rule)}
+.pe-entry{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
+.pe-entry:last-of-type{border-bottom:none}
+.pe-entry-date{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3);min-width:58px;padding-top:2px;letter-spacing:.03em}
+.pe-entry-text{flex:1;font-size:13px;line-height:1.55;color:var(--ink2)}
+.pe-entry-cat{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:2px;align-self:flex-start;flex-shrink:0}
+.pe-del{background:none;border:none;color:var(--rule2);cursor:pointer;font-size:13px;padding:0 2px;flex-shrink:0;transition:color .12s;align-self:flex-start}
+.pe-del:hover{color:#C43C1A}
+.pe-summary-box{background:#FFFDF5;border:1px solid #E8DFC0;border-radius:4px;padding:12px 14px;margin-top:.875rem;font-size:13px;line-height:1.7;color:var(--ink2);white-space:pre-wrap}
+
 </style>
 </head>
 <body>
@@ -596,6 +623,10 @@ h1 em {
     <div class="tab" onclick="switchTab('archive', this)">
       <div class="tab-dot" style="background:#6EC99A"></div>
       Meeting archive <span id="archCount" style="font-size:9px;opacity:.6;margin-left:2px"></span>
+    </div>
+    <div class="tab" onclick="switchTab('people', this)">
+      <div class="tab-dot" style="background:#C8B89A"></div>
+      People log <span id="peepCount" style="font-size:9px;opacity:.6;margin-left:2px"></span>
     </div>
   </div>
 </div>
@@ -868,6 +899,93 @@ h1 em {
 </div>
 </div>
 
+<!-- ═══ PEOPLE LOG TAB ═══ -->
+<div id="tab-people" class="panel-tab">
+<div style="max-width:1100px;margin:0 auto;padding:2rem 2.5rem 5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start">
+
+  <!-- Log entry -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#F5EDD8">⭐</div>
+      <div>
+        <div class="card-title">Log something</div>
+        <div class="card-sub">Quick entry — takes 15 seconds</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Person</label>
+          <input list="peopleList" id="pe-person" placeholder="Type or pick a name">
+          <datalist id="peopleList"></datalist>
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="pe-date">
+        </div>
+      </div>
+
+      <div class="field-row full">
+        <div class="field">
+          <label>What happened</label>
+          <textarea id="pe-text" style="min-height:90px" placeholder="Ran a great lab safety refresher for the whole dept. Volunteered to mentor the new physics teacher."></textarea>
+        </div>
+      </div>
+
+      <div class="section-rule">Category</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem" id="peCatPicker"></div>
+
+      <button class="run-btn" onclick="savePeopleEntry()">
+        <span class="btn-label">Log it</span>
+      </button>
+      <div class="error-box" id="pe-error"></div>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E3F0ED">💡</div>
+      <div>
+        <div class="card-title">Why this matters</div>
+        <div class="card-sub">The end-of-year problem, solved</div>
+      </div>
+    </div>
+    <div class="card-body" style="font-size:13px;color:var(--ink2);line-height:1.7">
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Log it when you see it.</strong> Evaluations, recommendation letters, and admin conversations all happen months after the thing you're trying to remember. Thirty seconds now saves an hour in May.</p>
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Log the small stuff too.</strong> "Covered a class last minute" and "helped a colleague with Schoology" are exactly the things that vanish from memory but matter in aggregate.</p>
+      <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Concerns go here too.</strong> Not everything is a win. A pattern of missed deadlines documented across the year is far more defensible than a vague impression.</p>
+      <p><strong style="color:var(--ink)">Then generate a summary.</strong> Pick a person, hit Summarize, and Claude writes a clean year-in-review paragraph from every entry — ready for an evaluation or a rec letter.</p>
+      <hr style="border:none;border-top:1px solid var(--rule);margin:1rem 0">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.04em">Everything stays in your browser. Nothing is shared.</p>
+    </div>
+  </div>
+
+  <!-- Directory -->
+  <div class="card" style="grid-column:1/-1">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E6F1FB">👥</div>
+      <div style="flex:1">
+        <div class="card-title">Department directory</div>
+        <div class="card-sub" id="peStat">No entries yet</div>
+      </div>
+      <button class="out-btn" onclick="exportPeople()">Export all</button>
+    </div>
+    <div style="padding:.875rem 1.25rem;border-bottom:1px solid var(--rule);display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;background:var(--paper)">
+      <button class="arch-filter active" onclick="setPeFilter('all',this)">All</button>
+      <button class="arch-filter" onclick="setPeFilter('Accomplishment',this)">Accomplishments</button>
+      <button class="arch-filter" onclick="setPeFilter('Growth',this)">Growth</button>
+      <button class="arch-filter" onclick="setPeFilter('Concern',this)">Concerns</button>
+      <div style="flex:1"></div>
+      <input id="peSearch" type="text" placeholder="Search entries…" oninput="renderPeople()"
+        style="font-family:'Karla',sans-serif;font-size:12px;padding:5px 10px;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink);outline:none;width:200px">
+    </div>
+    <div style="padding:1rem 1.25rem" id="peList"></div>
+  </div>
+
+</div>
+</div>
+
 <script>
 // ── Tab switching ──
 function switchTab(name, el) {
@@ -876,6 +994,7 @@ function switchTab(name, el) {
   document.getElementById('tab-' + name).classList.add('active');
   el.classList.add('active');
   if (name === 'archive') renderArchive();
+  if (name === 'people')  { renderCatPicker(); refreshNameList(); renderPeople(); }
 }
 
 // ── API key ──
@@ -902,6 +1021,12 @@ function onApiInput() {
 window.addEventListener('load', () => {
   loadArchive();
   renderArchive();
+  loadPeople();
+  renderCatPicker();
+  refreshNameList();
+  renderPeople();
+  const pd = document.getElementById('pe-date');
+  if (pd) pd.value = new Date().toISOString().slice(0,10);
   const saved = localStorage.getItem('dc_meeting_apikey');
   if (saved) {
     document.getElementById('apiKey').value = saved;
@@ -1306,6 +1431,227 @@ function exportArchive() {
   link.href = URL.createObjectURL(blob);
   link.download = `dc-meeting-archive-${new Date().toISOString().slice(0,10)}.txt`;
   link.click();
+}
+
+// ══════════════ PEOPLE LOG ══════════════
+const PEEP_KEY = 'dc_people_log_v1';
+const PE_CATS  = ['Accomplishment','Growth','Concern','Note'];
+const PE_CLS   = { Accomplishment:'a', Growth:'g', Concern:'c', Note:'n' };
+const PE_STYLE = {
+  Accomplishment:'background:#F5EDD8;color:#8B6914',
+  Growth:'background:#E3F0ED;color:#1A6B5C',
+  Concern:'background:#FAE9E3;color:#C43C1A',
+  Note:'background:#E8EEF6;color:#2A4A7A'
+};
+
+let people    = [];
+let peCat     = 'Accomplishment';
+let peFilter  = 'all';
+let peOpen    = null;
+
+function loadPeople() {
+  try { people = JSON.parse(localStorage.getItem(PEEP_KEY)) || []; }
+  catch { people = []; }
+  updatePeepCount();
+}
+
+function persistPeople() {
+  localStorage.setItem(PEEP_KEY, JSON.stringify(people));
+  updatePeepCount();
+}
+
+function updatePeepCount() {
+  const el = document.getElementById('peepCount');
+  if (el) el.textContent = people.length ? `(${people.length})` : '';
+}
+
+function renderCatPicker() {
+  const el = document.getElementById('peCatPicker');
+  if (!el) return;
+  el.innerHTML = PE_CATS.map(c =>
+    `<button class="pe-cat ${peCat===c?'on':''}" data-c="${c}" onclick="setPeCat('${c}')">${c}</button>`
+  ).join('');
+}
+
+function setPeCat(c) { peCat = c; renderCatPicker(); }
+
+function refreshNameList() {
+  const dl = document.getElementById('peopleList');
+  if (!dl) return;
+  const names = [...new Set(people.map(p => p.person))].sort();
+  dl.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">`).join('');
+}
+
+function savePeopleEntry() {
+  const person = document.getElementById('pe-person').value.trim();
+  const text   = document.getElementById('pe-text').value.trim();
+  const date   = document.getElementById('pe-date').value || new Date().toISOString().slice(0,10);
+  const err    = document.getElementById('pe-error');
+
+  if (!person) { showError(err, 'Who is this about?'); document.getElementById('pe-person').focus(); return; }
+  if (!text)   { showError(err, 'Add a short description of what happened.'); document.getElementById('pe-text').focus(); return; }
+  err.style.display = 'none';
+
+  people.unshift({ id:'p'+Date.now(), person, text, cat:peCat, date, savedAt:Date.now() });
+  persistPeople();
+
+  document.getElementById('pe-text').value = '';
+  document.getElementById('pe-person').value = '';
+  refreshNameList();
+  renderPeople();
+
+  const btn = document.querySelector('#tab-people .run-btn .btn-label');
+  if (btn) { const o = btn.textContent; btn.textContent = '✓ Logged'; setTimeout(()=>btn.textContent=o, 1600); }
+}
+
+function setPeFilter(f, el) {
+  peFilter = f;
+  el.parentElement.querySelectorAll('.arch-filter').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderPeople();
+}
+
+function renderPeople() {
+  const list = document.getElementById('peList');
+  if (!list) return;
+  const q = (document.getElementById('peSearch')?.value || '').toLowerCase();
+
+  let entries = people.filter(e => {
+    if (peFilter !== 'all' && e.cat !== peFilter) return false;
+    if (q && !(e.person + ' ' + e.text).toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  // group by person
+  const byPerson = {};
+  entries.forEach(e => { (byPerson[e.person] ||= []).push(e); });
+  const names = Object.keys(byPerson).sort();
+
+  document.getElementById('peStat').textContent =
+    people.length
+      ? `${entries.length} entr${entries.length===1?'y':'ies'} across ${names.length} ${names.length===1?'person':'people'}`
+      : 'No entries yet';
+
+  if (!names.length) {
+    list.innerHTML = `<div style="text-align:center;padding:2.5rem 1rem">
+      <div style="font-family:'Fraunces',serif;font-style:italic;font-size:19px;color:var(--ink3);margin-bottom:6px">
+        ${people.length ? 'No matching entries' : 'Nothing logged yet'}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--rule2)">
+        ${people.length ? 'Try a different filter or search' : 'Log your first entry above'}</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = names.map(name => {
+    const evs = byPerson[name].sort((a,b) => b.date.localeCompare(a.date));
+    const isOpen = peOpen === name;
+    const counts = {};
+    people.filter(e => e.person === name).forEach(e => counts[e.cat] = (counts[e.cat]||0)+1);
+    const pills = PE_CATS.filter(c => counts[c])
+      .map(c => `<span class="pe-pill ${PE_CLS[c]}">${counts[c]} ${c.slice(0,4)}</span>`).join('');
+
+    return `<div class="pe-person-card">
+      <div class="pe-person-head" onclick="togglePerson('${escapeHtml(name).replace(/'/g,"\\'")}')">
+        <div style="flex:1;min-width:0">
+          <div class="pe-person-name">${escapeHtml(name)}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3);margin-top:2px;letter-spacing:.03em">
+            ${evs.length} entr${evs.length===1?'y':'ies'} shown</div>
+        </div>
+        <div class="pe-counts">${pills}</div>
+        <span class="arch-chev">${isOpen?'▾':'▸'}</span>
+      </div>
+      ${isOpen ? `<div class="pe-body">
+        ${evs.map(e => `<div class="pe-entry">
+          <span class="pe-entry-date">${fmtPeDate(e.date)}</span>
+          <span class="pe-entry-text">${escapeHtml(e.text)}</span>
+          <span class="pe-entry-cat" style="${PE_STYLE[e.cat]}">${e.cat}</span>
+          <button class="pe-del" onclick="event.stopPropagation();delPeopleEntry('${e.id}')">×</button>
+        </div>`).join('')}
+        <div class="arch-actions">
+          <button class="out-btn green" onclick="summarizePerson('${escapeHtml(name).replace(/'/g,"\\'")}', this)">✨ Summarize year</button>
+          <button class="out-btn" onclick="copyPerson('${escapeHtml(name).replace(/'/g,"\\'")}', this)">Copy all entries</button>
+        </div>
+        <div id="pe-sum-${escapeHtml(name).replace(/[^a-zA-Z0-9]/g,'')}"></div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function fmtPeDate(d) {
+  const dt = new Date(d + 'T12:00:00');
+  return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function togglePerson(name) {
+  peOpen = peOpen === name ? null : name;
+  renderPeople();
+}
+
+function delPeopleEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  people = people.filter(e => e.id !== id);
+  persistPeople();
+  renderPeople();
+}
+
+function copyPerson(name, btn) {
+  const evs = people.filter(e => e.person === name).sort((a,b)=>a.date.localeCompare(b.date));
+  const txt = `${name} — Year log\n${'='.repeat(40)}\n\n` +
+    evs.map(e => `[${e.date}] (${e.cat})\n${e.text}\n`).join('\n');
+  navigator.clipboard.writeText(txt);
+  const o = btn.textContent; btn.textContent = '✓ Copied';
+  setTimeout(()=>btn.textContent=o, 1800);
+}
+
+async function summarizePerson(name, btn) {
+  const evs = people.filter(e => e.person === name).sort((a,b)=>a.date.localeCompare(b.date));
+  if (!evs.length) return;
+
+  const safeId = 'pe-sum-' + name.replace(/[^a-zA-Z0-9]/g,'');
+  const target = document.getElementById(safeId);
+  const orig = btn.textContent;
+  btn.textContent = 'Writing…';
+  btn.disabled = true;
+
+  const system = `You are a department chair's assistant at a high school (La Salle, Math & Science).
+You write fair, specific, professional year-in-review summaries of a teacher's contributions based on logged observations.
+Ground every claim in the entries provided — never invent accomplishments.
+Write in plain text, no markdown. Warm but professional. Suitable for an evaluation or recommendation letter.`;
+
+  const user = `Write a year-in-review summary for ${name} based on these logged entries.
+
+${evs.map(e => `[${e.date}] (${e.cat}) ${e.text}`).join('\n')}
+
+Provide:
+1. A 4-6 sentence narrative summary of their contributions and impact this year.
+2. A short bulleted list of standout accomplishments (only if there are clear ones).
+3. If there are Concern entries, one brief, constructive paragraph on growth areas — factual and fair, not harsh.
+
+Do not invent anything not in the entries.`;
+
+  const result = await callClaude(system, user, btn, document.getElementById('pe-error'));
+  btn.textContent = orig;
+  btn.disabled = false;
+
+  if (result && target) {
+    target.innerHTML = `<div class="pe-summary-box" id="${safeId}-txt">${escapeHtml(result)}</div>
+      <div class="arch-actions"><button class="out-btn" onclick="copyOutput('${safeId}-txt', this)">Copy summary</button></div>`;
+  }
+}
+
+function exportPeople() {
+  if (!people.length) return;
+  const names = [...new Set(people.map(p=>p.person))].sort();
+  const txt = names.map(n => {
+    const evs = people.filter(e=>e.person===n).sort((a,b)=>a.date.localeCompare(b.date));
+    return `${'═'.repeat(60)}\n${n}\n${'═'.repeat(60)}\n\n` +
+      evs.map(e => `[${e.date}] (${e.cat})\n${e.text}\n`).join('\n');
+  }).join('\n\n');
+  const blob = new Blob([txt], { type:'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `dc-people-log-${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
 }
 
 // ── Copy helpers ──
