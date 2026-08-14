@@ -209,6 +209,12 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .ai-btn:hover{background:rgba(240,180,41,.22)}
 .ai-btn:disabled{opacity:.5;cursor:wait}
 
+.item-lvl{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;width:20px;height:26px;flex-shrink:0;border-radius:3px;border:1px solid var(--edge);background:var(--slate);color:var(--chalk3);cursor:pointer;transition:all .12s;padding:0;line-height:1;margin-top:1px}
+.item-lvl:hover{border-color:var(--edge2)}
+.item-lvl.both{background:var(--slate3);color:var(--chalk3)}
+.item-lvl.honors{background:rgba(167,139,250,.18);color:var(--violet);border-color:rgba(167,139,250,.4)}
+.item-lvl.regular{background:var(--flask-dim);color:var(--flask);border-color:rgba(79,209,197,.4)}
+
 /* Lab paper */
 .lab-sec{font-family:'Space Grotesk',sans-serif;font-size:11.5pt;font-weight:600;letter-spacing:.02em;border-bottom:1.5px solid var(--ink);padding-bottom:3px;margin:.24in 0 .14in;break-after:avoid;display:flex;align-items:baseline;gap:8px}
 .lab-sec:first-of-type{margin-top:0}
@@ -311,7 +317,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
         <button class="lvl-btn" id="lvlHon" onclick="setLevel('honors')">Honors</button>
       </div>
       <div class="opt-hint" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.04em;line-height:1.7">
-        Tag any block <b style="color:var(--violet)">HON</b> or <b style="color:var(--flask)">REG</b> to include it only in that version. Untagged blocks print in both.
+        Every question, step, and rule has its own <b>B</b>/<b style="color:var(--violet)">H</b>/<b style="color:var(--flask)">R</b> chip — click to cycle. Tag one honors question and it vanishes from the regular packet while staying in honors. Section headers auto-hide when all their items are filtered out.
       </div>
       <div class="fgrid two" style="margin-top:.8rem">
         <div class="f"><label>Class period (min)</label>
@@ -681,13 +687,43 @@ function onApiInput(){apiKey=document.getElementById('apiKey').value.trim();}
 function newBlk(kind){
   const b={id:uid(),kind,level:'both',title:BLK[kind].sec};
   if(kind==='objective'||kind==='background')b.text='';
-  if(kind==='materials'||kind==='safety')b.items=[''];
-  if(kind==='prelab'||kind==='analysis')b.questions=[{t:'',lines:3}];
-  if(kind==='procedure')b.steps=[{t:'',min:5}];
+  if(kind==='materials'||kind==='safety')b.items=[{t:'',lvl:'both'}];
+  if(kind==='prelab'||kind==='analysis')b.questions=[{t:'',lines:3,lvl:'both'}];
+  if(kind==='procedure')b.steps=[{t:'',min:5,lvl:'both'}];
   if(kind==='datatable'){b.cols=['Trial','Mass (g)','Volume (mL)'];b.rows=5;}
   if(kind==='observations')b.lines=6;
   if(kind==='conclusion')b.lines=8;
   return b;
+}
+
+/* Older saved labs stored items as plain strings — upgrade them in place */
+function migrateBlocks(){
+  blocks.forEach(b=>{
+    if(b.items)b.items=b.items.map(x=>typeof x==='string'?{t:x,lvl:'both'}:(x.lvl?x:{...x,lvl:'both'}));
+    if(b.questions)b.questions=b.questions.map(q=>q.lvl?q:{...q,lvl:'both'});
+    if(b.steps)b.steps=b.steps.map(x=>x.lvl?x:{...x,lvl:'both'});
+  });
+}
+
+/* An item shows if its own level matches AND its block's level matches */
+function itemFor(it,lvl){
+  const l=it.lvl||'both';
+  return l==='both'||l===lvl;
+}
+function itemsFor(b,f,lvl){return (b[f]||[]).filter(it=>itemFor(it,lvl));}
+
+function cycleItemLevel(id,f,i){
+  const b=blocks.find(x=>x.id===id);if(!b)return;
+  const cur=b[f][i].lvl||'both';
+  b[f][i].lvl=cur==='both'?'honors':cur==='honors'?'regular':'both';
+  renderLabEditor();render();
+}
+
+function lvlChip(id,f,i,lvl){
+  const l=lvl||'both';
+  const txt=l==='both'?'B':l==='honors'?'H':'R';
+  return `<button class="item-lvl ${l}" onclick="cycleItemLevel('${id}','${f}',${i})"
+    title="Both / Honors only / Regular only">${txt}</button>`;
 }
 
 function addBlk(kind){blocks.push(newBlk(kind));renderLabEditor();render();
@@ -726,9 +762,9 @@ function timeFor(lvl){
   const list=blocksFor(lvl);
   let proc=0,pre=0,ana=0,other=0;
   list.forEach(b=>{
-    if(b.kind==='procedure')proc+=b.steps.reduce((s,x)=>s+(+x.min||0),0);
-    else if(b.kind==='prelab')pre+=b.questions.length*T.prelabQ;
-    else if(b.kind==='analysis')ana+=b.questions.length*(lvl==='honors'?T.analysisQHon:T.analysisQ);
+    if(b.kind==='procedure')proc+=itemsFor(b,'steps',lvl).reduce((s,x)=>s+(+x.min||0),0);
+    else if(b.kind==='prelab')pre+=itemsFor(b,'questions',lvl).length*T.prelabQ;
+    else if(b.kind==='analysis')ana+=itemsFor(b,'questions',lvl).length*(lvl==='honors'?T.analysisQHon:T.analysisQ);
     else if(b.kind==='observations')other+=b.lines*T.obsLine;
     else if(b.kind==='conclusion')other+=b.lines*T.concLine;
     else if(b.kind==='background')other+=T.readProse*Math.max(1,Math.ceil((b.text||'').length/400));
@@ -792,11 +828,12 @@ function renderLabEditor(){
     if(b.kind==='materials'||b.kind==='safety'){
       body=b.items.map((it,i)=>`<div class="step-row">
         <span class="step-n">${b.kind==='safety'?'⚠':'·'}</span>
-        <input type="text" value="${esc(it)}" placeholder="${b.kind==='safety'?'Wear goggles at all times':'50 mL graduated cylinder'}"
-          oninput="updArr('${b.id}','items',${i},this.value)">
+        <input type="text" value="${esc(it.t)}" placeholder="${b.kind==='safety'?'Wear goggles at all times':'50 mL graduated cylinder'}"
+          oninput="updArr('${b.id}','items',${i},this.value,'t')">
+        ${lvlChip(b.id,'items',i,it.lvl)}
         ${b.items.length>1?`<button class="icon-btn danger" onclick="delArr('${b.id}','items',${i})" style="padding-top:7px">×</button>`:''}
       </div>`).join('')+
-      `<button class="mini-btn" onclick="addArr('${b.id}','items','')">+ Add ${b.kind==='safety'?'rule':'item'}</button>`;
+      `<button class="mini-btn" onclick="addArr('${b.id}','items',{t:'',lvl:'both'})">+ Add ${b.kind==='safety'?'rule':'item'}</button>`;
     }
 
     if(b.kind==='prelab'||b.kind==='analysis'){
@@ -806,9 +843,10 @@ function renderLabEditor(){
           style="min-height:38px">${esc(q.t)}</textarea>
         <input class="step-min" type="number" min="1" max="12" value="${q.lines}" title="Answer lines"
           oninput="updArr('${b.id}','questions',${i},+this.value||1,'lines')" style="color:var(--chalk3)">
+        ${lvlChip(b.id,'questions',i,q.lvl)}
         ${b.questions.length>1?`<button class="icon-btn danger" onclick="delArr('${b.id}','questions',${i})" style="padding-top:7px">×</button>`:''}
       </div>`).join('')+
-      `<button class="mini-btn" onclick="addArr('${b.id}','questions',{t:'',lines:3})">+ Add question</button>`;
+      `<button class="mini-btn" onclick="addArr('${b.id}','questions',{t:'',lines:3,lvl:'both'})">+ Add question</button>`;
     }
 
     if(b.kind==='procedure'){
@@ -818,10 +856,12 @@ function renderLabEditor(){
           style="min-height:38px">${esc(s.t)}</textarea>
         <input class="step-min" type="number" min="0" max="60" value="${s.min}" title="Minutes"
           oninput="updArr('${b.id}','steps',${i},+this.value||0,'min')">
+        ${lvlChip(b.id,'steps',i,s.lvl)}
         ${b.steps.length>1?`<button class="icon-btn danger" onclick="delArr('${b.id}','steps',${i})" style="padding-top:7px">×</button>`:''}
       </div>`).join('')+
-      `<button class="mini-btn" onclick="addArr('${b.id}','steps',{t:'',min:5})">+ Add step</button>
-       <div class="qmeta-row"><span>Total</span><span style="color:var(--amber)">${b.steps.reduce((s,x)=>s+(+x.min||0),0)} min</span></div>`;
+      `<button class="mini-btn" onclick="addArr('${b.id}','steps',{t:'',min:5,lvl:'both'})">+ Add step</button>
+       <div class="qmeta-row"><span>Reg</span><span style="color:var(--flask)">${itemsFor(b,'steps','regular').reduce((s,x)=>s+(+x.min||0),0)} min</span>
+         <span style="margin-left:8px">Hon</span><span style="color:var(--violet)">${itemsFor(b,'steps','honors').reduce((s,x)=>s+(+x.min||0),0)} min</span></div>`;
     }
 
     if(b.kind==='datatable'){
@@ -897,6 +937,10 @@ function buildLabPaper(lvl){
 
   let qn=0;
   list.forEach(b=>{
+    // Skip a section whose every item was filtered out for this level
+    const arrField=b.questions?'questions':b.steps?'steps':b.items?'items':null;
+    if(arrField&&itemsFor(b,arrField,lvl).length===0)return;
+
     const honTag=b.level==='honors'?`<span class="lab-hon-mark">HONORS</span>`:'';
     let secTime='';
     if(b.kind==='procedure'){
@@ -910,20 +954,20 @@ function buildLabPaper(lvl){
     }
 
     if(b.kind==='materials'){
-      const items=b.items.filter(x=>x.trim());
-      h+=`<ul class="lab-list">${(items.length?items:['…']).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+      const items=itemsFor(b,'items',lvl).filter(x=>x.t.trim());
+      h+=`<ul class="lab-list">${(items.length?items:[{t:'…'}]).map(x=>`<li>${esc(x.t)}</li>`).join('')}</ul>`;
     }
 
     if(b.kind==='safety'){
-      const items=b.items.filter(x=>x.trim());
+      const items=itemsFor(b,'items',lvl).filter(x=>x.t.trim());
       h+=`<div class="lab-safety">
         <div class="lab-safety-hd">⚠ Safety — read before you begin</div>
-        <ul>${(items.length?items:['…']).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+        <ul>${(items.length?items:[{t:'…'}]).map(x=>`<li>${esc(x.t)}</li>`).join('')}</ul>
       </div>`;
     }
 
     if(b.kind==='prelab'||b.kind==='analysis'){
-      b.questions.forEach(q=>{
+      itemsFor(b,'questions',lvl).forEach(q=>{
         qn++;
         h+=`<div class="ws-q"><div class="ws-q-head">
           <span class="ws-q-num">${qn}.</span>
@@ -933,7 +977,7 @@ function buildLabPaper(lvl){
     }
 
     if(b.kind==='procedure'){
-      b.steps.forEach((s,i)=>{
+      itemsFor(b,'steps',lvl).forEach((s,i)=>{
         h+=`<div class="lab-step">
           <span class="lab-step-chk"></span>
           <span class="lab-step-n">${i+1}.</span>
@@ -971,9 +1015,10 @@ function labContext(lvl){
   return list.map(b=>{
     const head=`## ${b.title||BLK[b.kind].sec} (${b.kind}${b.level!=='both'?', '+b.level+' only':''})`;
     if(b.text)return head+'\n'+b.text;
-    if(b.items)return head+'\n'+b.items.filter(x=>x.trim()).map(x=>'- '+x).join('\n');
-    if(b.questions)return head+'\n'+b.questions.map((q,i)=>`${i+1}. ${q.t}`).join('\n');
-    if(b.steps)return head+'\n'+b.steps.map((s,i)=>`${i+1}. [${s.min}min] ${s.t}`).join('\n');
+    const tag=x=>x.lvl&&x.lvl!=='both'?` (${x.lvl} only)`:'';
+    if(b.items)return head+'\n'+itemsFor(b,'items',lvl).filter(x=>x.t.trim()).map(x=>'- '+x.t+tag(x)).join('\n');
+    if(b.questions)return head+'\n'+itemsFor(b,'questions',lvl).map((q,i)=>`${i+1}. ${q.t}${tag(q)}`).join('\n');
+    if(b.steps)return head+'\n'+itemsFor(b,'steps',lvl).map((s,i)=>`${i+1}. [${s.min}min] ${s.t}${tag(s)}`).join('\n');
     if(b.cols)return head+'\nColumns: '+b.cols.join(' | ')+` (${b.rows} rows)`;
     return head+`\n(${b.lines} lines for writing)`;
   }).join('\n\n');
@@ -1069,8 +1114,11 @@ Return ONLY the questions, one per line, numbered. No preamble.`,btn);
   if(!blk){blk=newBlk(kind);blk.questions=[];blocks.push(blk);}
   qs.forEach(q=>{
     const hon=/\(HONORS\)\s*$/i.test(q);
-    blk.questions.push({t:q.replace(/\s*\(HONORS\)\s*$/i,''),lines:kind==='analysis'?4:3});
-    if(hon&&blk.level==='both')blk.level='both';
+    blk.questions.push({
+      t:q.replace(/\s*\(HONORS\)\s*$/i,''),
+      lines:kind==='analysis'?4:3,
+      lvl:hon?'honors':'both'
+    });
   });
   if(blk.questions.length&&blk.questions[0].t==='')blk.questions.shift();
   renderLabEditor();render();
@@ -1183,7 +1231,7 @@ function loadSheet(i){
   document.getElementById('wsInstr').value=s.instr||'';
   document.getElementById('wsDate').value=s.date||'yes';
   document.getElementById('wsPts').value=s.pts||'no';
-  questions=s.questions||[];versionCount=s.versionCount||2;blocks=s.blocks||[];
+  questions=s.questions||[];versionCount=s.versionCount||2;blocks=s.blocks||[];migrateBlocks();
   if(s.labCap)document.getElementById('labCap').value=s.labCap;
   if(s.labOverhead)document.getElementById('labOverhead').value=s.labOverhead;
   setMode(s.mode||'worksheet');closeLoad();
