@@ -682,7 +682,29 @@ const BLK={
 /* minutes-per-thing estimates */
 const T={prelabQ:1.5, analysisQ:2.2, analysisQHon:3, obsLine:0.6, concLine:0.9, readProse:0.5, readList:0.3};
 
-function onApiInput(){apiKey=document.getElementById('apiKey').value.trim();}
+const APIKEY_KEY='dc_sheetbuilder_apikey';
+function onApiInput(){
+  apiKey=document.getElementById('apiKey').value.trim();
+  const el=document.getElementById('apiKey');
+  if(apiKey){
+    localStorage.setItem(APIKEY_KEY,apiKey);
+    el.style.borderColor='rgba(79,209,197,.45)';
+    el.title='Key saved in this browser';
+  }else{
+    localStorage.removeItem(APIKEY_KEY);
+    el.style.borderColor='var(--edge)';
+    el.title='';
+  }
+}
+function loadApiKey(){
+  const saved=localStorage.getItem(APIKEY_KEY);
+  if(!saved)return;
+  apiKey=saved;
+  const el=document.getElementById('apiKey');
+  el.value=saved;
+  el.style.borderColor='rgba(79,209,197,.45)';
+  el.title='Key saved in this browser';
+}
 
 function newBlk(kind){
   const b={id:uid(),kind,level:'both',title:BLK[kind].sec};
@@ -1259,7 +1281,7 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveSheet();}
 });
 
-renderVerStrip();renderEditor();render();
+loadApiKey();renderVerStrip();renderEditor();render();
 </script>
 </body>
 </html>
