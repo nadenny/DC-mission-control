@@ -1,0 +1,2153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#080C14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mission Control">
+<meta name="mobile-web-app-capable" content="yes">
+<title>DC Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+:root {
+  --bg:        #080C14;
+  --bg2:       #0C1220;
+  --bg3:       #111827;
+  --bg4:       #171F30;
+  --panel:     #0F1828;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --ink:       #E8EDF5;
+  --ink2:      #8A97B0;
+  --ink3:      #4A5568;
+  --gold:      #F5C842;
+  --gold-dim:  rgba(245,200,66,0.12);
+  --gold-glow: rgba(245,200,66,0.25);
+  --teal:      #2DD4BF;
+  --teal-dim:  rgba(45,212,191,0.1);
+  --blue:      #60A5FA;
+  --blue-dim:  rgba(96,165,250,0.1);
+  --green:     #4ADE80;
+  --green-dim: rgba(74,222,128,0.1);
+  --red:       #F87171;
+  --red-dim:   rgba(248,113,113,0.1);
+  --amber:     #FB923C;
+  --amber-dim: rgba(251,146,60,0.1);
+  --purple:    #A78BFA;
+  --purple-dim:rgba(167,139,250,0.1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── scanline overlay ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border2);
+  padding: .75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  position: sticky; top: 0; z-index: 50;
+}
+
+.header-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: .06em;
+  color: var(--gold);
+  text-shadow: 0 0 20px var(--gold-glow);
+  white-space: nowrap;
+}
+
+.header-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--ink3);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.header-sep { flex: 1; }
+
+.clock {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--teal);
+  letter-spacing: .1em;
+  text-shadow: 0 0 12px rgba(45,212,191,0.4);
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: .1em;
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+
+/* ── GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 260px;
+  grid-template-rows: auto;
+  gap: 1px;
+  background: var(--border);
+  min-height: calc(100vh - 49px);
+}
+
+.col { background: var(--bg); display: flex; flex-direction: column; gap: 1px; }
+
+/* ── PANELS ── */
+.panel {
+  background: var(--panel);
+  padding: 1rem 1.125rem;
+  position: relative;
+}
+
+.panel-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: .75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-label::before {
+  content: '';
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.panel-label .pl-accent { color: var(--gold); }
+
+/* ── TOOL TILES ── */
+.tool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.tool-tile {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 10px 8px;
+  cursor: pointer;
+  transition: all .15s;
+  text-decoration: none;
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+
+.tool-tile::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--tile-color, var(--gold));
+  opacity: .6;
+}
+
+.tool-tile:hover {
+  border-color: var(--border2);
+  background: var(--bg4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.tool-icon { font-size: 18px; margin-bottom: 4px; display: block; }
+
+.tool-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+  margin-bottom: 2px;
+}
+
+.tool-desc {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--ink3);
+  letter-spacing: .04em;
+  line-height: 1.4;
+}
+
+.tool-tile.wide {
+  grid-column: 1 / -1;
+}
+
+/* ── LINKS ── */
+.link-group { margin-bottom: .875rem; }
+
+.link-group-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border);
+}
+
+.link-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background .12s;
+  text-decoration: none;
+}
+
+.link-item:hover { background: var(--bg4); }
+
+.link-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.link-text {
+  font-size: 12px;
+  color: var(--ink2);
+  flex: 1;
+  transition: color .12s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.link-item:hover .link-text { color: var(--ink); }
+
+.link-edit {
+  font-size: 10px;
+  color: var(--ink3);
+  background: none; border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0;
+  transition: opacity .12s;
+}
+
+.link-item:hover .link-edit { opacity: 1; }
+
+/* ── TODO ── */
+.todo-input-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: .75rem;
+}
+
+.todo-input {
+  flex: 1;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  padding: 6px 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .12s;
+}
+.todo-input:focus { border-color: var(--border2); }
+.todo-input::placeholder { color: var(--ink3); }
+
+.todo-add-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding: 6px 10px;
+  background: var(--gold-dim);
+  border: 1px solid var(--gold-glow);
+  border-radius: 3px;
+  color: var(--gold);
+  cursor: pointer;
+  transition: background .12s;
+  white-space: nowrap;
+}
+.todo-add-btn:hover { background: rgba(245,200,66,0.2); }
+
+.todo-priority {
+  font-size: 11px;
+  padding: 6px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink2);
+  cursor: pointer;
+  outline: none;
+}
+
+.todo-list { display: flex; flex-direction: column; gap: 3px; }
+
+.todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 7px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  transition: background .12s;
+  cursor: default;
+}
+
+.todo-item:hover { background: var(--bg3); border-color: var(--border); }
+.todo-item.done .todo-text { text-decoration: line-through; color: var(--ink3); }
+
+.todo-check {
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--ink3);
+  border-radius: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .12s;
+  margin-top: 1px;
+}
+
+.todo-check:hover { border-color: var(--gold); }
+.todo-item.done .todo-check { background: var(--green); border-color: var(--green); }
+.todo-item.done .todo-check::after {
+  content: '';
+  width: 8px; height: 5px;
+  border-left: 1.5px solid #000;
+  border-bottom: 1.5px solid #000;
+  transform: rotate(-45deg) translate(1px, -1px);
+  display: block;
+}
+
+.todo-text { font-size: 12px; color: var(--ink2); flex: 1; line-height: 1.4; }
+
+.todo-pri {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  letter-spacing: .06em;
+  padding: 2px 5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pri-urgent  { background: var(--red-dim);   color: var(--red);   }
+.pri-high    { background: var(--amber-dim);  color: var(--amber); }
+.pri-normal  { background: var(--blue-dim);   color: var(--blue);  }
+.pri-low     { background: var(--bg3);        color: var(--ink3);  }
+
+.todo-del {
+  background: none; border: none;
+  color: var(--ink3); cursor: pointer;
+  font-size: 13px; line-height: 1; padding: 0;
+  opacity: 0; transition: opacity .12s, color .12s;
+}
+.todo-item:hover .todo-del { opacity: 1; }
+.todo-del:hover { color: var(--red); }
+
+.todo-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: .625rem;
+}
+
+.todo-tab {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all .12s;
+}
+.todo-tab.active { background: var(--gold-dim); color: var(--gold); border-color: var(--gold-glow); }
+
+/* ── REMINDERS / NOTES ── */
+.reminder-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.reminder-item:last-child { border-bottom: none; }
+
+.reminder-icon { font-size: 14px; flex-shrink: 0; padding-top: 1px; }
+
+.reminder-body { flex: 1; }
+
+.reminder-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+
+.reminder-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--ink3);
+  letter-spacing: .04em;
+  line-height: 1.4;
+}
+
+/* ── METRICS BAR ── */
+.metrics-bar {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.metric-cell {
+  flex: 1;
+  background: var(--panel);
+  padding: .75rem 1rem;
+  text-align: center;
+}
+
+.metric-n {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.metric-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+/* ── NOTES ── */
+.scratch-pad {
+  width: 100%;
+  min-height: 120px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  line-height: 1.65;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink2);
+  padding: 10px;
+  resize: vertical;
+  outline: none;
+  transition: border-color .12s;
+}
+.scratch-pad:focus { border-color: var(--border2); }
+.scratch-pad::placeholder { color: var(--ink3); }
+
+/* ── SEMESTER RING ── */
+.semester-ring-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: .75rem;
+}
+
+.ring-svg { flex-shrink: 0; }
+
+.ring-info { flex: 1; }
+
+.ring-pct {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  color: var(--gold);
+  line-height: 1;
+  text-shadow: 0 0 20px var(--gold-glow);
+}
+
+.ring-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--ink3);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.ring-days {
+  font-size: 11px;
+  color: var(--ink2);
+  margin-top: 3px;
+}
+
+/* ── ALERT STRIP ── */
+.alert-strip {
+  background: var(--red-dim);
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 3px;
+  padding: 7px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+
+.alert-strip-icon { font-size: 13px; flex-shrink: 0; }
+
+.alert-strip-text {
+  font-size: 11px;
+  color: var(--red);
+  line-height: 1.45;
+}
+
+.alert-strip-text strong { font-weight: 600; display: block; margin-bottom: 1px; }
+
+/* ── LINK EDIT MODAL ── */
+.ledit-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.ledit-backdrop.open { display: flex; }
+
+.ledit-modal {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 1.25rem;
+  width: 360px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+.ledit-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: .875rem;
+}
+
+.ledit-field { margin-bottom: 10px; }
+
+.ledit-field label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.ledit-field input {
+  width: 100%;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  padding: 7px 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink);
+  outline: none;
+}
+.ledit-field input:focus { border-color: var(--border2); }
+
+.ledit-btns { display: flex; gap: 8px; margin-top: 1rem; }
+
+.ledit-save {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  background: var(--gold-dim);
+  border: 1px solid var(--gold-glow);
+  border-radius: 3px;
+  color: var(--gold);
+  cursor: pointer;
+}
+
+.ledit-cancel {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--ink3);
+  cursor: pointer;
+}
+
+.ledit-del {
+  margin-left: auto;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 3px;
+  color: var(--red);
+  cursor: pointer;
+}
+
+/* ── CALENDAR ── */
+.cal-signin-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 1.25rem .5rem; gap: .625rem; text-align: center;
+}
+.cal-signin-icon { font-size: 26px; }
+.cal-signin-title {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink3);
+}
+.cal-signin-sub { font-size: 11px; color: var(--ink3); line-height: 1.5; max-width: 200px; }
+.cal-signin-btn {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 500;
+  padding: 7px 14px; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 4px; color: var(--ink); cursor: pointer; transition: all .15s; margin-top: 2px;
+}
+.cal-signin-btn:hover { background: var(--bg4); border-color: rgba(255,255,255,0.2); }
+.cal-client-row { display: flex; gap: 6px; width: 100%; max-width: 260px; }
+.cal-client-input {
+  flex: 1; font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  padding: 6px 8px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 3px; color: var(--ink2); outline: none; letter-spacing: .03em;
+}
+.cal-client-input:focus { border-color: var(--border2); }
+.cal-client-input::placeholder { color: var(--ink3); }
+.cal-client-save {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: .08em;
+  text-transform: uppercase; padding: 6px 10px; background: var(--gold-dim);
+  border: 1px solid var(--gold-glow); border-radius: 3px; color: var(--gold); cursor: pointer;
+}
+.cal-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: .625rem; }
+.cal-user-info { display: flex; align-items: center; gap: 6px; }
+.cal-avatar { width: 20px; height: 20px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border2); object-fit: cover; }
+.cal-user-name { font-size: 11px; color: var(--ink2); }
+.cal-signout {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: .08em;
+  text-transform: uppercase; background: none; border: none; color: var(--ink3);
+  cursor: pointer; transition: color .12s; padding: 0;
+}
+.cal-signout:hover { color: var(--red); }
+.cal-section-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink3); margin-bottom: 4px; margin-top: .5rem;
+  padding-bottom: 3px; border-bottom: 1px solid var(--border);
+}
+.cal-event {
+  display: flex; align-items: flex-start; gap: 8px; padding: 5px 6px;
+  border-radius: 3px; margin-bottom: 2px; transition: background .12s; border-left: 2px solid transparent;
+}
+.cal-event:hover { background: var(--bg3); }
+.cal-event.dc-flagged { background: var(--gold-dim); border-left-color: var(--gold); }
+.cal-event.dc-flagged:hover { background: rgba(245,200,66,0.18); }
+.cal-event.today-event { background: var(--teal-dim); border-left-color: var(--teal); }
+.cal-event-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.cal-event-body { flex: 1; min-width: 0; }
+.cal-event-title {
+  font-size: 11px; font-weight: 500; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;
+}
+.cal-event.dc-flagged .cal-event-title { color: var(--gold); }
+.cal-event-meta { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--ink3); letter-spacing: .03em; margin-top: 1px; }
+.cal-day-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink3); padding: 5px 0 3px;
+  display: flex; align-items: center; gap: 6px;
+}
+.cal-day-label.is-today { color: var(--teal); }
+.cal-day-label.is-today::after {
+  content: 'TODAY'; font-size: 7px; background: var(--teal-dim);
+  color: var(--teal); padding: 1px 5px; border-radius: 2px;
+}
+.cal-loading {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink3); text-align: center; padding: 1.5rem 0;
+  animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.cal-error { font-size: 11px; color: var(--red); text-align: center; padding: 1rem; line-height: 1.5; }
+.cal-refresh-btn {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: .1em;
+  text-transform: uppercase; background: none; border: none;
+  color: var(--ink3); cursor: pointer; padding: 0; transition: color .12s;
+}
+.cal-refresh-btn:hover { color: var(--teal); }
+.cal-next-badge {
+  display: inline-flex; align-items: center; gap: 5px; background: var(--blue-dim);
+  border: 1px solid rgba(96,165,250,0.2); border-radius: 3px; padding: 3px 8px; margin-bottom: .5rem;
+}
+.cal-next-badge-text { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--blue); letter-spacing: .06em; }
+
+/* ── 1:1 ROTATION ── */
+.oo-today{background:var(--gold-dim);border:1px solid rgba(245,200,66,.28);border-radius:5px;padding:11px 12px;margin-bottom:9px}
+.oo-today.done{background:var(--green-dim);border-color:rgba(74,222,128,.28)}
+.oo-label{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.oo-name{font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;color:var(--gold);letter-spacing:.02em;text-shadow:0 0 18px var(--gold-glow)}
+.oo-today.done .oo-name{color:var(--green);text-shadow:0 0 18px rgba(74,222,128,.3)}
+.oo-sub{font-size:11px;color:var(--ink2);margin-top:4px;line-height:1.4}
+.oo-actions{display:flex;gap:5px;margin-top:9px}
+.oo-btn{flex:1;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border-radius:3px;border:1px solid var(--border2);background:var(--bg3);color:var(--ink2);cursor:pointer;transition:all .12s}
+.oo-btn:hover{background:var(--bg4);color:var(--ink)}
+.oo-btn.done{background:var(--green-dim);border-color:rgba(74,222,128,.3);color:var(--green)}
+.oo-upnext-label{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin:.75rem 0 5px;padding-bottom:3px;border-bottom:1px solid var(--border)}
+.oo-up{display:flex;align-items:center;gap:8px;padding:4px 5px;border-radius:3px;transition:background .12s}
+.oo-up:hover{background:var(--bg3)}
+.oo-up-day{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);min-width:42px;letter-spacing:.04em}
+.oo-up-name{font-size:11.5px;color:var(--ink2);flex:1}
+.oo-up-check{font-size:9px;color:var(--green)}
+.oo-empty{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);text-align:center;padding:1.25rem 0;line-height:1.8}
+.ros-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.ros-num{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);width:16px}
+.ros-name{flex:1;font-size:12.5px;color:var(--ink)}
+.ros-name.daily{color:var(--ink3);font-style:italic}
+.ros-tag{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:2px;background:var(--bg2);color:var(--ink3);cursor:pointer;border:1px solid var(--border);transition:all .12s}
+.ros-tag.on{background:var(--teal-dim);color:var(--teal);border-color:rgba(45,212,191,.3)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+/* ── PHONE ── */
+@media (max-width: 640px) {
+  html { font-size: 15px; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+
+  .header {
+    padding: .6rem .85rem;
+    padding-top: calc(.6rem + env(safe-area-inset-top));
+    gap: .6rem;
+    flex-wrap: wrap;
+  }
+  .header-logo { font-size: 17px; }
+  .header-sub { font-size: 8px; }
+  .clock { font-size: 11px; }
+  .header-status { font-size: 8px; }
+
+  /* Metrics: 3 across, wrap to a second row */
+  .metrics-bar { flex-wrap: wrap; }
+  .metric-cell { flex: 1 1 33%; min-width: 33%; padding: .55rem .4rem; }
+  .metric-n { font-size: 22px; }
+  .metric-label { font-size: 7px; }
+
+  .panel { padding: .85rem .9rem; }
+
+  /* Order panels for thumb reach: tasks first, then 1:1, then the rest */
+  .grid { display: flex; flex-direction: column; }
+  .col { display: contents; }
+  .panel:has(#todoList)      { order: 1; }
+  .panel:has(#oneOnOnePanel) { order: 2; }
+  .panel:has(#calPanel)      { order: 3; }
+  .panel:has(.tool-grid)     { order: 4; }
+  .panel:has(#linksContainer){ order: 5; }
+  .panel:has(#scratchPad)    { order: 6; }
+  .panel:has(#semRing)       { order: 7; }
+  .panel:has(.reminder-item) { order: 8; }
+
+  /* Bigger tap targets */
+  .todo-input { font-size: 16px; padding: 9px 11px; }   /* 16px stops iOS zoom */
+  .todo-add-btn { padding: 9px 14px; }
+  .todo-priority { font-size: 14px; padding: 9px 8px; }
+  .todo-item { padding: 9px 8px; }
+  .todo-check { width: 20px; height: 20px; }
+  .todo-text { font-size: 13.5px; }
+  .todo-del { opacity: 1; padding: 0 6px; font-size: 16px; }
+
+  .tool-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tool-tile { padding: 12px 10px; }
+  .tool-name { font-size: 12px; }
+
+  .link-item { padding: 9px 7px; }
+  .link-text { font-size: 13.5px; }
+  .link-edit { opacity: 1; }
+
+  .oo-name { font-size: 27px; }
+  .oo-btn { padding: 9px 8px; font-size: 10px; }
+
+  .scratch-pad { font-size: 16px; min-height: 100px; }
+
+  .ledit-modal { width: calc(100vw - 1.5rem); max-width: none; }
+  .ledit-field input { font-size: 16px; }
+  .cal-signin-btn, .oo-btn, .ledit-save, .ledit-cancel { min-height: 40px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div>
+    <div class="header-logo">DC MISSION CONTROL</div>
+    <div class="header-sub">La Salle · Math &amp; Science · 2026–27</div>
+  </div>
+  <div class="header-sep"></div>
+  <button id="syncChip" onclick="openSync()" style="display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--ink3);cursor:pointer">
+    <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:var(--ink3)"></span>
+    <span id="syncLabel">Offline</span>
+  </button>
+  <button id="installBtn" onclick="installApp()" style="display:none;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:4px;border:1px solid var(--gold-glow);background:var(--gold-dim);color:var(--gold);cursor:pointer">⬇ Install</button>
+  <div class="header-status"><div class="status-dot"></div><span id="headerDate">—</span></div>
+  <div class="clock" id="clock">00:00:00</div>
+</header>
+
+<!-- ── METRICS BAR ── -->
+<div class="metrics-bar">
+  <div class="metric-cell">
+    <div class="metric-n" style="color:var(--gold)" id="m-todo">—</div>
+    <div class="metric-label">Tasks open</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-n" style="color:var(--red)" id="m-urgent">—</div>
+    <div class="metric-label">Urgent</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-n" style="color:var(--teal)" id="m-done">—</div>
+    <div class="metric-label">Done today</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-n" style="color:var(--blue)" id="m-links">—</div>
+    <div class="metric-label">Quick links</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-n" style="color:var(--green)" id="m-tools">8</div>
+    <div class="metric-label">DC tools built</div>
+  </div>
+</div>
+
+<!-- ── MAIN GRID ── -->
+<div class="grid">
+
+  <!-- ════ LEFT COLUMN ════ -->
+  <div class="col">
+
+    <!-- Semester status -->
+    <div class="panel">
+      <div class="panel-label"><span class="pl-accent">SEM</span> · YEAR STATUS</div>
+      <div class="semester-ring-wrap">
+        <svg class="ring-svg" width="72" height="72" viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+          <circle cx="36" cy="36" r="30" fill="none" stroke="var(--gold)" stroke-width="6"
+            stroke-dasharray="188.5" stroke-dashoffset="188.5"
+            stroke-linecap="round" transform="rotate(-90 36 36)"
+            id="semRing" style="transition:stroke-dashoffset 1s ease-out;filter:drop-shadow(0 0 4px var(--gold-glow))"/>
+        </svg>
+        <div class="ring-info">
+          <div class="ring-pct" id="semPct">—%</div>
+          <div class="ring-label">of school year</div>
+          <div class="ring-days" id="semDays">Computing…</div>
+        </div>
+      </div>
+
+      <div class="alert-strip" id="activeAlert" style="display:none">
+        <div class="alert-strip-icon">⚠</div>
+        <div class="alert-strip-text">
+          <strong id="alertTitle">Alert</strong>
+          <span id="alertBody">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DC Tools -->
+    <div class="panel" style="flex:1">
+      <div class="panel-label"><span class="pl-accent">SYS</span> · DC TOOLS</div>
+      <div class="tool-grid">
+        <a class="tool-tile" style="--tile-color:var(--gold)" href="semester_startup_checklist.html" target="_blank">
+          <span class="tool-icon">✅</span>
+          <div class="tool-name">Semester Checklist</div>
+          <div class="tool-desc">Weeks 1–2 startup tasks · 27 items</div>
+        </a>
+        <a class="tool-tile" style="--tile-color:var(--teal)" href="email_template_library.html" target="_blank">
+          <span class="tool-icon">✉️</span>
+          <div class="tool-name">Email Library</div>
+          <div class="tool-desc">11 templates · fill &amp; send</div>
+        </a>
+        <a class="tool-tile" style="--tile-color:var(--blue)" href="meeting_tool.html" target="_blank">
+          <span class="tool-icon">📋</span>
+          <div class="tool-name">Meeting Tool</div>
+          <div class="tool-desc">Agendas · notes · archive · people log</div>
+        </a>
+        <a class="tool-tile" style="--tile-color:var(--red)" href="concern_log.html" target="_blank">
+          <span class="tool-icon">🗂</span>
+          <div class="tool-name">Concern Log</div>
+          <div class="tool-desc">Student issues · case tracking</div>
+        </a>
+        <a class="tool-tile" style="--tile-color:var(--amber)" href="sheet_builder.html" target="_blank">
+          <span class="tool-icon">📄</span>
+          <div class="tool-name">Sheet Builder</div>
+          <div class="tool-desc">Worksheets · multi-version tests</div>
+        </a>
+        <a class="tool-tile" style="--tile-color:var(--purple)" href="ppt_analyzer.html" target="_blank">
+          <span class="tool-icon">📊</span>
+          <div class="tool-name">PPT Analyzer</div>
+          <div class="tool-desc">Slide deck pedagogy review</div>
+        </a>
+        <a class="tool-tile" style="--tile-color:var(--teal)" href="hattie_lesson_planner.html" target="_blank">
+          <span class="tool-icon">🎯</span>
+          <div class="tool-name">Hattie Lesson Planner</div>
+          <div class="tool-desc">Surface → Deep → Transfer planning</div>
+        </a>
+        <a class="tool-tile wide" style="--tile-color:var(--green); opacity:.55; cursor:default" href="#" onclick="return false">
+          <span class="tool-icon">🔬</span>
+          <div class="tool-name">Finals &amp; Reassessment Analyzer</div>
+          <div class="tool-desc">Your existing Python scripts — academic support scheduler · chem reassessment</div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ MIDDLE COLUMN ════ -->
+  <div class="col">
+
+    <!-- To-do -->
+    <div class="panel" style="flex:1">
+      <div class="panel-label"><span class="pl-accent">OPS</span> · TASK QUEUE</div>
+
+      <div class="todo-input-row">
+        <input class="todo-input" type="text" id="todoInput" placeholder="Add a task…" onkeydown="if(event.key==='Enter')addTodo()">
+        <select class="todo-priority" id="todoPri">
+          <option value="urgent">🔴 Urgent</option>
+          <option value="high">🟠 High</option>
+          <option value="normal" selected>🔵 Normal</option>
+          <option value="low">⚪ Low</option>
+        </select>
+        <button class="todo-add-btn" onclick="addTodo()">ADD</button>
+      </div>
+
+      <div class="todo-tabs">
+        <button class="todo-tab active" onclick="setTodoTab('active',this)">Active</button>
+        <button class="todo-tab" onclick="setTodoTab('done',this)">Completed</button>
+        <button class="todo-tab" onclick="setTodoTab('all',this)">All</button>
+      </div>
+
+      <div class="todo-list" id="todoList"></div>
+    </div>
+
+    <!-- Scratch pad -->
+    <div class="panel">
+      <div class="panel-label"><span class="pl-accent">LOG</span> · SCRATCH PAD</div>
+      <textarea class="scratch-pad" id="scratchPad" placeholder="Quick notes, ideas, things to remember… saves automatically." oninput="saveScratch()"></textarea>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--ink3);margin-top:5px;letter-spacing:.06em">AUTO-SAVED · BROWSER STORAGE</div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="panel" style="flex:1;overflow-y:auto;max-height:460px">
+      <div class="panel-label" style="justify-content:space-between">
+        <span><span class="pl-accent">CAL</span> · UPCOMING EVENTS</span>
+        <button class="cal-refresh-btn" id="calRefreshBtn" onclick="calRefreshAll()" style="display:none">↻ REFRESH</button>
+      </div>
+      <div id="calPanel">
+        <div id="calEmpty" class="cal-signin-wrap">
+          <div class="cal-signin-icon">📅</div>
+          <div class="cal-signin-title">Google Calendar</div>
+          <div class="cal-signin-sub">Sign in once to connect all your calendars automatically</div>
+          <button class="cal-signin-btn" id="calSigninBtn" onclick="calSignIn()">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Sign in with Google
+          </button>
+        </div>
+        <div id="calFeed" style="display:none"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════ RIGHT COLUMN ════ -->
+  <div class="col">
+
+    <!-- 1:1 Rotation -->
+    <div class="panel">
+      <div class="panel-label" style="justify-content:space-between">
+        <span><span class="pl-accent">1:1</span> · TODAY'S CHECK-IN</span>
+        <button onclick="openRoster()" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;background:none;border:none;color:var(--gold);cursor:pointer;text-transform:uppercase">ROSTER</button>
+      </div>
+      <div id="oneOnOnePanel"></div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="panel" style="flex:1">
+      <div class="panel-label" style="justify-content:space-between">
+        <span><span class="pl-accent">NAV</span> · QUICK LINKS</span>
+        <button onclick="openAddLink()" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;background:none;border:none;color:var(--gold);cursor:pointer;text-transform:uppercase">+ ADD</button>
+      </div>
+
+      <div id="linksContainer"></div>
+    </div>
+
+    <!-- Reminders -->
+    <div class="panel">
+      <div class="panel-label"><span class="pl-accent">BRIEF</span> · KEY REMINDERS</div>
+      <div class="reminder-item">
+        <div class="reminder-icon">⚠️</div>
+        <div class="reminder-body">
+          <div class="reminder-title">Senior complaint — active</div>
+          <div class="reminder-sub">Document every step · use concern log · consult admin before responding</div>
+        </div>
+      </div>
+      <div class="reminder-item">
+        <div class="reminder-icon">🔬</div>
+        <div class="reminder-body">
+          <div class="reminder-title">Physics First — over-formalize early</div>
+          <div class="reminder-sub">Visit PF schools · define benchmarks · measure impact from day 1</div>
+        </div>
+      </div>
+      <div class="reminder-item">
+        <div class="reminder-icon">📊</div>
+        <div class="reminder-body">
+          <div class="reminder-title">Push admin for behavior data</div>
+          <div class="reminder-sub">Cheating · absence · referral rates per Gerry's suggestion</div>
+        </div>
+      </div>
+      <div class="reminder-item">
+        <div class="reminder-icon">🎯</div>
+        <div class="reminder-body">
+          <div class="reminder-title">Dual-DC reframe pitch</div>
+          <div class="reminder-sub">Interdisciplinary strategy — not cost savings. Pitch to admin early</div>
+        </div>
+      </div>
+      <div class="reminder-item">
+        <div class="reminder-icon">🌱</div>
+        <div class="reminder-body">
+          <div class="reminder-title">Take care of yourself</div>
+          <div class="reminder-sub">Your team said it explicitly. Build recovery time into every week</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ── SYNC MODAL ── -->
+<div class="ledit-backdrop" id="syncBackdrop" onclick="if(event.target===this)closeSync()">
+  <div class="ledit-modal" style="max-width:440px;max-height:85vh;overflow-y:auto">
+    <div class="ledit-title">Cloud sync</div>
+
+    <div id="syncStateBox" style="font-size:12px;color:var(--ink3);line-height:1.6;margin-bottom:1rem"></div>
+
+    <!-- Step 1: config -->
+    <div id="syncCfgStep">
+      <div class="ledit-field">
+        <label>Firebase config (paste the whole object)</label>
+        <textarea id="fbConfig" rows="6" placeholder='{ "apiKey": "...", "authDomain": "...", "databaseURL": "...", "projectId": "..." }'
+          style="width:100%;font-family:'Share Tech Mono',monospace;font-size:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--ink);outline:none;resize:vertical;line-height:1.5"></textarea>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.04em;line-height:1.7;margin-bottom:.75rem">
+        Firebase console → Project settings → scroll to "Your apps" → Config. Paste the object inside <b>firebaseConfig = </b>.
+      </div>
+      <button class="ledit-save" onclick="saveFbConfig()" style="width:100%">Save config</button>
+    </div>
+
+    <!-- Step 2: sign in -->
+    <div id="syncAuthStep" style="display:none">
+      <div class="ledit-field">
+        <label>Email</label>
+        <input type="email" id="fbEmail" placeholder="you@example.com" autocomplete="username">
+      </div>
+      <div class="ledit-field">
+        <label>Password</label>
+        <input type="password" id="fbPass" placeholder="at least 6 characters" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')fbSignIn()">
+      </div>
+      <div id="syncErr" style="font-size:11px;color:var(--red);line-height:1.5;margin-bottom:.6rem;display:none"></div>
+      <div style="display:flex;gap:8px">
+        <button class="ledit-save" onclick="fbSignIn()" style="flex:1">Sign in</button>
+        <button class="ledit-cancel" onclick="fbSignUp()" style="flex:1">Create account</button>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.04em;line-height:1.7;margin-top:.75rem">
+        Use the same account on your phone and laptop. First time on any device: tap <b>Create account</b> once, then <b>Sign in</b> everywhere else.
+      </div>
+    </div>
+
+    <!-- Step 3: connected -->
+    <div id="syncOnStep" style="display:none">
+      <div style="background:var(--green-dim);border:1px solid rgba(74,222,128,.25);border-radius:4px;padding:10px 12px;margin-bottom:1rem">
+        <div style="font-size:12px;color:var(--green);font-weight:500;margin-bottom:3px">✓ Syncing</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.04em" id="syncWho"></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink3);line-height:1.65;margin-bottom:1rem">
+        Tasks, 1:1 log &amp; roster, quick links, and the scratch pad sync across every device signed into this account. Changes appear within a second.
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="ledit-cancel" onclick="fbSignOut()">Sign out</button>
+        <button class="ledit-cancel" onclick="forgetFbConfig()" style="color:var(--red);border-color:rgba(248,113,113,.25)">Reset config</button>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem;padding-top:.875rem;border-top:1px solid var(--border)">
+      <button class="ledit-save" onclick="closeSync()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ROSTER MODAL ── -->
+<div class="ledit-backdrop" id="rosterBackdrop" onclick="if(event.target===this)closeRoster()">
+  <div class="ledit-modal" style="max-width:420px;max-height:80vh;overflow-y:auto">
+    <div class="ledit-title">Department roster · 1:1 rotation</div>
+    <p style="font-size:11px;color:var(--ink3);line-height:1.6;margin-bottom:1rem">
+      One person per school day, cycling in order. Weekends skip automatically.
+      Mark someone <strong style="color:var(--ink2)">daily</strong> if you already see them constantly — they're excluded from the rotation.
+    </p>
+    <div id="rosterList"></div>
+    <div style="display:flex;gap:6px;margin-top:.875rem">
+      <input type="text" id="rosterNewName" placeholder="Add a name…" onkeydown="if(event.key==='Enter')addRosterPerson()"
+        style="flex:1;font-family:'Outfit',sans-serif;font-size:12px;padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--ink);outline:none">
+      <button class="ledit-save" onclick="addRosterPerson()">Add</button>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding-top:.875rem;border-top:1px solid var(--border)">
+      <button onclick="resetRotation()" style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:none;border:none;color:var(--ink3);cursor:pointer">↺ Restart cycle today</button>
+      <button class="ledit-save" onclick="closeRoster()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LINK EDIT MODAL ── -->
+<div class="ledit-backdrop" id="leditBackdrop" onclick="if(event.target===this)closeLEdit()">
+  <div class="ledit-modal">
+    <div class="ledit-title" id="leditTitle">Add quick link</div>
+    <div class="ledit-field">
+      <label>Label</label>
+      <input type="text" id="leditLabel" placeholder="e.g. PowerSchool" />
+    </div>
+    <div class="ledit-field">
+      <label>URL</label>
+      <input type="text" id="leditURL" placeholder="https://…" />
+    </div>
+    <div class="ledit-field">
+      <label>Category</label>
+      <input type="text" id="leditCat" placeholder="e.g. Admin, Curriculum, Resources" />
+    </div>
+    <div class="ledit-btns">
+      <button class="ledit-save" onclick="saveLEdit()">Save</button>
+      <button class="ledit-cancel" onclick="closeLEdit()">Cancel</button>
+      <button class="ledit-del" id="leditDelBtn" onclick="deleteLEdit()" style="display:none">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CLOCK ───
+function tickClock() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('en-US', { hour12: false });
+  document.getElementById('clock').textContent = t;
+  document.getElementById('headerDate').textContent =
+    now.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }).toUpperCase();
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// ─── SEMESTER RING ───
+function computeSemester() {
+  const inservice  = new Date('2026-08-11'); // Teacher inservice week begins
+  const students   = new Date('2026-08-17'); // First day students on campus
+  const end        = new Date('2026-12-19'); // End of fall semester
+  const today      = new Date();
+  // Ring tracks the full school year (inservice → end)
+  const total      = end - inservice;
+  const elapsed    = today - inservice;
+  let pct = Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
+  const daysLeft   = Math.max(0, Math.ceil((end - today) / 86400000));
+  const daysIn     = Math.max(0, Math.floor(elapsed / 86400000));
+  const daysToInservice = Math.ceil((inservice - today) / 86400000);
+  const daysToStudents  = Math.ceil((students - today) / 86400000);
+
+  document.getElementById('semPct').textContent = pct + '%';
+
+  if (today < inservice) {
+    document.getElementById('semDays').textContent = `Inservice in ${daysToInservice}d · Students in ${daysToStudents}d`;
+  } else if (today >= inservice && today < students) {
+    document.getElementById('semDays').textContent = `Inservice week · Students arrive in ${daysToStudents}d`;
+  } else if (today > end) {
+    document.getElementById('semDays').textContent = 'Semester complete';
+  } else {
+    document.getElementById('semDays').textContent = `${daysIn}d in · ${daysLeft}d remaining`;
+  }
+
+  // Ring animation
+  const ring = document.getElementById('semRing');
+  const circumference = 188.5;
+  setTimeout(() => {
+    ring.style.strokeDashoffset = circumference - (circumference * pct / 100);
+  }, 300);
+
+  // Alerts
+  if (daysLeft > 0 && daysLeft <= 14) {
+    document.getElementById('activeAlert').style.display = 'flex';
+    document.getElementById('alertTitle').textContent = `Finals in ${daysLeft} days`;
+    document.getElementById('alertBody').textContent = 'Run finals analyzer · verify study guides · notify dept';
+  } else if (today >= inservice && today < students) {
+    document.getElementById('activeAlert').style.display = 'flex';
+    document.getElementById('alertTitle').textContent = 'Inservice week — students arrive Aug 17';
+    document.getElementById('alertBody').textContent = 'Run semester startup checklist · send welcome email to both depts';
+  } else if (today < inservice && daysToInservice <= 30) {
+    document.getElementById('activeAlert').style.display = 'flex';
+    document.getElementById('alertTitle').textContent = `Inservice in ${daysToInservice} days`;
+    document.getElementById('alertBody').textContent = 'Good time to work through the semester startup checklist';
+  } else if (today < inservice) {
+    document.getElementById('activeAlert').style.display = 'flex';
+    document.getElementById('alertTitle').textContent = `Inservice Aug 11 · Students Aug 17`;
+    document.getElementById('alertBody').textContent = `${daysToInservice}d until inservice · ${daysToStudents}d until first day`;
+  }
+}
+computeSemester();
+
+// ─── TODO ───
+const TODO_KEY = 'dc_mc_todos_v1';
+let todos = [];
+let todoTab = 'active';
+
+function loadTodos() {
+  try { todos = JSON.parse(localStorage.getItem(TODO_KEY)) || []; }
+  catch { todos = []; }
+  // Seed on first load
+  if (todos.length === 0) {
+    todos = [
+      { id: 't1', text: 'Handle senior complaint — document in concern log', pri: 'urgent', done: false, createdAt: Date.now() },
+      { id: 't2', text: 'Physics First: schedule planning session or school visit', pri: 'high', done: false, createdAt: Date.now() },
+      { id: 't3', text: 'Draft dual-DC intro email to both departments', pri: 'high', done: false, createdAt: Date.now() },
+      { id: 't4', text: 'Request admin behavior/absence data report (per Gerry)', pri: 'normal', done: false, createdAt: Date.now() },
+      { id: 't5', text: 'Book NSTA workshop for science dept', pri: 'normal', done: false, createdAt: Date.now() },
+      { id: 't6', text: 'Set up Schoology dept communications channel', pri: 'normal', done: false, createdAt: Date.now() },
+      { id: 't7', text: 'Run semester startup checklist', pri: 'high', done: false, createdAt: Date.now() },
+    ];
+    saveTodos();
+  }
+}
+
+function saveTodos() {
+  localStorage.setItem(TODO_KEY, JSON.stringify(todos));
+  updateMetrics();
+  syncPush();
+}
+
+function addTodo() {
+  const text = document.getElementById('todoInput').value.trim();
+  if (!text) return;
+  todos.unshift({ id: 't' + Date.now(), text, pri: document.getElementById('todoPri').value, done: false, createdAt: Date.now() });
+  document.getElementById('todoInput').value = '';
+  saveTodos();
+  renderTodos();
+}
+
+function toggleTodo(id) {
+  const t = todos.find(x => x.id === id);
+  if (t) { t.done = !t.done; t.doneAt = t.done ? Date.now() : null; }
+  saveTodos();
+  renderTodos();
+}
+
+function deleteTodo(id) {
+  todos = todos.filter(x => x.id !== id);
+  saveTodos();
+  renderTodos();
+}
+
+function setTodoTab(tab, btn) {
+  todoTab = tab;
+  document.querySelectorAll('.todo-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTodos();
+}
+
+function renderTodos() {
+  const priOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+  let list = [...todos].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return (priOrder[a.pri] ?? 9) - (priOrder[b.pri] ?? 9);
+  });
+
+  if (todoTab === 'active') list = list.filter(t => !t.done);
+  if (todoTab === 'done')   list = list.filter(t => t.done);
+
+  const priLabel = { urgent: 'URGENT', high: 'HIGH', normal: '', low: 'LOW' };
+  const priClass = { urgent: 'pri-urgent', high: 'pri-high', normal: 'pri-normal', low: 'pri-low' };
+
+  document.getElementById('todoList').innerHTML = list.length === 0
+    ? `<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;padding:1rem 0;text-align:center">${todoTab === 'done' ? 'Nothing completed yet' : 'Queue clear'}</div>`
+    : list.map(t => `
+      <div class="todo-item ${t.done ? 'done' : ''}" id="td_${t.id}">
+        <div class="todo-check" onclick="toggleTodo('${t.id}')"></div>
+        <div class="todo-text">${escHtml(t.text)}</div>
+        ${priLabel[t.pri] ? `<span class="todo-pri ${priClass[t.pri]}">${priLabel[t.pri]}</span>` : ''}
+        <button class="todo-del" onclick="deleteTodo('${t.id}')" title="Remove">×</button>
+      </div>`).join('');
+}
+
+function updateMetrics() {
+  const open   = todos.filter(t => !t.done).length;
+  const urgent = todos.filter(t => !t.done && t.pri === 'urgent').length;
+  const today  = new Date();
+  const done   = todos.filter(t => t.done && t.doneAt &&
+    new Date(t.doneAt).toDateString() === today.toDateString()).length;
+
+  document.getElementById('m-todo').textContent   = open;
+  document.getElementById('m-urgent').textContent = urgent;
+  document.getElementById('m-done').textContent   = done;
+}
+
+// ─── SCRATCH PAD ───
+function saveScratch() {
+  localStorage.setItem('dc_mc_scratch_v1', document.getElementById('scratchPad').value);
+  syncPush();
+}
+
+function loadScratch() {
+  document.getElementById('scratchPad').value =
+    localStorage.getItem('dc_mc_scratch_v1') || '';
+}
+
+// ─── QUICK LINKS ───
+const LINKS_KEY = 'dc_mc_links_v1';
+let links = [];
+let editingLinkId = null;
+
+const DEFAULT_LINKS = [
+  { id: 'l1', label: 'PowerSchool', url: '', cat: 'Admin' },
+  { id: 'l2', label: 'Schoology', url: '', cat: 'Admin' },
+  { id: 'l3', label: 'Google Classroom', url: '', cat: 'Admin' },
+  { id: 'l4', label: 'FlexiSched', url: '', cat: 'Academic Support' },
+  { id: 'l5', label: 'Google Drive — DC Folder', url: '', cat: 'Documents' },
+  { id: 'l6', label: 'Dept Meeting Notes', url: '', cat: 'Documents' },
+  { id: 'l7', label: 'Supply Order Form', url: '', cat: 'Admin' },
+  { id: 'l8', label: 'La Salle Staff Portal', url: '', cat: 'Admin' },
+  { id: 'l9', label: 'NSTA Website', url: 'https://www.nsta.org', cat: 'Resources' },
+  { id: 'l10', label: 'Force Concept Inventory', url: 'https://www.physport.org/assessments/fci', cat: 'Resources' },
+  { id: 'l11', label: 'CA Science Standards', url: 'https://www.cde.ca.gov/pd/ca/sc/ngssstandards.asp', cat: 'Curriculum' },
+  { id: 'l12', label: 'CA Math Framework', url: 'https://www.cde.ca.gov/ci/ma/cf/', cat: 'Curriculum' },
+];
+
+const LINK_COLORS = { Admin: '#F5C842', Documents: '#60A5FA', 'Academic Support': '#2DD4BF', Resources: '#4ADE80', Curriculum: '#A78BFA' };
+
+function loadLinks() {
+  try { links = JSON.parse(localStorage.getItem(LINKS_KEY)); }
+  catch { links = null; }
+  if (!links || links.length === 0) { links = DEFAULT_LINKS; saveLinks(); }
+}
+
+function saveLinks() {
+  localStorage.setItem(LINKS_KEY, JSON.stringify(links));
+  document.getElementById('m-links').textContent = links.length;
+  syncPush();
+}
+
+function renderLinks() {
+  const cats = [...new Set(links.map(l => l.cat))];
+  const container = document.getElementById('linksContainer');
+  container.innerHTML = cats.map(cat => {
+    const catLinks = links.filter(l => l.cat === cat);
+    const color = LINK_COLORS[cat] || 'var(--ink3)';
+    return `<div class="link-group">
+      <div class="link-group-label" style="color:${color}">${cat}</div>
+      ${catLinks.map(l => `
+        <div class="link-item" onclick="${l.url ? `window.open('${escHtml(l.url)}','_blank')` : `editLink('${l.id}')`}">
+          <div class="link-dot" style="background:${color};opacity:0.6"></div>
+          <span class="link-text">${escHtml(l.label)}</span>
+          ${!l.url ? `<span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--ink3);letter-spacing:.06em">NO URL</span>` : ''}
+          <button class="link-edit" onclick="event.stopPropagation();editLink('${l.id}')" title="Edit">✎</button>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+  document.getElementById('m-links').textContent = links.length;
+}
+
+function openAddLink() {
+  editingLinkId = null;
+  document.getElementById('leditTitle').textContent = 'Add quick link';
+  document.getElementById('leditLabel').value = '';
+  document.getElementById('leditURL').value = '';
+  document.getElementById('leditCat').value = '';
+  document.getElementById('leditDelBtn').style.display = 'none';
+  document.getElementById('leditBackdrop').classList.add('open');
+  document.getElementById('leditLabel').focus();
+}
+
+function editLink(id) {
+  const l = links.find(x => x.id === id);
+  if (!l) return;
+  editingLinkId = id;
+  document.getElementById('leditTitle').textContent = 'Edit link';
+  document.getElementById('leditLabel').value = l.label;
+  document.getElementById('leditURL').value   = l.url || '';
+  document.getElementById('leditCat').value   = l.cat || '';
+  document.getElementById('leditDelBtn').style.display = '';
+  document.getElementById('leditBackdrop').classList.add('open');
+  document.getElementById('leditURL').focus();
+}
+
+function saveLEdit() {
+  const label = document.getElementById('leditLabel').value.trim();
+  const url   = document.getElementById('leditURL').value.trim();
+  const cat   = document.getElementById('leditCat').value.trim() || 'Other';
+  if (!label) { document.getElementById('leditLabel').focus(); return; }
+
+  if (editingLinkId) {
+    const l = links.find(x => x.id === editingLinkId);
+    if (l) { l.label = label; l.url = url; l.cat = cat; }
+  } else {
+    links.push({ id: 'l' + Date.now(), label, url, cat });
+  }
+  saveLinks();
+  renderLinks();
+  closeLEdit();
+}
+
+function deleteLEdit() {
+  if (!editingLinkId) return;
+  if (confirm('Remove this link?')) {
+    links = links.filter(x => x.id !== editingLinkId);
+    saveLinks();
+    renderLinks();
+    closeLEdit();
+  }
+}
+
+function closeLEdit() {
+  document.getElementById('leditBackdrop').classList.remove('open');
+  editingLinkId = null;
+}
+
+// ─── GOOGLE CALENDAR (OAuth via GIS) ───
+const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+const CAL_CLIENT_KEY = 'dc_gc_client_id_v1';
+const DC_KEYWORDS = [
+  'plc','department','dept','meeting','physics first','inservice','in-service',
+  'admin','principal','chair','science','math','curriculum','reassessment',
+  'assessment','finals','exam','supply','budget','parent','student',
+  'concern','behavior','absence','nsta','workshop','staff','faculty',
+  'professional','development','pd','collaboration','back to school','open house'
+];
+let calTokenClient = null;
+let calAccessToken = null;
+
+function initCalendar() {
+  if (!window.google) return;
+  const clientId = localStorage.getItem(CAL_CLIENT_KEY);
+  if (!clientId) return;
+  setupTokenClient(clientId);
+  calTokenClient.requestAccessToken({ prompt: '' });
+}
+
+function setupTokenClient(clientId) {
+  calTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) { showCalError('Sign-in failed: ' + resp.error); return; }
+      calAccessToken = resp.access_token;
+      calFetchEvents();
+    },
+    error_callback: () => {} // silent fail on restore attempt
+  });
+}
+
+function calSignIn() {
+  let clientId = localStorage.getItem(CAL_CLIENT_KEY);
+  if (!clientId) {
+    clientId = prompt('Paste your Google OAuth Client ID (from Google Cloud Console):');
+    if (!clientId) return;
+    localStorage.setItem(CAL_CLIENT_KEY, clientId.trim());
+    setupTokenClient(clientId.trim());
+  }
+  calTokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function calSignOut() {
+  if (calAccessToken) google.accounts.oauth2.revoke(calAccessToken);
+  calAccessToken = null;
+  document.getElementById('calEmpty').style.display = 'flex';
+  document.getElementById('calFeed').style.display  = 'none';
+  document.getElementById('calRefreshBtn').style.display = 'none';
+}
+
+function calRefreshAll() { calFetchEvents(); }
+
+async function calFetchEvents() {
+  if (!calAccessToken) { calSignIn(); return; }
+  document.getElementById('calEmpty').style.display = 'none';
+  document.getElementById('calFeed').style.display  = 'block';
+  document.getElementById('calFeed').innerHTML = '<div class="cal-loading">FETCHING CALENDARS…</div>';
+  document.getElementById('calRefreshBtn').style.display = 'block';
+
+  const now   = new Date();
+  const tMin  = now.toISOString();
+  const tMaxD = new Date(now); tMaxD.setDate(tMaxD.getDate() + 21);
+  const tMax  = tMaxD.toISOString();
+
+  try {
+    const listRes = await fetch(
+      'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+      { headers: { Authorization: 'Bearer ' + calAccessToken } }
+    );
+    if (listRes.status === 401) {
+      calAccessToken = null;
+      calTokenClient.requestAccessToken({ prompt: '' });
+      return;
+    }
+    const calendars = ((await listRes.json()).items || []).filter(c => c.selected !== false);
+
+    const allEvents = [];
+    await Promise.all(calendars.map(async cal => {
+      try {
+        const r = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events` +
+          `?timeMin=${encodeURIComponent(tMin)}&timeMax=${encodeURIComponent(tMax)}` +
+          `&singleEvents=true&orderBy=startTime&maxResults=50`,
+          { headers: { Authorization: 'Bearer ' + calAccessToken } }
+        );
+        ((await r.json()).items || []).forEach(ev => allEvents.push({
+          title:   ev.summary || '(No title)',
+          start:   ev.start?.dateTime || ev.start?.date,
+          allDay:  !ev.start?.dateTime,
+          calName: cal.summary,
+          color:   cal.backgroundColor || '#60A5FA',
+        }));
+      } catch(e) {}
+    }));
+
+    allEvents.sort((a,b) => new Date(a.start) - new Date(b.start));
+    renderCalFeed(allEvents, calendars.length);
+  } catch(err) {
+    showCalError('Could not load: ' + err.message);
+  }
+}
+
+function isDCRelevant(t) {
+  const l = (t||'').toLowerCase();
+  return DC_KEYWORDS.some(k => l.includes(k));
+}
+
+function fmtTime(start, allDay) {
+  if (allDay) return 'All day';
+  return new Date(start).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+}
+
+function fmtDay(start, allDay) {
+  const d = allDay ? new Date(start+'T12:00:00') : new Date(start);
+  const today = new Date(), tom = new Date(); tom.setDate(tom.getDate()+1);
+  if (d.toDateString()===today.toDateString()) return {label:'Today',isToday:true};
+  if (d.toDateString()===tom.toDateString())   return {label:'Tomorrow',isToday:false};
+  return {label:d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),isToday:false};
+}
+
+function getDayKey(start, allDay) {
+  return allDay ? start.slice(0,10) : new Date(start).toISOString().slice(0,10);
+}
+
+function renderCalFeed(events, calCount) {
+  const feed = document.getElementById('calFeed');
+  const todayKey = new Date().toISOString().slice(0,10);
+
+  let nextHtml = '';
+  if (events.length) {
+    const nev  = events[0];
+    const diff = new Date(nev.allDay ? nev.start+'T12:00:00' : nev.start) - new Date();
+    const mins = Math.floor(diff/60000), hrs = Math.floor(diff/3600000);
+    const cd   = mins<60?`in ${mins}m`:hrs<24?`in ${hrs}h`:`in ${Math.ceil(diff/86400000)}d`;
+    nextHtml = `<div class="cal-next-badge"><span class="cal-next-badge-text">▶ NEXT: ${escHtml(nev.title)} — ${cd}</span></div>`;
+  }
+
+  const hdr = `<div class="cal-header-row">
+    <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3)">${calCount} CALENDARS CONNECTED</span>
+    <button class="cal-signout" onclick="calSignOut()">SIGN OUT</button>
+  </div>`;
+
+  if (!events.length) { feed.innerHTML = hdr+nextHtml+'<div class="cal-loading" style="animation:none">NO EVENTS IN NEXT 21 DAYS</div>'; return; }
+
+  const dcEvs = events.filter(ev => getDayKey(ev.start,ev.allDay)!==todayKey && isDCRelevant(ev.title)).slice(0,6);
+  let dcHtml = '';
+  if (dcEvs.length) {
+    dcHtml = '<div class="cal-section-label">⭐ DC-RELEVANT UPCOMING</div>';
+    dcEvs.forEach(ev => {
+      const {label} = fmtDay(ev.start,ev.allDay);
+      dcHtml += `<div class="cal-event dc-flagged">
+        <div class="cal-event-dot" style="background:${ev.color}"></div>
+        <div class="cal-event-body">
+          <div class="cal-event-title">${escHtml(ev.title)}</div>
+          <div class="cal-event-meta">${label} · ${fmtTime(ev.start,ev.allDay)}</div>
+        </div></div>`;
+    });
+  }
+
+  const dayMap = {};
+  events.forEach(ev => { const k=getDayKey(ev.start,ev.allDay); if(!dayMap[k])dayMap[k]=[]; dayMap[k].push(ev); });
+  let allHtml = '<div class="cal-section-label">ALL EVENTS · NEXT 21 DAYS</div>';
+  Object.entries(dayMap).forEach(([,evs]) => {
+    const {label,isToday} = fmtDay(evs[0].start,evs[0].allDay);
+    allHtml += `<div class="cal-day-label ${isToday?'is-today':''}">${label}</div>`;
+    evs.forEach(ev => {
+      const flagged = isDCRelevant(ev.title);
+      allHtml += `<div class="cal-event ${flagged?'dc-flagged':''} ${isToday&&!flagged?'today-event':''}">
+        <div class="cal-event-dot" style="background:${ev.color}"></div>
+        <div class="cal-event-body">
+          <div class="cal-event-title">${escHtml(ev.title)}</div>
+          <div class="cal-event-meta">${fmtTime(ev.start,ev.allDay)} · ${escHtml(ev.calName)}</div>
+        </div></div>`;
+    });
+  });
+
+  feed.innerHTML = hdr + nextHtml + dcHtml + allHtml;
+}
+
+function showCalError(msg) {
+  document.getElementById('calFeed').innerHTML =
+    `<div class="cal-error">${escHtml(msg)}<br><br><button class="cal-signin-btn" onclick="calSignIn()" style="margin:0 auto">Try again</button></div>`;
+}
+
+window.addEventListener('load', () => {
+  if (window.google) initCalendar();
+  else document.querySelector('script[src*="gsi"]')?.addEventListener('load', initCalendar);
+});
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeLEdit();
+  if (e.key === 'Enter' && document.getElementById('leditBackdrop').classList.contains('open')) saveLEdit();
+});
+
+// ─── 1:1 ROTATION ───
+const ROSTER_KEY = 'dc_roster_v1';
+const OO_LOG_KEY = 'dc_oo_log_v1';
+const OO_START_KEY = 'dc_oo_start_v1';
+
+let roster = [];
+let ooLog  = {};   // 'YYYY-MM-DD' -> person name
+
+function loadRoster() {
+  try { roster = JSON.parse(localStorage.getItem(ROSTER_KEY)) || []; } catch { roster = []; }
+  try { ooLog  = JSON.parse(localStorage.getItem(OO_LOG_KEY))  || {}; } catch { ooLog  = {}; }
+  if (!roster.length) {
+    roster = [
+      { name: 'Teacher 1', daily: false }, { name: 'Teacher 2', daily: false },
+      { name: 'Teacher 3', daily: false }, { name: 'Teacher 4', daily: false },
+      { name: 'Teacher 5', daily: false }, { name: 'Teacher 6', daily: false },
+      { name: 'Teacher 7', daily: false }, { name: 'Teacher 8', daily: false },
+      { name: 'Teacher 9', daily: false }, { name: 'Teacher 10', daily: false },
+      { name: 'Roommate', daily: true },
+    ];
+    persistRoster();
+  }
+}
+
+function persistRoster() {
+  localStorage.setItem(ROSTER_KEY, JSON.stringify(roster));
+  syncPush();
+}
+
+function persistOOLog() {
+  localStorage.setItem(OO_LOG_KEY, JSON.stringify(ooLog));
+  syncPush();
+}
+
+function rotationStart() {
+  let s = localStorage.getItem(OO_START_KEY);
+  if (!s) { s = new Date().toISOString().slice(0,10); localStorage.setItem(OO_START_KEY, s); }
+  return new Date(s + 'T12:00:00');
+}
+
+function isWeekday(d) { const w = d.getDay(); return w >= 1 && w <= 5; }
+
+// Count school days between start and target (inclusive of start, exclusive of target)
+function schoolDaysBetween(start, target) {
+  let count = 0;
+  const cur = new Date(start);
+  cur.setHours(12,0,0,0);
+  const end = new Date(target);
+  end.setHours(12,0,0,0);
+  while (cur < end) {
+    if (isWeekday(cur)) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+function activeRoster() { return roster.filter(p => !p.daily); }
+
+function personForDate(date) {
+  const active = activeRoster();
+  if (!active.length) return null;
+  if (!isWeekday(date)) return null;
+  const idx = schoolDaysBetween(rotationStart(), date) % active.length;
+  return active[idx].name;
+}
+
+function dateKey(d) { return d.toISOString().slice(0,10); }
+
+function nextSchoolDays(from, n) {
+  const out = [];
+  const cur = new Date(from);
+  cur.setHours(12,0,0,0);
+  while (out.length < n) {
+    cur.setDate(cur.getDate() + 1);
+    if (isWeekday(cur)) out.push(new Date(cur));
+  }
+  return out;
+}
+
+function renderOneOnOne() {
+  const panel = document.getElementById('oneOnOnePanel');
+  if (!panel) return;
+
+  const active = activeRoster();
+  if (!active.length) {
+    panel.innerHTML = `<div class="oo-empty">No one in rotation<br>Click ROSTER to add your team</div>`;
+    return;
+  }
+
+  const today = new Date();
+  const tKey  = dateKey(today);
+  const todayPerson = personForDate(today);
+  const isDone = ooLog[tKey] === todayPerson;
+
+  let html = '';
+
+  if (!todayPerson) {
+    html += `<div class="oo-today" style="background:var(--bg3);border-color:var(--border)">
+      <div class="oo-label">Weekend</div>
+      <div class="oo-name" style="color:var(--ink2);text-shadow:none;font-size:19px">No check-in today</div>
+      <div class="oo-sub">Rotation resumes Monday</div>
+    </div>`;
+  } else {
+    const cycleLen = active.length;
+    const pos = (schoolDaysBetween(rotationStart(), today) % cycleLen) + 1;
+    html += `<div class="oo-today ${isDone ? 'done' : ''}">
+      <div class="oo-label">${isDone ? '✓ Checked in today' : 'Talk to today'}</div>
+      <div class="oo-name">${escHtml(todayPerson)}</div>
+      <div class="oo-sub">Day ${pos} of ${cycleLen} · brief 5–10 min touchpoint</div>
+      <div class="oo-actions">
+        <button class="oo-btn ${isDone ? 'done' : ''}" onclick="markOODone()">${isDone ? '✓ Done' : 'Mark done'}</button>
+        <button class="oo-btn" onclick="skipOOToday()">Skip</button>
+      </div>
+    </div>`;
+  }
+
+  // Up next
+  const upcoming = nextSchoolDays(today, 5);
+  html += `<div class="oo-upnext-label">Coming up</div>`;
+  upcoming.forEach(d => {
+    const p = personForDate(d);
+    if (!p) return;
+    const label = d.toLocaleDateString('en-US',{weekday:'short'}) + ' ' + (d.getMonth()+1) + '/' + d.getDate();
+    const done  = ooLog[dateKey(d)] === p;
+    html += `<div class="oo-up">
+      <span class="oo-up-day">${label}</span>
+      <span class="oo-up-name">${escHtml(p)}</span>
+      ${done ? '<span class="oo-up-check">✓</span>' : ''}
+    </div>`;
+  });
+
+  // Cycle progress
+  const doneThisCycle = Object.entries(ooLog).filter(([k,v]) => {
+    const d = new Date(k + 'T12:00:00');
+    const daysAgo = schoolDaysBetween(d, today);
+    return daysAgo < active.length;
+  }).length;
+  html += `<div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--ink3);letter-spacing:.06em;margin-top:.75rem;padding-top:.5rem;border-top:1px solid var(--border);text-align:center">
+    ${doneThisCycle}/${active.length} SEEN THIS CYCLE
+  </div>`;
+
+  panel.innerHTML = html;
+}
+
+function markOODone() {
+  const today = new Date();
+  const p = personForDate(today);
+  if (!p) return;
+  const k = dateKey(today);
+  if (ooLog[k] === p) delete ooLog[k];
+  else ooLog[k] = p;
+  persistOOLog();
+  renderOneOnOne();
+}
+
+function skipOOToday() {
+  // Push rotation forward one day by moving start back one school day
+  const s = new Date(localStorage.getItem(OO_START_KEY) + 'T12:00:00');
+  do { s.setDate(s.getDate() - 1); } while (!isWeekday(s));
+  localStorage.setItem(OO_START_KEY, s.toISOString().slice(0,10));
+  renderOneOnOne();
+  syncPush();
+}
+
+function resetRotation() {
+  localStorage.setItem(OO_START_KEY, new Date().toISOString().slice(0,10));
+  renderOneOnOne();
+  renderRosterList();
+  syncPush();
+}
+
+// ── Roster modal ──
+function openRoster() {
+  renderRosterList();
+  document.getElementById('rosterBackdrop').classList.add('open');
+}
+
+function closeRoster() {
+  document.getElementById('rosterBackdrop').classList.remove('open');
+  renderOneOnOne();
+}
+
+function renderRosterList() {
+  const list = document.getElementById('rosterList');
+  if (!roster.length) {
+    list.innerHTML = `<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;padding:.75rem 0;text-align:center">No one added yet</div>`;
+    return;
+  }
+  let n = 0;
+  list.innerHTML = roster.map((p, i) => {
+    if (!p.daily) n++;
+    return `<div class="ros-row">
+      <span class="ros-num">${p.daily ? '—' : n}</span>
+      <input class="ros-name ${p.daily ? 'daily' : ''}" value="${escHtml(p.name)}"
+        oninput="updRosterName(${i}, this.value)"
+        style="flex:1;background:transparent;border:none;outline:none;font-family:'Outfit',sans-serif;font-size:12.5px;color:${p.daily ? 'var(--ink3)' : 'var(--ink)'};font-style:${p.daily ? 'italic' : 'normal'}">
+      <button class="ros-tag ${p.daily ? 'on' : ''}" onclick="toggleDaily(${i})" title="Excluded from rotation — you see them daily">Daily</button>
+      <button class="icon-btn danger" onclick="delRosterPerson(${i})" style="background:none;border:none;color:var(--ink3);cursor:pointer;font-size:13px;padding:0 3px">×</button>
+    </div>`;
+  }).join('');
+}
+
+function updRosterName(i, val) {
+  roster[i].name = val;
+  persistRoster();
+}
+
+function toggleDaily(i) {
+  roster[i].daily = !roster[i].daily;
+  persistRoster();
+  renderRosterList();
+}
+
+function addRosterPerson() {
+  const input = document.getElementById('rosterNewName');
+  const name = input.value.trim();
+  if (!name) return;
+  roster.push({ name, daily: false });
+  input.value = '';
+  persistRoster();
+  renderRosterList();
+}
+
+function delRosterPerson(i) {
+  if (!confirm(`Remove ${roster[i].name} from the roster?`)) return;
+  roster.splice(i, 1);
+  persistRoster();
+  renderRosterList();
+}
+
+// ═══════════ FIREBASE SYNC ═══════════
+const FB_CFG_KEY='dc_fb_config_v1';
+let fbApp=null, fbAuth=null, fbDb=null, fbUser=null, fbRef=null;
+let applyingRemote=false, pushTimer=null;
+
+/* What syncs, and how to read/write it locally */
+const SYNC_MAP={
+  todos:   {get:()=>todos,            set:v=>{todos=v||[];             renderTodos();updateMetrics();}},
+  scratch: {get:()=>document.getElementById('scratchPad').value,
+            set:v=>{document.getElementById('scratchPad').value=v||'';}},
+  links:   {get:()=>links,            set:v=>{links=v||[];             renderLinks();}},
+  roster:  {get:()=>roster,           set:v=>{roster=v||[];            renderOneOnOne();}},
+  ooLog:   {get:()=>ooLog,            set:v=>{ooLog=v||{};             renderOneOnOne();}},
+  ooStart: {get:()=>localStorage.getItem(OO_START_KEY)||'',
+            set:v=>{if(v)localStorage.setItem(OO_START_KEY,v); renderOneOnOne();}},
+};
+
+function setSyncChip(state,label){
+  const dot=document.getElementById('syncDot');
+  const lab=document.getElementById('syncLabel');
+  const chip=document.getElementById('syncChip');
+  if(!dot)return;
+  const c={on:'var(--green)',warn:'var(--amber)',off:'var(--ink3)',err:'var(--red)'}[state]||'var(--ink3)';
+  dot.style.background=c;
+  dot.style.boxShadow=state==='on'?`0 0 6px ${c}`:'none';
+  lab.textContent=label;
+  lab.style.color=state==='on'?'var(--green)':'var(--ink3)';
+  chip.style.borderColor=state==='on'?'rgba(74,222,128,.3)':'var(--border2)';
+}
+
+function openSync(){
+  document.getElementById('syncBackdrop').classList.add('open');
+  refreshSyncModal();
+}
+function closeSync(){document.getElementById('syncBackdrop').classList.remove('open');}
+
+function refreshSyncModal(){
+  const cfg=localStorage.getItem(FB_CFG_KEY);
+  const box=document.getElementById('syncStateBox');
+  document.getElementById('syncCfgStep').style.display = cfg?'none':'';
+  document.getElementById('syncAuthStep').style.display= (cfg&&!fbUser)?'':'none';
+  document.getElementById('syncOnStep').style.display  = fbUser?'':'none';
+  if(fbUser){
+    box.textContent='';
+    document.getElementById('syncWho').textContent=fbUser.email;
+  }else if(cfg){
+    box.textContent='Config saved. Sign in to start syncing.';
+  }else{
+    box.textContent='Connect a free Firebase project to sync across your phone and laptop.';
+  }
+}
+
+function saveFbConfig(){
+  const raw=document.getElementById('fbConfig').value.trim();
+  if(!raw)return;
+  let cfg;
+  try{
+    // Accept a bare object, a JS object literal, or "const firebaseConfig = {...};"
+    const m=raw.match(/\{[\s\S]*\}/);
+    if(!m)throw new Error('No config object found');
+    cfg=JSON.parse(
+      m[0].replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g,'$1"$2":')
+          .replace(/'/g,'"')
+          .replace(/,(\s*[}\]])/g,'$1')
+    );
+  }catch(e){
+    showSyncErr('Could not read that config: '+e.message);
+    return;
+  }
+  if(!cfg.apiKey||!cfg.databaseURL){
+    showSyncErr('Config needs both apiKey and databaseURL. Make sure Realtime Database is enabled.');
+    return;
+  }
+  localStorage.setItem(FB_CFG_KEY,JSON.stringify(cfg));
+  initFirebase();
+  refreshSyncModal();
+}
+
+function forgetFbConfig(){
+  if(!confirm('Remove Firebase config from this device? Your local data stays.'))return;
+  if(fbAuth)fbAuth.signOut().catch(()=>{});
+  localStorage.removeItem(FB_CFG_KEY);
+  fbApp=fbAuth=fbDb=fbUser=fbRef=null;
+  setSyncChip('off','Offline');
+  refreshSyncModal();
+}
+
+function showSyncErr(m){
+  const e=document.getElementById('syncErr');
+  if(!e)return;
+  e.textContent=m;e.style.display='block';
+  setTimeout(()=>{e.style.display='none';},6000);
+}
+
+function initFirebase(){
+  const raw=localStorage.getItem(FB_CFG_KEY);
+  if(!raw||!window.firebase)return;
+  if(fbApp)return;
+  try{
+    fbApp=firebase.initializeApp(JSON.parse(raw));
+    fbAuth=firebase.auth();
+    fbDb=firebase.database();
+    setSyncChip('warn','Connecting');
+    fbAuth.onAuthStateChanged(u=>{
+      fbUser=u;
+      if(u){startSync();}
+      else{stopSync();setSyncChip('off','Sign in');}
+      refreshSyncModal();
+    });
+  }catch(e){
+    setSyncChip('err','Error');
+    showSyncErr('Firebase init failed: '+e.message);
+  }
+}
+
+function fbSignIn(){
+  const em=document.getElementById('fbEmail').value.trim();
+  const pw=document.getElementById('fbPass').value;
+  if(!em||!pw){showSyncErr('Enter both email and password.');return;}
+  fbAuth.signInWithEmailAndPassword(em,pw)
+    .catch(e=>showSyncErr(friendlyAuthErr(e)));
+}
+
+function fbSignUp(){
+  const em=document.getElementById('fbEmail').value.trim();
+  const pw=document.getElementById('fbPass').value;
+  if(!em||pw.length<6){showSyncErr('Password must be at least 6 characters.');return;}
+  fbAuth.createUserWithEmailAndPassword(em,pw)
+    .catch(e=>showSyncErr(friendlyAuthErr(e)));
+}
+
+function fbSignOut(){
+  if(fbAuth)fbAuth.signOut();
+}
+
+function friendlyAuthErr(e){
+  const c=e.code||'';
+  if(c.includes('email-already-in-use'))return 'That email already has an account — use Sign in instead.';
+  if(c.includes('wrong-password')||c.includes('invalid-credential'))return 'Wrong password.';
+  if(c.includes('user-not-found'))return 'No account yet — tap Create account.';
+  if(c.includes('operation-not-allowed'))return 'Enable Email/Password sign-in in Firebase → Authentication → Sign-in method.';
+  if(c.includes('network'))return 'Network problem — check your connection.';
+  return e.message||'Sign-in failed.';
+}
+
+/* ── live two-way sync ── */
+function startSync(){
+  if(!fbUser||!fbDb)return;
+  fbRef=fbDb.ref('users/'+fbUser.uid+'/mc');
+  setSyncChip('on','Synced');
+
+  fbRef.on('value',snap=>{
+    const remote=snap.val();
+    if(!remote)  { pushAll(); return; }   // first device — seed the cloud
+    applyingRemote=true;
+    try{
+      Object.entries(SYNC_MAP).forEach(([k,h])=>{
+        if(remote[k]!==undefined)h.set(remote[k]);
+      });
+      // keep local mirrors in step
+      localStorage.setItem(TODO_KEY,JSON.stringify(todos));
+      localStorage.setItem('dc_mc_scratch_v1',document.getElementById('scratchPad').value);
+      localStorage.setItem(LINKS_KEY,JSON.stringify(links));
+      localStorage.setItem(ROSTER_KEY,JSON.stringify(roster));
+      localStorage.setItem(OO_LOG_KEY,JSON.stringify(ooLog));
+    }finally{ applyingRemote=false; }
+  },err=>{
+    setSyncChip('err','Sync error');
+    console.warn('sync read failed',err);
+  });
+}
+
+function stopSync(){
+  if(fbRef){fbRef.off();fbRef=null;}
+}
+
+function pushAll(){
+  if(!fbRef||applyingRemote)return;
+  const payload={};
+  Object.entries(SYNC_MAP).forEach(([k,h])=>{payload[k]=h.get();});
+  payload._at=Date.now();
+  fbRef.set(payload).catch(e=>console.warn('sync write failed',e));
+}
+
+/* Debounced — called after any local change */
+function syncPush(){
+  if(!fbRef||applyingRemote)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushAll,400);
+}
+
+// ─── PWA ───
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  const b=document.getElementById('installBtn');
+  if(b)b.style.display='flex';
+});
+
+function installApp(){
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.finally(()=>{
+    deferredPrompt=null;
+    const b=document.getElementById('installBtn');
+    if(b)b.style.display='none';
+  });
+}
+
+window.addEventListener('appinstalled',()=>{
+  const b=document.getElementById('installBtn');
+  if(b)b.style.display='none';
+});
+
+// Deep link: ?quick=task focuses the task input
+(function(){
+  const params=new URLSearchParams(location.search);
+  if(params.get('quick')==='task'){
+    setTimeout(()=>{
+      const i=document.getElementById('todoInput');
+      if(i){i.scrollIntoView({block:'center'});i.focus();}
+    },300);
+  }
+})();
+
+// ─── INIT ───
+window.addEventListener('load',()=>{ initFirebase(); });
+loadTodos();
+loadScratch();
+loadLinks();
+loadRoster();
+renderTodos();
+renderLinks();
+renderOneOnOne();
+updateMetrics();
+</script>
+</body>
+</html>
