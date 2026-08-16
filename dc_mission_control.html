@@ -1015,6 +1015,9 @@ body::after {
           </button>
         </div>
         <div id="calFeed" style="display:none"></div>
+        <div style="text-align:center;margin-top:.6rem">
+          <button onclick="calForget()" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;background:none;border:none;color:var(--ink3);cursor:pointer;text-decoration:underline">Reset calendar connection</button>
+        </div>
       </div>
     </div>
 
@@ -1492,8 +1495,9 @@ function initCalendar() {
   if (!window.google) return;
   const clientId = localStorage.getItem(CAL_CLIENT_KEY);
   if (!clientId) return;
+  // Prepare the client but DO NOT auto-request a token.
+  // Auto-attempts fire Google error popups on every load if anything is misconfigured.
   setupTokenClient(clientId);
-  calTokenClient.requestAccessToken({ prompt: '' });
 }
 
 function setupTokenClient(clientId) {
@@ -1526,6 +1530,18 @@ function calSignIn() {
   }
   if (!calTokenClient) setupTokenClient(clientId);
   calTokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function calForget(){
+  if(!confirm('Clear the stored Google Client ID on all your devices?'))return;
+  localStorage.removeItem(CAL_CLIENT_KEY);
+  calTokenClient=null;
+  calAccessToken=null;
+  syncPush();          // pushes the now-empty value so other devices clear too
+  document.getElementById('calEmpty').style.display='flex';
+  document.getElementById('calFeed').style.display='none';
+  document.getElementById('calRefreshBtn').style.display='none';
+  alert('Calendar connection reset. It will no longer try to sign in.');
 }
 
 function calSignOut() {
@@ -1932,7 +1948,13 @@ const SYNC_MAP={
   /* Google OAuth Client ID is public by design — syncing it saves re-pasting per device */
   gcalId:  {get:()=>localStorage.getItem(CAL_CLIENT_KEY)||'',
             set:v=>{
-              if(v && v!==localStorage.getItem(CAL_CLIENT_KEY)){
+              if(v===undefined||v===null)return;
+              if(v===''){                      // cleared on another device
+                localStorage.removeItem(CAL_CLIENT_KEY);
+                calTokenClient=null;
+                return;
+              }
+              if(v!==localStorage.getItem(CAL_CLIENT_KEY)){
                 localStorage.setItem(CAL_CLIENT_KEY,v);
                 if(window.google && !calTokenClient) setupTokenClient(v);
               }

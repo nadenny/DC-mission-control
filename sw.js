@@ -1,6 +1,6 @@
 /* DC Mission Control — service worker
    Bump CACHE_VERSION whenever you update any tool file. */
-const CACHE_VERSION = 'dc-mc-v6';
+const CACHE_VERSION = 'dc-mc-v7';
 
 const ASSETS = [
   './dc_mission_control.html',
