@@ -2,9 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#080C14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mission Control">
 <title>DC Meeting Tool</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Karla:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -543,6 +552,83 @@ h1 em {
   .header-right { padding: 1rem 0 0; }
   .header-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 0 0 1rem; }
 }
+
+/* ════ PHONE ════ */
+@media (max-width: 640px) {
+  html { font-size: 15px; }
+
+  /* Compact header */
+  header { padding-top: env(safe-area-inset-top); }
+  .header-inner { padding: 1rem 1rem .85rem; gap: .75rem; }
+  .header-left { padding: 0 0 .75rem; }
+  h1 { font-size: 26px; }
+  .header-badge { font-size: 8px; }
+  .api-input { font-size: 16px; padding: 9px 11px; }   /* 16px = no auto-zoom */
+  .api-label, .api-status { font-size: 9px; }
+
+  /* Tabs scroll sideways instead of squashing */
+  .tabs-inner {
+    padding: 0 .75rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs-inner::-webkit-scrollbar { display: none; }
+  .tab { padding: 11px 13px; font-size: 9px; white-space: nowrap; flex-shrink: 0; }
+
+  /* Content breathing room */
+  .content,
+  #tab-archive > div,
+  #tab-people > div { padding: 1rem .85rem 4rem !important; }
+  #tab-people > div { grid-template-columns: 1fr !important; gap: 1rem !important; }
+
+  .card-header { padding: .8rem 1rem; }
+  .card-body { padding: 1rem; }
+  .card-title { font-size: 14px; }
+  .card-sub { font-size: 10.5px; }
+
+  /* Stack paired fields, kill iOS/Android zoom */
+  .field-row, .field-row.three { grid-template-columns: 1fr !important; }
+  .field input, .field select, .field textarea { font-size: 16px; padding: 9px 11px; }
+  .field label { font-size: 9px; }
+  .field textarea { min-height: 110px; }
+
+  /* Fat tap targets */
+  .run-btn { padding: 14px 20px; font-size: 16px; }
+  .out-btn { padding: 9px 14px; font-size: 10px; min-height: 38px; }
+  .arch-filter, .pe-cat { padding: 8px 13px; font-size: 10px; min-height: 36px; }
+  .add-step-btn, .add-item-btn { padding: 10px 14px; }
+  .standing-item { padding: 9px 11px; }
+  .standing-item input[type="text"] { font-size: 15px; }
+
+  /* Output + archive readability */
+  .output-body { font-size: 14px; padding: 1rem; }
+  .output-actions { padding: .75rem 1rem; flex-wrap: wrap; gap: 7px; }
+  .char-count { width: 100%; margin-left: 0; }
+  .arch-head, .pe-person-head { padding: 13px 12px; }
+  .arch-title { font-size: 14.5px; white-space: normal; }
+  .arch-meta { font-size: 10px; white-space: normal; }
+  .arch-content { font-size: 13px; max-height: 220px; }
+  .arch-actions { gap: 7px; }
+  .pe-person-name { font-size: 15px; }
+  .pe-entry { padding: 11px 0; }
+  .pe-entry-text { font-size: 13.5px; }
+  .pe-entry-date { min-width: 48px; }
+  .pe-del { font-size: 17px; padding: 0 5px; }
+
+  /* Search fields full width */
+  #archSearch, #peSearch { width: 100% !important; font-size: 16px; padding: 9px 11px; }
+
+  /* Checkbox row wraps cleanly */
+  #tab-notes label { font-size: 13.5px; padding: 5px 0; }
+  #tab-notes input[type="checkbox"] { width: 18px; height: 18px; }
+}
+
+/* Very narrow phones */
+@media (max-width: 380px) {
+  .tab { padding: 11px 10px; }
+  h1 { font-size: 23px; }
+}
 /* ── ARCHIVE ── */
 .arch-filter{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:3px;border:1px solid var(--rule);background:transparent;color:var(--ink3);cursor:pointer;transition:all .12s}
 .arch-filter:hover{border-color:var(--rule2);color:var(--ink2)}
@@ -597,6 +683,13 @@ h1 em {
 <header>
   <div class="header-inner">
     <div class="header-left">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:8px;flex-wrap:wrap">
+        <a href="dc_mission_control.html" style="display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);text-decoration:none;padding:4px 9px;border:1px solid rgba(255,255,255,.14);border-radius:4px">← Mission Control</a>
+        <button id="syncChip" onclick="openSync()" style="display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:4px;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.45);cursor:pointer">
+          <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3)"></span>
+          <span id="syncLabel">Offline</span>
+        </button>
+      </div>
       <div class="header-badge">La Salle · Math &amp; Science DC</div>
       <h1>Meeting<br><em>toolkit</em></h1>
     </div>
@@ -986,7 +1079,149 @@ h1 em {
 </div>
 </div>
 
+<!-- SYNC MODAL -->
+<div id="syncBackdrop" style="display:none;position:fixed;inset:0;background:rgba(20,18,15,.6);z-index:150;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)closeSync()">
+  <div style="background:#fff;border:1px solid var(--rule);border-radius:6px;padding:1.4rem;width:100%;max-width:400px;max-height:85vh;overflow-y:auto">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:1rem">Cloud sync</div>
+    <div id="syncStateBox" style="font-size:12.5px;color:var(--ink3);line-height:1.6;margin-bottom:1rem"></div>
+
+    <div id="syncAuthStep" style="display:none">
+      <div style="margin-bottom:10px">
+        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:4px">Email</label>
+        <input type="email" id="fbEmail" autocomplete="username" style="width:100%;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);outline:none">
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:4px">Password</label>
+        <input type="password" id="fbPass" autocomplete="current-password" onkeydown="if(event.key==='Enter')fbSignIn()" style="width:100%;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);outline:none">
+      </div>
+      <div id="syncErr" style="font-size:11.5px;color:#C43C1A;line-height:1.5;margin-bottom:.6rem;display:none"></div>
+      <button class="out-btn green" onclick="fbSignIn()" style="width:100%;min-height:40px">Sign in</button>
+    </div>
+
+    <div id="syncOnStep" style="display:none">
+      <div style="background:#E8F5EE;border:1px solid #70C090;border-radius:4px;padding:10px 12px;margin-bottom:1rem">
+        <div style="font-size:12.5px;color:#0E4A2A;font-weight:500;margin-bottom:3px">✓ Syncing</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink3)" id="syncWho"></div>
+      </div>
+      <div style="font-size:12px;color:var(--ink3);line-height:1.65;margin-bottom:1rem">
+        Your meeting archive and people log sync to every device signed into this account.
+      </div>
+      <button class="out-btn" onclick="fbSignOut()">Sign out</button>
+    </div>
+
+    <div id="syncNoCfg" style="display:none;font-size:12.5px;color:var(--ink3);line-height:1.65">
+      Set up cloud sync in Mission Control first — this tool reuses the same connection.
+      <div style="margin-top:.875rem"><a href="dc_mission_control.html" class="out-btn" style="text-decoration:none;display:inline-block">Open Mission Control →</a></div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem;padding-top:.875rem;border-top:1px solid var(--rule)">
+      <button class="out-btn" onclick="closeSync()">Done</button>
+    </div>
+  </div>
+</div>
+
 <script>
+
+// ═══════════ FIREBASE SYNC (shares Mission Control's project + account) ═══════════
+const FB_CFG_KEY='dc_fb_config_v1';
+let fbApp=null,fbAuth=null,fbDb=null,fbUser=null,fbRef=null;
+let applyingRemote=false,pushTimer=null;
+
+const SYNC_MAP={
+  archive: {get:()=>archive, set:v=>{archive=v||[]; updateArchCount(); renderArchive();}},
+  people:  {get:()=>people,  set:v=>{people=v||[];  updatePeepCount(); refreshNameList(); renderPeople();}},
+};
+
+function setSyncChip(state,label){
+  const dot=document.getElementById('syncDot'),lab=document.getElementById('syncLabel'),chip=document.getElementById('syncChip');
+  if(!dot)return;
+  const c={on:'#6EC99A',warn:'#F0B429',off:'rgba(255,255,255,.3)',err:'#F87171'}[state]||'rgba(255,255,255,.3)';
+  dot.style.background=c;
+  dot.style.boxShadow=state==='on'?`0 0 6px ${c}`:'none';
+  lab.textContent=label;
+  lab.style.color=state==='on'?'#6EC99A':'rgba(255,255,255,.45)';
+  chip.style.borderColor=state==='on'?'rgba(110,201,154,.4)':'rgba(255,255,255,.14)';
+}
+
+function openSync(){document.getElementById('syncBackdrop').style.display='flex';refreshSyncModal();}
+function closeSync(){document.getElementById('syncBackdrop').style.display='none';}
+
+function refreshSyncModal(){
+  const cfg=localStorage.getItem(FB_CFG_KEY);
+  document.getElementById('syncNoCfg').style.display   = cfg?'none':'block';
+  document.getElementById('syncAuthStep').style.display= (cfg&&!fbUser)?'block':'none';
+  document.getElementById('syncOnStep').style.display  = fbUser?'block':'none';
+  const box=document.getElementById('syncStateBox');
+  if(fbUser){box.textContent='';document.getElementById('syncWho').textContent=fbUser.email;}
+  else if(cfg)box.textContent='Sign in with the same account you use in Mission Control.';
+  else box.textContent='';
+}
+
+function showSyncErr(m){
+  const e=document.getElementById('syncErr');
+  if(!e)return;
+  e.textContent=m;e.style.display='block';
+  setTimeout(()=>{e.style.display='none';},6000);
+}
+
+function initFirebase(){
+  const raw=localStorage.getItem(FB_CFG_KEY);
+  if(!raw||!window.firebase||fbApp)return;
+  try{
+    fbApp=firebase.initializeApp(JSON.parse(raw));
+    fbAuth=firebase.auth();fbDb=firebase.database();
+    setSyncChip('warn','Connecting');
+    fbAuth.onAuthStateChanged(u=>{
+      fbUser=u;
+      if(u)startSync(); else {stopSync();setSyncChip('off','Sign in');}
+      refreshSyncModal();
+    });
+  }catch(e){setSyncChip('err','Error');}
+}
+
+function fbSignIn(){
+  const em=document.getElementById('fbEmail').value.trim();
+  const pw=document.getElementById('fbPass').value;
+  if(!em||!pw){showSyncErr('Enter both email and password.');return;}
+  fbAuth.signInWithEmailAndPassword(em,pw).then(closeSync).catch(e=>{
+    const c=e.code||'';
+    showSyncErr(c.includes('wrong-password')||c.includes('invalid-credential')?'Wrong password.'
+      :c.includes('user-not-found')?'No account with that email — create it in Mission Control first.'
+      :e.message);
+  });
+}
+function fbSignOut(){if(fbAuth)fbAuth.signOut();}
+
+function startSync(){
+  if(!fbUser||!fbDb)return;
+  fbRef=fbDb.ref('users/'+fbUser.uid+'/meeting');
+  setSyncChip('on','Synced');
+  fbRef.on('value',snap=>{
+    const r=snap.val();
+    if(!r){pushAll();return;}
+    applyingRemote=true;
+    try{
+      Object.entries(SYNC_MAP).forEach(([k,h])=>{if(r[k]!==undefined)h.set(r[k]);});
+      localStorage.setItem(ARCH_KEY,JSON.stringify(archive));
+      localStorage.setItem(PEEP_KEY,JSON.stringify(people));
+    }finally{applyingRemote=false;}
+  },()=>setSyncChip('err','Sync error'));
+}
+function stopSync(){if(fbRef){fbRef.off();fbRef=null;}}
+
+function pushAll(){
+  if(!fbRef||applyingRemote)return;
+  const p={};
+  Object.entries(SYNC_MAP).forEach(([k,h])=>{p[k]=h.get();});
+  p._at=Date.now();
+  fbRef.set(p).catch(()=>{});
+}
+function syncPush(){
+  if(!fbRef||applyingRemote)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushAll,400);
+}
+
 // ── Tab switching ──
 function switchTab(name, el) {
   document.querySelectorAll('.panel-tab').forEach(p => p.classList.remove('active'));
@@ -1017,8 +1252,37 @@ function onApiInput() {
   }
 }
 
+// Register service worker so it works offline / installs
+if('serviceWorker' in navigator){
+  if(new URLSearchParams(location.search).has('nosw')){
+    navigator.serviceWorker.getRegistrations().then(rs=>{
+      rs.forEach(r=>r.unregister());
+      if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
+      alert('Service worker removed and cache cleared. Reload normally now.');
+    });
+  }else{
+    window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+  }
+}
+
+// Deep link: ?tab=people|notes|archive|agenda
+function openTabFromURL(){
+  const t=new URLSearchParams(location.search).get('tab');
+  if(!t)return;
+  const idx={agenda:0,notes:1,archive:2,people:3}[t];
+  if(idx===undefined)return;
+  const el=document.querySelectorAll('.tab')[idx];
+  if(el)switchTab(t,el);
+  if(t==='people')setTimeout(()=>{
+    const i=document.getElementById('pe-person');
+    if(i){i.scrollIntoView({block:'center'});i.focus();}
+  },250);
+}
+
 // Restore saved key on load
 window.addEventListener('load', () => {
+  initFirebase();
+  openTabFromURL();
   loadArchive();
   renderArchive();
   loadPeople();
@@ -1265,6 +1529,7 @@ function loadArchive() {
 function persistArchive() {
   localStorage.setItem(ARCH_KEY, JSON.stringify(archive));
   updateArchCount();
+  syncPush();
 }
 
 function updateArchCount() {
@@ -1458,6 +1723,7 @@ function loadPeople() {
 function persistPeople() {
   localStorage.setItem(PEEP_KEY, JSON.stringify(people));
   updatePeepCount();
+  syncPush();
 }
 
 function updatePeepCount() {
