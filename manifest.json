@@ -1,0 +1,49 @@
+{
+  "name": "DC Mission Control",
+  "short_name": "Mission Control",
+  "description": "Department Chair command center — tasks, 1:1 rotation, calendar, and tools",
+  "start_url": "./dc_mission_control.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080C14",
+  "theme_color": "#080C14",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add a task",
+      "short_name": "Task",
+      "url": "./dc_mission_control.html?quick=task",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sheet Builder",
+      "short_name": "Sheets",
+      "url": "./sheet_builder.html"
+    },
+    {
+      "name": "Meeting Tool",
+      "short_name": "Meetings",
+      "url": "./meeting_tool.html"
+    }
+  ]
+}

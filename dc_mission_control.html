@@ -2,11 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#080C14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mission Control">
+<meta name="mobile-web-app-capable" content="yes">
 <title>DC Mission Control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 :root {
   --bg:        #080C14;
@@ -765,6 +775,69 @@ body::after {
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; }
 }
+
+/* ── PHONE ── */
+@media (max-width: 640px) {
+  html { font-size: 15px; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+
+  .header {
+    padding: .6rem .85rem;
+    padding-top: calc(.6rem + env(safe-area-inset-top));
+    gap: .6rem;
+    flex-wrap: wrap;
+  }
+  .header-logo { font-size: 17px; }
+  .header-sub { font-size: 8px; }
+  .clock { font-size: 11px; }
+  .header-status { font-size: 8px; }
+
+  /* Metrics: 3 across, wrap to a second row */
+  .metrics-bar { flex-wrap: wrap; }
+  .metric-cell { flex: 1 1 33%; min-width: 33%; padding: .55rem .4rem; }
+  .metric-n { font-size: 22px; }
+  .metric-label { font-size: 7px; }
+
+  .panel { padding: .85rem .9rem; }
+
+  /* Order panels for thumb reach: tasks first, then 1:1, then the rest */
+  .grid { display: flex; flex-direction: column; }
+  .col { display: contents; }
+  .panel:has(#todoList)      { order: 1; }
+  .panel:has(#oneOnOnePanel) { order: 2; }
+  .panel:has(#calPanel)      { order: 3; }
+  .panel:has(.tool-grid)     { order: 4; }
+  .panel:has(#linksContainer){ order: 5; }
+  .panel:has(#scratchPad)    { order: 6; }
+  .panel:has(#semRing)       { order: 7; }
+  .panel:has(.reminder-item) { order: 8; }
+
+  /* Bigger tap targets */
+  .todo-input { font-size: 16px; padding: 9px 11px; }   /* 16px stops iOS zoom */
+  .todo-add-btn { padding: 9px 14px; }
+  .todo-priority { font-size: 14px; padding: 9px 8px; }
+  .todo-item { padding: 9px 8px; }
+  .todo-check { width: 20px; height: 20px; }
+  .todo-text { font-size: 13.5px; }
+  .todo-del { opacity: 1; padding: 0 6px; font-size: 16px; }
+
+  .tool-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tool-tile { padding: 12px 10px; }
+  .tool-name { font-size: 12px; }
+
+  .link-item { padding: 9px 7px; }
+  .link-text { font-size: 13.5px; }
+  .link-edit { opacity: 1; }
+
+  .oo-name { font-size: 27px; }
+  .oo-btn { padding: 9px 8px; font-size: 10px; }
+
+  .scratch-pad { font-size: 16px; min-height: 100px; }
+
+  .ledit-modal { width: calc(100vw - 1.5rem); max-width: none; }
+  .ledit-field input { font-size: 16px; }
+  .cal-signin-btn, .oo-btn, .ledit-save, .ledit-cancel { min-height: 40px; }
+}
 </style>
 </head>
 <body>
@@ -776,6 +849,11 @@ body::after {
     <div class="header-sub">La Salle · Math &amp; Science · 2026–27</div>
   </div>
   <div class="header-sep"></div>
+  <button id="syncChip" onclick="openSync()" style="display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:4px;border:1px solid var(--border2);background:var(--bg3);color:var(--ink3);cursor:pointer">
+    <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:var(--ink3)"></span>
+    <span id="syncLabel">Offline</span>
+  </button>
+  <button id="installBtn" onclick="installApp()" style="display:none;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:4px;border:1px solid var(--gold-glow);background:var(--gold-dim);color:var(--gold);cursor:pointer">⬇ Install</button>
   <div class="header-status"><div class="status-dot"></div><span id="headerDate">—</span></div>
   <div class="clock" id="clock">00:00:00</div>
 </header>
@@ -1008,6 +1086,68 @@ body::after {
 
 </div>
 
+<!-- ── SYNC MODAL ── -->
+<div class="ledit-backdrop" id="syncBackdrop" onclick="if(event.target===this)closeSync()">
+  <div class="ledit-modal" style="max-width:440px;max-height:85vh;overflow-y:auto">
+    <div class="ledit-title">Cloud sync</div>
+
+    <div id="syncStateBox" style="font-size:12px;color:var(--ink3);line-height:1.6;margin-bottom:1rem"></div>
+
+    <!-- Step 1: config -->
+    <div id="syncCfgStep">
+      <div class="ledit-field">
+        <label>Firebase config (paste the whole object)</label>
+        <textarea id="fbConfig" rows="6" placeholder='{ "apiKey": "...", "authDomain": "...", "databaseURL": "...", "projectId": "..." }'
+          style="width:100%;font-family:'Share Tech Mono',monospace;font-size:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--ink);outline:none;resize:vertical;line-height:1.5"></textarea>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.04em;line-height:1.7;margin-bottom:.75rem">
+        Firebase console → Project settings → scroll to "Your apps" → Config. Paste the object inside <b>firebaseConfig = </b>.
+      </div>
+      <button class="ledit-save" onclick="saveFbConfig()" style="width:100%">Save config</button>
+    </div>
+
+    <!-- Step 2: sign in -->
+    <div id="syncAuthStep" style="display:none">
+      <div class="ledit-field">
+        <label>Email</label>
+        <input type="email" id="fbEmail" placeholder="you@example.com" autocomplete="username">
+      </div>
+      <div class="ledit-field">
+        <label>Password</label>
+        <input type="password" id="fbPass" placeholder="at least 6 characters" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')fbSignIn()">
+      </div>
+      <div id="syncErr" style="font-size:11px;color:var(--red);line-height:1.5;margin-bottom:.6rem;display:none"></div>
+      <div style="display:flex;gap:8px">
+        <button class="ledit-save" onclick="fbSignIn()" style="flex:1">Sign in</button>
+        <button class="ledit-cancel" onclick="fbSignUp()" style="flex:1">Create account</button>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.04em;line-height:1.7;margin-top:.75rem">
+        Use the same account on your phone and laptop. First time on any device: tap <b>Create account</b> once, then <b>Sign in</b> everywhere else.
+      </div>
+    </div>
+
+    <!-- Step 3: connected -->
+    <div id="syncOnStep" style="display:none">
+      <div style="background:var(--green-dim);border:1px solid rgba(74,222,128,.25);border-radius:4px;padding:10px 12px;margin-bottom:1rem">
+        <div style="font-size:12px;color:var(--green);font-weight:500;margin-bottom:3px">✓ Syncing</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.04em" id="syncWho"></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink3);line-height:1.65;margin-bottom:1rem">
+        Tasks, 1:1 log &amp; roster, quick links, and the scratch pad sync across every device signed into this account. Changes appear within a second.
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="ledit-cancel" onclick="fbSignOut()">Sign out</button>
+        <button class="ledit-cancel" onclick="forgetFbConfig()" style="color:var(--red);border-color:rgba(248,113,113,.25)">Reset config</button>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem;padding-top:.875rem;border-top:1px solid var(--border)">
+      <button class="ledit-save" onclick="closeSync()">Done</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── ROSTER MODAL ── -->
 <div class="ledit-backdrop" id="rosterBackdrop" onclick="if(event.target===this)closeRoster()">
   <div class="ledit-modal" style="max-width:420px;max-height:80vh;overflow-y:auto">
@@ -1146,6 +1286,7 @@ function loadTodos() {
 function saveTodos() {
   localStorage.setItem(TODO_KEY, JSON.stringify(todos));
   updateMetrics();
+  syncPush();
 }
 
 function addTodo() {
@@ -1216,6 +1357,7 @@ function updateMetrics() {
 // ─── SCRATCH PAD ───
 function saveScratch() {
   localStorage.setItem('dc_mc_scratch_v1', document.getElementById('scratchPad').value);
+  syncPush();
 }
 
 function loadScratch() {
@@ -1254,6 +1396,7 @@ function loadLinks() {
 function saveLinks() {
   localStorage.setItem(LINKS_KEY, JSON.stringify(links));
   document.getElementById('m-links').textContent = links.length;
+  syncPush();
 }
 
 function renderLinks() {
@@ -1559,10 +1702,12 @@ function loadRoster() {
 
 function persistRoster() {
   localStorage.setItem(ROSTER_KEY, JSON.stringify(roster));
+  syncPush();
 }
 
 function persistOOLog() {
   localStorage.setItem(OO_LOG_KEY, JSON.stringify(ooLog));
+  syncPush();
 }
 
 function rotationStart() {
@@ -1692,12 +1837,14 @@ function skipOOToday() {
   do { s.setDate(s.getDate() - 1); } while (!isWeekday(s));
   localStorage.setItem(OO_START_KEY, s.toISOString().slice(0,10));
   renderOneOnOne();
+  syncPush();
 }
 
 function resetRotation() {
   localStorage.setItem(OO_START_KEY, new Date().toISOString().slice(0,10));
   renderOneOnOne();
   renderRosterList();
+  syncPush();
 }
 
 // ── Roster modal ──
@@ -1759,7 +1906,240 @@ function delRosterPerson(i) {
   renderRosterList();
 }
 
+// ═══════════ FIREBASE SYNC ═══════════
+const FB_CFG_KEY='dc_fb_config_v1';
+let fbApp=null, fbAuth=null, fbDb=null, fbUser=null, fbRef=null;
+let applyingRemote=false, pushTimer=null;
+
+/* What syncs, and how to read/write it locally */
+const SYNC_MAP={
+  todos:   {get:()=>todos,            set:v=>{todos=v||[];             renderTodos();updateMetrics();}},
+  scratch: {get:()=>document.getElementById('scratchPad').value,
+            set:v=>{document.getElementById('scratchPad').value=v||'';}},
+  links:   {get:()=>links,            set:v=>{links=v||[];             renderLinks();}},
+  roster:  {get:()=>roster,           set:v=>{roster=v||[];            renderOneOnOne();}},
+  ooLog:   {get:()=>ooLog,            set:v=>{ooLog=v||{};             renderOneOnOne();}},
+  ooStart: {get:()=>localStorage.getItem(OO_START_KEY)||'',
+            set:v=>{if(v)localStorage.setItem(OO_START_KEY,v); renderOneOnOne();}},
+};
+
+function setSyncChip(state,label){
+  const dot=document.getElementById('syncDot');
+  const lab=document.getElementById('syncLabel');
+  const chip=document.getElementById('syncChip');
+  if(!dot)return;
+  const c={on:'var(--green)',warn:'var(--amber)',off:'var(--ink3)',err:'var(--red)'}[state]||'var(--ink3)';
+  dot.style.background=c;
+  dot.style.boxShadow=state==='on'?`0 0 6px ${c}`:'none';
+  lab.textContent=label;
+  lab.style.color=state==='on'?'var(--green)':'var(--ink3)';
+  chip.style.borderColor=state==='on'?'rgba(74,222,128,.3)':'var(--border2)';
+}
+
+function openSync(){
+  document.getElementById('syncBackdrop').classList.add('open');
+  refreshSyncModal();
+}
+function closeSync(){document.getElementById('syncBackdrop').classList.remove('open');}
+
+function refreshSyncModal(){
+  const cfg=localStorage.getItem(FB_CFG_KEY);
+  const box=document.getElementById('syncStateBox');
+  document.getElementById('syncCfgStep').style.display = cfg?'none':'';
+  document.getElementById('syncAuthStep').style.display= (cfg&&!fbUser)?'':'none';
+  document.getElementById('syncOnStep').style.display  = fbUser?'':'none';
+  if(fbUser){
+    box.textContent='';
+    document.getElementById('syncWho').textContent=fbUser.email;
+  }else if(cfg){
+    box.textContent='Config saved. Sign in to start syncing.';
+  }else{
+    box.textContent='Connect a free Firebase project to sync across your phone and laptop.';
+  }
+}
+
+function saveFbConfig(){
+  const raw=document.getElementById('fbConfig').value.trim();
+  if(!raw)return;
+  let cfg;
+  try{
+    // Accept a bare object, a JS object literal, or "const firebaseConfig = {...};"
+    const m=raw.match(/\{[\s\S]*\}/);
+    if(!m)throw new Error('No config object found');
+    cfg=JSON.parse(
+      m[0].replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g,'$1"$2":')
+          .replace(/'/g,'"')
+          .replace(/,(\s*[}\]])/g,'$1')
+    );
+  }catch(e){
+    showSyncErr('Could not read that config: '+e.message);
+    return;
+  }
+  if(!cfg.apiKey||!cfg.databaseURL){
+    showSyncErr('Config needs both apiKey and databaseURL. Make sure Realtime Database is enabled.');
+    return;
+  }
+  localStorage.setItem(FB_CFG_KEY,JSON.stringify(cfg));
+  initFirebase();
+  refreshSyncModal();
+}
+
+function forgetFbConfig(){
+  if(!confirm('Remove Firebase config from this device? Your local data stays.'))return;
+  if(fbAuth)fbAuth.signOut().catch(()=>{});
+  localStorage.removeItem(FB_CFG_KEY);
+  fbApp=fbAuth=fbDb=fbUser=fbRef=null;
+  setSyncChip('off','Offline');
+  refreshSyncModal();
+}
+
+function showSyncErr(m){
+  const e=document.getElementById('syncErr');
+  if(!e)return;
+  e.textContent=m;e.style.display='block';
+  setTimeout(()=>{e.style.display='none';},6000);
+}
+
+function initFirebase(){
+  const raw=localStorage.getItem(FB_CFG_KEY);
+  if(!raw||!window.firebase)return;
+  if(fbApp)return;
+  try{
+    fbApp=firebase.initializeApp(JSON.parse(raw));
+    fbAuth=firebase.auth();
+    fbDb=firebase.database();
+    setSyncChip('warn','Connecting');
+    fbAuth.onAuthStateChanged(u=>{
+      fbUser=u;
+      if(u){startSync();}
+      else{stopSync();setSyncChip('off','Sign in');}
+      refreshSyncModal();
+    });
+  }catch(e){
+    setSyncChip('err','Error');
+    showSyncErr('Firebase init failed: '+e.message);
+  }
+}
+
+function fbSignIn(){
+  const em=document.getElementById('fbEmail').value.trim();
+  const pw=document.getElementById('fbPass').value;
+  if(!em||!pw){showSyncErr('Enter both email and password.');return;}
+  fbAuth.signInWithEmailAndPassword(em,pw)
+    .catch(e=>showSyncErr(friendlyAuthErr(e)));
+}
+
+function fbSignUp(){
+  const em=document.getElementById('fbEmail').value.trim();
+  const pw=document.getElementById('fbPass').value;
+  if(!em||pw.length<6){showSyncErr('Password must be at least 6 characters.');return;}
+  fbAuth.createUserWithEmailAndPassword(em,pw)
+    .catch(e=>showSyncErr(friendlyAuthErr(e)));
+}
+
+function fbSignOut(){
+  if(fbAuth)fbAuth.signOut();
+}
+
+function friendlyAuthErr(e){
+  const c=e.code||'';
+  if(c.includes('email-already-in-use'))return 'That email already has an account — use Sign in instead.';
+  if(c.includes('wrong-password')||c.includes('invalid-credential'))return 'Wrong password.';
+  if(c.includes('user-not-found'))return 'No account yet — tap Create account.';
+  if(c.includes('operation-not-allowed'))return 'Enable Email/Password sign-in in Firebase → Authentication → Sign-in method.';
+  if(c.includes('network'))return 'Network problem — check your connection.';
+  return e.message||'Sign-in failed.';
+}
+
+/* ── live two-way sync ── */
+function startSync(){
+  if(!fbUser||!fbDb)return;
+  fbRef=fbDb.ref('users/'+fbUser.uid+'/mc');
+  setSyncChip('on','Synced');
+
+  fbRef.on('value',snap=>{
+    const remote=snap.val();
+    if(!remote)  { pushAll(); return; }   // first device — seed the cloud
+    applyingRemote=true;
+    try{
+      Object.entries(SYNC_MAP).forEach(([k,h])=>{
+        if(remote[k]!==undefined)h.set(remote[k]);
+      });
+      // keep local mirrors in step
+      localStorage.setItem(TODO_KEY,JSON.stringify(todos));
+      localStorage.setItem('dc_mc_scratch_v1',document.getElementById('scratchPad').value);
+      localStorage.setItem(LINKS_KEY,JSON.stringify(links));
+      localStorage.setItem(ROSTER_KEY,JSON.stringify(roster));
+      localStorage.setItem(OO_LOG_KEY,JSON.stringify(ooLog));
+    }finally{ applyingRemote=false; }
+  },err=>{
+    setSyncChip('err','Sync error');
+    console.warn('sync read failed',err);
+  });
+}
+
+function stopSync(){
+  if(fbRef){fbRef.off();fbRef=null;}
+}
+
+function pushAll(){
+  if(!fbRef||applyingRemote)return;
+  const payload={};
+  Object.entries(SYNC_MAP).forEach(([k,h])=>{payload[k]=h.get();});
+  payload._at=Date.now();
+  fbRef.set(payload).catch(e=>console.warn('sync write failed',e));
+}
+
+/* Debounced — called after any local change */
+function syncPush(){
+  if(!fbRef||applyingRemote)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushAll,400);
+}
+
+// ─── PWA ───
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  const b=document.getElementById('installBtn');
+  if(b)b.style.display='flex';
+});
+
+function installApp(){
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.finally(()=>{
+    deferredPrompt=null;
+    const b=document.getElementById('installBtn');
+    if(b)b.style.display='none';
+  });
+}
+
+window.addEventListener('appinstalled',()=>{
+  const b=document.getElementById('installBtn');
+  if(b)b.style.display='none';
+});
+
+// Deep link: ?quick=task focuses the task input
+(function(){
+  const params=new URLSearchParams(location.search);
+  if(params.get('quick')==='task'){
+    setTimeout(()=>{
+      const i=document.getElementById('todoInput');
+      if(i){i.scrollIntoView({block:'center'});i.focus();}
+    },300);
+  }
+})();
+
 // ─── INIT ───
+window.addEventListener('load',()=>{ initFirebase(); });
 loadTodos();
 loadScratch();
 loadLinks();
