@@ -1512,11 +1512,19 @@ function setupTokenClient(clientId) {
 function calSignIn() {
   let clientId = localStorage.getItem(CAL_CLIENT_KEY);
   if (!clientId) {
-    clientId = prompt('Paste your Google OAuth Client ID (from Google Cloud Console):');
+    clientId = prompt(
+      'Google OAuth Client ID needed.\n\n' +
+      'If cloud sync is on, this fills in by itself within a few seconds — ' +
+      'just wait and tap Sign in again.\n\n' +
+      'Otherwise: Google Cloud Console → APIs & Services → Credentials → ' +
+      'your OAuth client → copy the Client ID (ends in .apps.googleusercontent.com)'
+    );
     if (!clientId) return;
     localStorage.setItem(CAL_CLIENT_KEY, clientId.trim());
     setupTokenClient(clientId.trim());
+    syncPush();   // share it with your other devices
   }
+  if (!calTokenClient) setupTokenClient(clientId);
   calTokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
@@ -1921,6 +1929,14 @@ const SYNC_MAP={
   ooLog:   {get:()=>ooLog,            set:v=>{ooLog=v||{};             renderOneOnOne();}},
   ooStart: {get:()=>localStorage.getItem(OO_START_KEY)||'',
             set:v=>{if(v)localStorage.setItem(OO_START_KEY,v); renderOneOnOne();}},
+  /* Google OAuth Client ID is public by design — syncing it saves re-pasting per device */
+  gcalId:  {get:()=>localStorage.getItem(CAL_CLIENT_KEY)||'',
+            set:v=>{
+              if(v && v!==localStorage.getItem(CAL_CLIENT_KEY)){
+                localStorage.setItem(CAL_CLIENT_KEY,v);
+                if(window.google && !calTokenClient) setupTokenClient(v);
+              }
+            }},
 };
 
 function setSyncChip(state,label){
