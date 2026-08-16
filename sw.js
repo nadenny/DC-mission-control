@@ -1,6 +1,6 @@
 /* DC Mission Control — service worker
    Bump CACHE_VERSION whenever you update any tool file. */
-const CACHE_VERSION = 'dc-mc-v2';
+const CACHE_VERSION = 'dc-mc-v3';
 
 const ASSETS = [
   './dc_mission_control.html',
@@ -52,9 +52,11 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        // Stash a fresh copy for offline use
-        const copy = res.clone();
-        caches.open(CACHE_VERSION).then(c => c.put(e.request, copy)).catch(()=>{});
+        // Only cache genuinely good responses — never an error page
+        if (res && res.ok && res.status === 200 && res.type !== 'opaque') {
+          const copy = res.clone();
+          caches.open(CACHE_VERSION).then(c => c.put(e.request, copy)).catch(()=>{});
+        }
         return res;
       })
       .catch(() =>
@@ -63,4 +65,13 @@ self.addEventListener('fetch', e => {
         )
       )
   );
+});
+
+// Escape hatch: load any page with ?nosw to unregister and clear caches.
+self.addEventListener('message', e => {
+  if (e.data === 'KILL') {
+    self.registration.unregister()
+      .then(() => caches.keys())
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))));
+  }
 });

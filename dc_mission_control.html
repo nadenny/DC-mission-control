@@ -803,14 +803,14 @@ body::after {
   /* Order panels for thumb reach: tasks first, then 1:1, then the rest */
   .grid { display: flex; flex-direction: column; }
   .col { display: contents; }
-  .panel:has(#todoList)      { order: 1; }
-  .panel:has(#oneOnOnePanel) { order: 2; }
-  .panel:has(#calPanel)      { order: 3; }
-  .panel:has(.tool-grid)     { order: 4; }
-  .panel:has(#linksContainer){ order: 5; }
-  .panel:has(#scratchPad)    { order: 6; }
-  .panel:has(#semRing)       { order: 7; }
-  .panel:has(.reminder-item) { order: 8; }
+  .p-tasks   { order: 1; }
+  .p-oo      { order: 2; }
+  .p-cal     { order: 3; }
+  .p-tools   { order: 4; }
+  .p-links   { order: 5; }
+  .p-scratch { order: 6; }
+  .p-sem     { order: 7; }
+  .p-remind  { order: 8; }
 
   /* Bigger tap targets */
   .todo-input { font-size: 16px; padding: 9px 11px; }   /* 16px stops iOS zoom */
@@ -889,7 +889,7 @@ body::after {
   <div class="col">
 
     <!-- Semester status -->
-    <div class="panel">
+    <div class="panel p-sem">
       <div class="panel-label"><span class="pl-accent">SEM</span> · YEAR STATUS</div>
       <div class="semester-ring-wrap">
         <svg class="ring-svg" width="72" height="72" viewBox="0 0 72 72">
@@ -916,7 +916,7 @@ body::after {
     </div>
 
     <!-- DC Tools -->
-    <div class="panel" style="flex:1">
+    <div class="panel p-tools" style="flex:1">
       <div class="panel-label"><span class="pl-accent">SYS</span> · DC TOOLS</div>
       <div class="tool-grid">
         <a class="tool-tile" style="--tile-color:var(--gold)" href="semester_startup_checklist.html" target="_blank">
@@ -968,7 +968,7 @@ body::after {
   <div class="col">
 
     <!-- To-do -->
-    <div class="panel" style="flex:1">
+    <div class="panel p-tasks" style="flex:1">
       <div class="panel-label"><span class="pl-accent">OPS</span> · TASK QUEUE</div>
 
       <div class="todo-input-row">
@@ -992,14 +992,14 @@ body::after {
     </div>
 
     <!-- Scratch pad -->
-    <div class="panel">
+    <div class="panel p-scratch">
       <div class="panel-label"><span class="pl-accent">LOG</span> · SCRATCH PAD</div>
       <textarea class="scratch-pad" id="scratchPad" placeholder="Quick notes, ideas, things to remember… saves automatically." oninput="saveScratch()"></textarea>
       <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--ink3);margin-top:5px;letter-spacing:.06em">AUTO-SAVED · BROWSER STORAGE</div>
     </div>
 
     <!-- Calendar -->
-    <div class="panel" style="flex:1;overflow-y:auto;max-height:460px">
+    <div class="panel p-cal" style="flex:1;overflow-y:auto;max-height:460px">
       <div class="panel-label" style="justify-content:space-between">
         <span><span class="pl-accent">CAL</span> · UPCOMING EVENTS</span>
         <button class="cal-refresh-btn" id="calRefreshBtn" onclick="calRefreshAll()" style="display:none">↻ REFRESH</button>
@@ -1024,7 +1024,7 @@ body::after {
   <div class="col">
 
     <!-- 1:1 Rotation -->
-    <div class="panel">
+    <div class="panel p-oo">
       <div class="panel-label" style="justify-content:space-between">
         <span><span class="pl-accent">1:1</span> · TODAY'S CHECK-IN</span>
         <button onclick="openRoster()" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;background:none;border:none;color:var(--gold);cursor:pointer;text-transform:uppercase">ROSTER</button>
@@ -1033,7 +1033,7 @@ body::after {
     </div>
 
     <!-- Quick links -->
-    <div class="panel" style="flex:1">
+    <div class="panel p-links" style="flex:1">
       <div class="panel-label" style="justify-content:space-between">
         <span><span class="pl-accent">NAV</span> · QUICK LINKS</span>
         <button onclick="openAddLink()" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;background:none;border:none;color:var(--gold);cursor:pointer;text-transform:uppercase">+ ADD</button>
@@ -1043,7 +1043,7 @@ body::after {
     </div>
 
     <!-- Reminders -->
-    <div class="panel">
+    <div class="panel p-remind">
       <div class="panel-label"><span class="pl-accent">BRIEF</span> · KEY REMINDERS</div>
       <div class="reminder-item">
         <div class="reminder-icon">⚠️</div>
@@ -2099,9 +2099,18 @@ function syncPush(){
 
 // ─── PWA ───
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
-  });
+  // ?nosw  → unregister everything and reload clean (recovery hatch)
+  if(new URLSearchParams(location.search).has('nosw')){
+    navigator.serviceWorker.getRegistrations().then(rs=>{
+      rs.forEach(r=>r.unregister());
+      if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
+      alert('Service worker removed and cache cleared. Reload the page normally now.');
+    });
+  }else{
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    });
+  }
 }
 
 let deferredPrompt=null;
