@@ -2137,7 +2137,7 @@ function syncPush(){
 
 // ─── PWA ───
 if('serviceWorker' in navigator){
-  // ?nosw  → unregister everything and reload clean (recovery hatch)
+  // ?nosw → unregister everything and clear caches (manual recovery)
   if(new URLSearchParams(location.search).has('nosw')){
     navigator.serviceWorker.getRegistrations().then(rs=>{
       rs.forEach(r=>r.unregister());
@@ -2146,7 +2146,22 @@ if('serviceWorker' in navigator){
     });
   }else{
     window.addEventListener('load',()=>{
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
+      navigator.serviceWorker.register('sw.js').then(reg=>{
+        reg.update();                       // always check for a newer worker
+        reg.addEventListener('updatefound',()=>{
+          const nw=reg.installing;
+          if(!nw)return;
+          nw.addEventListener('statechange',()=>{
+            // A new worker took over an existing page — reload once to run it
+            if(nw.state==='activated' && navigator.serviceWorker.controller){
+              if(!sessionStorage.getItem('sw_reloaded')){
+                sessionStorage.setItem('sw_reloaded','1');
+                location.reload();
+              }
+            }
+          });
+        });
+      }).catch(()=>{});
     });
   }
 }

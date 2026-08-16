@@ -1254,14 +1254,32 @@ function onApiInput() {
 
 // Register service worker so it works offline / installs
 if('serviceWorker' in navigator){
+  // ?nosw → unregister everything and clear caches (manual recovery)
   if(new URLSearchParams(location.search).has('nosw')){
     navigator.serviceWorker.getRegistrations().then(rs=>{
       rs.forEach(r=>r.unregister());
       if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
-      alert('Service worker removed and cache cleared. Reload normally now.');
+      alert('Service worker removed and cache cleared. Reload the page normally now.');
     });
   }else{
-    window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('sw.js').then(reg=>{
+        reg.update();                       // always check for a newer worker
+        reg.addEventListener('updatefound',()=>{
+          const nw=reg.installing;
+          if(!nw)return;
+          nw.addEventListener('statechange',()=>{
+            // A new worker took over an existing page — reload once to run it
+            if(nw.state==='activated' && navigator.serviceWorker.controller){
+              if(!sessionStorage.getItem('sw_reloaded')){
+                sessionStorage.setItem('sw_reloaded','1');
+                location.reload();
+              }
+            }
+          });
+        });
+      }).catch(()=>{});
+    });
   }
 }
 

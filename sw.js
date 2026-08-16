@@ -1,21 +1,17 @@
 /* DC Mission Control — service worker
-   Bump CACHE_VERSION whenever you update any tool file. */
-const CACHE_VERSION = 'dc-mc-v7';
+   HTML is ALWAYS fetched fresh from the network. Only static assets are cached.
+   This makes a stale or blank page impossible, while still working offline. */
+const CACHE_VERSION = 'dc-mc-v8';
 
+// Only truly static things get pre-cached. No HTML here, on purpose.
 const ASSETS = [
-  './dc_mission_control.html',
-  './semester_startup_checklist.html',
-  './email_template_library.html',
-  './meeting_tool.html',
-  './concern_log.html',
-  './sheet_builder.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+  './icon-maskable-512.png',
   './apple-touch-icon.png',
 ];
 
-// Install — pre-cache the app shell
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_VERSION)
@@ -24,50 +20,72 @@ self.addEventListener('install', e => {
   );
 });
 
-// Activate — drop old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))
-      ))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
-// Fetch — network first for our own pages (so updates land),
-// cache fallback when offline. Never intercept API calls.
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+  if (e.request.method !== 'GET') return;
 
-  // Let API + auth traffic pass straight through
+  // Never intercept API / auth traffic
   if (url.hostname.includes('anthropic.com') ||
       url.hostname.includes('googleapis.com') ||
-      url.hostname.includes('google.com')) {
+      url.hostname.includes('google.com') ||
+      url.hostname.includes('gstatic.com') ||
+      url.hostname.includes('firebaseio.com')) {
     return;
   }
 
-  if (e.request.method !== 'GET') return;
+  const isHTML = e.request.mode === 'navigate' ||
+                 url.pathname.endsWith('.html') ||
+                 (e.request.headers.get('accept') || '').includes('text/html');
 
+  if (isHTML) {
+    // ALWAYS network for pages. Cache is a last resort for genuine offline,
+    // and only a verified-good copy is ever stored.
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' })
+        .then(res => {
+          if (res && res.ok && res.status === 200) {
+            const copy = res.clone();
+            caches.open(CACHE_VERSION).then(c => c.put(e.request, copy)).catch(()=>{});
+          }
+          return res;
+        })
+        .catch(() => caches.match(e.request).then(hit =>
+          hit || new Response(
+            '<!doctype html><meta charset="utf-8">' +
+            '<body style="font-family:system-ui;background:#080C14;color:#E8EDF5;padding:2rem;line-height:1.6">' +
+            '<h2 style="color:#F5C842">Offline</h2>' +
+            '<p>No connection, and no saved copy of this page yet.</p>' +
+            '<p><a href="./dc_mission_control.html" style="color:#2DD4BF">Try again</a></p></body>',
+            { headers: { 'Content-Type': 'text/html' } }
+          )
+        ))
+    );
+    return;
+  }
+
+  // Static assets: serve from cache, refresh in the background
   e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        // Only cache genuinely good responses — never an error page
-        if (res && res.ok && res.status === 200 && res.type !== 'opaque') {
+    caches.match(e.request).then(hit => {
+      const net = fetch(e.request).then(res => {
+        if (res && res.ok && res.status === 200) {
           const copy = res.clone();
           caches.open(CACHE_VERSION).then(c => c.put(e.request, copy)).catch(()=>{});
         }
         return res;
-      })
-      .catch(() =>
-        caches.match(e.request).then(hit =>
-          hit || caches.match('./dc_mission_control.html')
-        )
-      )
+      }).catch(() => hit);
+      return hit || net;
+    })
   );
 });
 
-// Escape hatch: load any page with ?nosw to unregister and clear caches.
 self.addEventListener('message', e => {
   if (e.data === 'KILL') {
     self.registration.unregister()
