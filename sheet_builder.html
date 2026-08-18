@@ -222,6 +222,20 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .item-lvl.honors{background:rgba(167,139,250,.18);color:var(--violet);border-color:rgba(167,139,250,.4)}
 .item-lvl.regular{background:var(--flask-dim);color:var(--flask);border-color:rgba(79,209,197,.4)}
 
+/* True/False, Matching, Ordering */
+.ws-tf{margin:7px 0 0 .34in;display:flex;gap:.5in}
+.ws-tf-opt{display:flex;align-items:center;gap:7px;font-size:10.5pt}
+.ws-match{margin:8px 0 0 .34in;display:grid;grid-template-columns:1fr 1fr;gap:6px .3in}
+.ws-match-col{display:flex;flex-direction:column;gap:6px}
+.ws-match-row{display:flex;align-items:baseline;gap:7px;font-size:10.5pt;line-height:1.35}
+.ws-match-blank{border-bottom:1px solid var(--ink);width:.42in;flex-shrink:0;height:14px}
+.ws-match-num{font-family:'Space Grotesk',sans-serif;font-weight:500;flex-shrink:0;min-width:.18in}
+.ws-match-let{font-family:'Space Grotesk',sans-serif;font-weight:500;flex-shrink:0;min-width:.2in}
+.ws-match-txt{flex:1}
+.ws-order{margin:8px 0 0 .34in;display:flex;flex-direction:column;gap:6px}
+.ws-order-row{display:flex;align-items:baseline;gap:9px;font-size:10.5pt;line-height:1.35}
+.ws-order-blank{border-bottom:1px solid var(--ink);width:.42in;flex-shrink:0;height:14px}
+
 /* Lab header — generous write-in lines, no date, tag kept clear of fields */
 .lab-meta-row{display:flex;gap:.3in;align-items:flex-end;margin-bottom:.16in}
 .lab-field{display:flex;align-items:flex-end;gap:7px;font-family:'Space Grotesk',sans-serif}
@@ -268,7 +282,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
   </div>
   <div class="tb-spacer"></div>
   <input type="password" id="apiKey" placeholder="sk-ant-… (for AI)" oninput="onApiInput()" autocomplete="off"
-    style="display:none;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:5px 9px;background:var(--slate);border:1px solid var(--edge);border-radius:4px;color:var(--chalk2);outline:none;width:150px">
+    style="font-family:'IBM Plex Mono',monospace;font-size:10px;padding:5px 9px;background:var(--slate);border:1px solid var(--edge);border-radius:4px;color:var(--chalk2);outline:none;width:150px">
   <button class="btn" onclick="newSheet()">New</button>
   <button class="btn" onclick="saveSheet()">Save</button>
   <button class="btn" onclick="openLoad()">Open</button>
@@ -383,6 +397,18 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
       </div>
     </div>
 
+    <div class="pane" id="qAIPane">
+      <div class="pane-label">AI assist</div>
+      <div class="ai-bar" style="border:none;padding:0;margin:0">
+        <button class="ai-btn" onclick="aiPolishQs(this)">&#10024; Clean up wording</button>
+        <button class="ai-btn" onclick="aiMoreQs(this)">&#10024; More questions</button>
+        <button class="ai-btn" onclick="aiInstructions(this)">&#10024; Write instructions</button>
+        <button class="ai-btn" onclick="aiDistractors(this)">&#10024; Better MC choices</button>
+        <button class="ai-btn" onclick="aiReview(this)">&#10024; Review this sheet</button>
+      </div>
+      <div id="qAiOut" style="display:none;margin-top:.7rem;font-size:11.5px;line-height:1.6;color:var(--chalk2);background:var(--slate2);border:1px solid var(--edge);border-radius:4px;padding:9px 11px;white-space:pre-wrap;max-height:240px;overflow-y:auto"></div>
+    </div>
+
     <div class="pane" id="qAddPane">
       <div class="pane-label">Add</div>
       <div class="qtypes">
@@ -392,6 +418,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
         <button class="qtype" onclick="addQ('graph')"><span class="qtype-icon">📈</span><span class="qtype-name">Graph / grid</span></button>
         <button class="qtype" onclick="addQ('long')"><span class="qtype-icon">📝</span><span class="qtype-name">Long response</span></button>
         <button class="qtype" onclick="addQ('fill')"><span class="qtype-icon">␣</span><span class="qtype-name">Fill in blank</span></button>
+        <button class="qtype" onclick="addQ('tf')"><span class="qtype-icon">⊤⊥</span><span class="qtype-name">True / False</span></button>
+        <button class="qtype" onclick="addQ('matching')"><span class="qtype-icon">🔗</span><span class="qtype-name">Matching</span></button>
+        <button class="qtype" onclick="addQ('ordering')"><span class="qtype-icon">🔢</span><span class="qtype-name">Ordering</span></button>
       </div>
       <button class="mini-btn" onclick="addQ('section')" style="border-color:rgba(167,139,250,.4);color:var(--violet)">+ Section heading</button>
     </div>
@@ -422,8 +451,19 @@ let questions=[];
 let versionCount=2;
 let seeds={};                       // version letter -> shuffle seed
 
-const TYPE_LABEL={short:'Short answer',mc:'Multiple choice',work:'Show work',graph:'Graph',long:'Long response',fill:'Fill in blank',section:'Section'};
-const DEFAULTS={short:{lines:2},mc:{options:['','','','']},work:{height:1.4},graph:{height:2.6},long:{lines:6},fill:{},section:{}};
+const TYPE_LABEL={short:'Short answer',mc:'Multiple choice',tf:'True / False',matching:'Matching',ordering:'Ordering',work:'Show work',graph:'Graph',long:'Long response',fill:'Fill in blank',section:'Section'};
+const DEFAULTS={
+  short:{lines:2},
+  mc:{options:['','','','']},
+  tf:{},
+  matching:{left:['','',''],right:['','','']},
+  ordering:{items:['','','']},
+  work:{height:1.4},
+  graph:{height:2.6},
+  long:{lines:6},
+  fill:{},
+  section:{}
+};
 const LETTERS=['A','B','C','D','E','F'];
 
 const uid=()=>'q'+Date.now()+Math.random().toString(36).slice(2,6);
@@ -447,9 +487,10 @@ function setMode(m){
   document.getElementById('labAddPane').style.display=isLab?'':'none';
   document.getElementById('labAIPane').style.display=isLab?'':'none';
   document.getElementById('qAddPane').style.display=isLab?'none':'';
+  document.getElementById('qAIPane').style.display=isLab?'none':'';
   document.getElementById('qList').style.display=isLab?'none':'';
   document.getElementById('labList').style.display=isLab?'':'none';
-  document.getElementById('apiKey').style.display=isLab?'':'none';
+  document.getElementById('apiKey').style.display='';
   document.getElementById('listLabel').textContent=isLab?'Lab sections':'Questions';
   document.getElementById('dateRow').style.display=isLab?'none':'';
 
@@ -487,6 +528,13 @@ function moveQ(id,d){const i=questions.findIndex(q=>q.id===id),j=i+d;if(i<0||j<0
 function dupQ(id){const i=questions.findIndex(q=>q.id===id);if(i<0)return;const c=structuredClone(questions[i]);c.id=uid();questions.splice(i+1,0,c);renderEditor();render();}
 function updQ(id,f,v){const q=questions.find(x=>x.id===id);if(q){q[f]=v;render();}}
 function toggleLock(id){const q=questions.find(x=>x.id===id);if(q){q.locked=!q.locked;renderEditor();render();}}
+function updPair(id,side,i,v){const q=questions.find(x=>x.id===id);if(q){q[side][i]=v;render();}}
+function addPair(id){const q=questions.find(x=>x.id===id);if(q){q.left.push('');q.right.push('');renderEditor();render();}}
+function delPair(id,i){const q=questions.find(x=>x.id===id);if(q&&q.left.length>2){q.left.splice(i,1);q.right.splice(i,1);renderEditor();render();}}
+function updList(id,f,i,v){const q=questions.find(x=>x.id===id);if(q){q[f][i]=v;render();}}
+function addList(id,f){const q=questions.find(x=>x.id===id);if(q&&q[f].length<10){q[f].push('');renderEditor();render();}}
+function delList(id,f,i){const q=questions.find(x=>x.id===id);if(q&&q[f].length>2){q[f].splice(i,1);renderEditor();render();}}
+
 function updOpt(id,i,v){const q=questions.find(x=>x.id===id);if(q){q.options[i]=v;render();}}
 function addOpt(id){const q=questions.find(x=>x.id===id);if(q&&q.options.length<6){q.options.push('');renderEditor();render();}}
 function delOpt(id,i){const q=questions.find(x=>x.id===id);if(q&&q.options.length>2){q.options.splice(i,1);renderEditor();render();}}
@@ -526,6 +574,39 @@ function renderEditor(){
         </div>`).join('')+
         (q.options.length<6?`<button class="mini-btn" onclick="addOpt('${q.id}')">+ Add choice</button>`:'')+`</div>`;
     }
+    if(q.type==='matching'){
+      const n=Math.max(q.left.length,q.right.length);
+      let rows='';
+      for(let i=0;i<n;i++){
+        rows+=`<div class="step-row">
+          <span class="step-n">${i+1}.</span>
+          <input type="text" value="${esc(q.left[i]||'')}" placeholder="Item ${i+1}"
+            oninput="updPair('${q.id}','left',${i},this.value)" style="flex:1">
+          <span style="color:var(--chalk3);font-size:11px;padding-top:7px">↔</span>
+          <input type="text" value="${esc(q.right[i]||'')}" placeholder="Match ${String.fromCharCode(65+i)}"
+            oninput="updPair('${q.id}','right',${i},this.value)" style="flex:1">
+          ${n>2?`<button class="icon-btn danger" onclick="delPair('${q.id}',${i})" style="padding-top:7px">×</button>`:''}
+        </div>`;
+      }
+      extra=`<div class="qopts">${rows}
+        ${n<10?`<button class="mini-btn" onclick="addPair('${q.id}')">+ Add pair</button>`:''}
+        <div class="qmeta-row"><span style="color:var(--chalk3)">Right column prints shuffled</span></div>
+      </div>`;
+    }
+
+    if(q.type==='ordering'){
+      extra=`<div class="qopts">`+q.items.map((it,i)=>`
+        <div class="step-row">
+          <span class="step-n">${i+1}.</span>
+          <input type="text" value="${esc(it)}" placeholder="Step or event ${i+1}"
+            oninput="updList('${q.id}','items',${i},this.value)">
+          ${q.items.length>2?`<button class="icon-btn danger" onclick="delList('${q.id}','items',${i})" style="padding-top:7px">×</button>`:''}
+        </div>`).join('')+
+        `${q.items.length<10?`<button class="mini-btn" onclick="addList('${q.id}','items')">+ Add item</button>`:''}
+        <div class="qmeta-row"><span style="color:var(--chalk3)">Enter in CORRECT order — prints shuffled</span></div>
+      </div>`;
+    }
+
     if(q.type==='short'||q.type==='long'){
       extra=`<div class="qmeta-row"><span>Lines</span>
         <input class="inline-num" type="number" min="1" max="20" value="${q.lines}" oninput="updQ('${q.id}','lines',Math.max(1,Math.min(20,+this.value||1)))"></div>`;
@@ -640,6 +721,52 @@ function buildPaper(letter){
           <span class="ws-choice-letter">${String.fromCharCode(97+oi)})</span>
           <span>${esc(o)}</span></div>`).join('')+`</div>`;
     }
+    if(q.type==='tf'){
+      body=`<div class="ws-tf">
+        <span class="ws-tf-opt"><span class="ws-choice-bubble"></span> True</span>
+        <span class="ws-tf-opt"><span class="ws-choice-bubble"></span> False</span>
+      </div>`;
+    }
+
+    if(q.type==='matching'){
+      const n=Math.max(q.left.length,q.right.length);
+      const lefts=[],rights=[];
+      for(let i=0;i<n;i++){
+        if((q.left[i]||'').trim())lefts.push(q.left[i]);
+        if((q.right[i]||'').trim())rights.push(q.right[i]);
+      }
+      // Right column shuffles — seeded per version so it's stable
+      const rand=rng((seeds[letter]||7)+q.id.length*17);
+      const shuffled=(mode==='test')?shuffleSeeded(rights,rand):rights;
+      body=`<div class="ws-match">
+        <div class="ws-match-col">
+          ${lefts.map((l,i)=>`<div class="ws-match-row">
+            <span class="ws-match-blank"></span>
+            <span class="ws-match-num">${i+1}.</span>
+            <span class="ws-match-txt">${esc(l)}</span>
+          </div>`).join('')}
+        </div>
+        <div class="ws-match-col">
+          ${shuffled.map((r,i)=>`<div class="ws-match-row">
+            <span class="ws-match-let">${String.fromCharCode(65+i)}.</span>
+            <span class="ws-match-txt">${esc(r)}</span>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    if(q.type==='ordering'){
+      const items=q.items.filter(x=>x.trim());
+      const rand=rng((seeds[letter]||11)+q.id.length*23);
+      const shown=shuffleSeeded(items,rand);
+      body=`<div class="ws-order">
+        ${shown.map(it=>`<div class="ws-order-row">
+          <span class="ws-order-blank"></span>
+          <span class="ws-match-txt">${esc(it)}</span>
+        </div>`).join('')}
+      </div>`;
+    }
+
     if(q.type==='short'||q.type==='long')
       body=`<div class="ws-lines">`+Array(q.lines).fill('<div class="ws-line"></div>').join('')+`</div>`;
     if(q.type==='work')
@@ -682,10 +809,175 @@ function buildKey(letter){
   return h;
 }
 
-/* ════════════ LAB MODE ════════════ */
+
+let apiKey='';
+
+/* ═══════════ AI ASSIST — worksheet & test ═══════════ */
+function qAiShow(t){const el=document.getElementById('qAiOut');el.style.display='block';el.textContent=t;}
+
+function sheetContext(){
+  const title=document.getElementById('wsTitle').value.trim();
+  const course=document.getElementById('wsCourse').value.trim();
+  const unit=document.getElementById('wsUnit').value.trim();
+  let out=`${mode==='test'?'TEST':'WORKSHEET'}: ${title||'(untitled)'}\n`;
+  if(course)out+=`Course: ${course}\n`;
+  if(unit)out+=`Unit: ${unit}\n`;
+  out+='\n';
+  let n=0;
+  questions.forEach(q=>{
+    if(q.type==='section'){out+=`\n## ${q.text||'Section'}\n`;return;}
+    n++;
+    out+=`${n}. [${TYPE_LABEL[q.type]}] ${q.text||'(blank)'}\n`;
+    if(q.type==='mc'&&q.options)q.options.forEach((o,i)=>{if(o.trim())out+=`   ${String.fromCharCode(97+i)}) ${o}\n`;});
+    if(q.type==='matching'){
+      const n2=Math.max(q.left.length,q.right.length);
+      for(let i=0;i<n2;i++)out+=`   ${q.left[i]||''} <-> ${q.right[i]||''}\n`;
+    }
+    if(q.type==='ordering'&&q.items)q.items.forEach((it,i)=>{if(it.trim())out+=`   (${i+1}) ${it}\n`;});
+  });
+  return out;
+}
+
+function qAiSys(){
+  const course=document.getElementById('wsCourse').value.trim()||'high school science';
+  return `You help a high school teacher at La Salle build ${mode==='test'?'tests':'worksheets'} for ${course}.
+Match the difficulty, topic, and style of what is already on the sheet.
+Never invent content outside the topic shown. Be precise with scientific and mathematical language.
+Plain text only. No markdown, no asterisks, no preamble. Output exactly what is asked for.`;
+}
+
+/* ── 1. Clean up wording of existing questions ── */
+async function aiPolishQs(btn){
+  const real=questions.filter(q=>q.type!=='section'&&q.text.trim());
+  if(!real.length){qAiShow('Write some questions first.');return;}
+  const res=await callAI(qAiSys(),
+`Rewrite each question below so it is clearer and unambiguous for students.
+Keep the same concept, same difficulty, same question type. Fix vague pronouns, run-ons, and missing units.
+Do NOT add new questions or change the number of them.
+
+${real.map((q,i)=>`${i+1}. ${q.text}`).join('\n')}
+
+Return ONLY the rewritten questions, numbered, one per line, in the same order.`,btn);
+  if(!res)return;
+  const lines=res.split('\n').map(l=>l.trim()).filter(l=>/^\d+[.)]/.test(l))
+    .map(l=>l.replace(/^\d+[.)]\s*/,''));
+  if(lines.length!==real.length){qAiShow(res);return;}
+  real.forEach((q,i)=>{q.text=lines[i];});
+  renderEditor();render();
+  qAiShow(`✓ Rewrote ${lines.length} questions. Review them — nothing is final until you say so.`);
+}
+
+/* ── 2. Generate more questions in the same vein ── */
+async function aiMoreQs(btn){
+  const real=questions.filter(q=>q.type!=='section'&&q.text.trim());
+  if(!real.length){qAiShow('Write at least one question first so I know the topic and level.');return;}
+  const res=await callAI(qAiSys(),
+`Here is the current sheet:
+
+${sheetContext()}
+
+Write 5 NEW questions that fit this same topic and difficulty. Do not repeat anything already there.
+Vary the types — mix short answer, multiple choice, and true/false as appropriate to the content.
+
+Return ONLY the questions, one per line, each tagged with its type in square brackets, like:
+[short] Explain why ...
+[mc] Which of the following ... | choice a | choice b | choice c | choice d
+[tf] The mass of a proton is greater than that of an electron.`,btn);
+  if(!res)return;
+
+  const added=[];
+  res.split('\n').map(l=>l.trim()).forEach(l=>{
+    const m=l.match(/^\[(short|mc|tf|long|fill)\]\s*(.+)$/i);
+    if(!m)return;
+    const type=m[1].toLowerCase();
+    if(type==='mc'){
+      const parts=m[2].split('|').map(x=>x.trim());
+      const q={id:uid(),type:'mc',text:parts[0],pts:1,locked:false,options:parts.slice(1,5)};
+      while(q.options.length<4)q.options.push('');
+      questions.push(q);
+    }else{
+      questions.push({id:uid(),type,text:m[2],pts:1,locked:false,...structuredClone(DEFAULTS[type])});
+    }
+    added.push(m[2]);
+  });
+  if(!added.length){qAiShow(res);return;}
+  renderEditor();render();
+  qAiShow(`✓ Added ${added.length} questions to the end. Reorder or delete any that don't fit.`);
+}
+
+/* ── 3. Write the instructions line ── */
+async function aiInstructions(btn){
+  if(!questions.filter(q=>q.type!=='section').length){qAiShow('Add some questions first.');return;}
+  const res=await callAI(qAiSys(),
+`Here is the sheet:
+
+${sheetContext()}
+
+Write a short instructions paragraph for the top of this ${mode==='test'?'test':'worksheet'}.
+Two or three sentences maximum. Cover: what students should show, how to mark answers, and anything
+specific to the question types present (e.g. matching, showing work, units).
+
+Return ONLY the instructions text. No preamble, no quotes.`,btn);
+  if(!res)return;
+  document.getElementById('wsInstr').value=res.trim();
+  render();
+  qAiShow('✓ Instructions written and inserted. Edit them in the Details panel above.');
+}
+
+/* ── 4. Improve multiple-choice distractors ── */
+async function aiDistractors(btn){
+  const mcs=questions.filter(q=>q.type==='mc'&&q.text.trim());
+  if(!mcs.length){qAiShow('No multiple-choice questions on this sheet yet.');return;}
+  const res=await callAI(qAiSys(),
+`Improve the answer choices for these multiple-choice questions.
+Good distractors reflect real student misconceptions — not obviously wrong throwaways.
+Keep 4 choices each. Keep the correct answer's meaning intact, but you may reword it.
+
+${mcs.map((q,i)=>`${i+1}. ${q.text}\n   ${q.options.map((o,j)=>String.fromCharCode(97+j)+') '+o).join('\n   ')}`).join('\n\n')}
+
+Return ONLY, for each question, one line formatted exactly as:
+1. choice a | choice b | choice c | choice d`,btn);
+  if(!res)return;
+  const lines=res.split('\n').map(l=>l.trim()).filter(l=>/^\d+[.)]/.test(l));
+  let applied=0;
+  lines.forEach(l=>{
+    const m=l.match(/^(\d+)[.)]\s*(.+)$/);
+    if(!m)return;
+    const idx=parseInt(m[1])-1;
+    const opts=m[2].split('|').map(x=>x.trim()).filter(Boolean);
+    if(mcs[idx]&&opts.length>=2){mcs[idx].options=opts.slice(0,6);applied++;}
+  });
+  if(!applied){qAiShow(res);return;}
+  renderEditor();render();
+  qAiShow(`✓ Rewrote choices for ${applied} question${applied>1?'s':''}.`);
+}
+
+/* ── 5. Review the whole sheet ── */
+async function aiReview(btn){
+  const real=questions.filter(q=>q.type!=='section');
+  if(!real.length){qAiShow('Add some questions first.');return;}
+  const showPts=document.getElementById('wsPts').value==='yes';
+  const total=real.reduce((s,q)=>s+(+q.pts||0),0);
+  const res=await callAI(qAiSys(),
+`Review this ${mode==='test'?'test':'worksheet'} as an experienced science teacher would.
+
+${sheetContext()}
+
+${showPts?`Point total: ${total}`:''}
+Question count: ${real.length}
+
+In under 180 words tell me:
+1. Any question that is ambiguous, double-barrelled, or gives away its own answer.
+2. Whether the difficulty is balanced or skewed, and where the gaps in coverage are.
+3. ${mode==='test'?'Whether this is a reasonable length for one class period.':'Whether this is a reasonable length for homework.'}
+
+Be specific and reference question numbers. Be blunt. Plain text, no headers.`,btn);
+  if(res)qAiShow(res);
+}
+
+/* ═══════════ LAB MODE ═══════════ */
 let blocks=[];
 let printLevel='both';
-let apiKey='';
 
 const BLK={
   objective:   {icon:'🎯',label:'Objective',      sec:'Objective'},
@@ -1087,7 +1379,11 @@ async function callAI(system,user,btn){
   finally{btn.disabled=false;btn.textContent=orig;}
 }
 
-function aiShow(t){const el=document.getElementById('aiOut');el.style.display='block';el.textContent=t;}
+function aiShow(t){
+  const el=document.getElementById(mode==='lab'?'aiOut':'qAiOut');
+  if(!el)return;
+  el.style.display='block';el.textContent=t;
+}
 
 function aiSys(){
   const cap=+document.getElementById('labCap').value||70;
