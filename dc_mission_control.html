@@ -890,7 +890,10 @@ body::after {
 
     <!-- Semester status -->
     <div class="panel p-sem">
-      <div class="panel-label"><span class="pl-accent">SEM</span> · YEAR STATUS</div>
+      <div class="panel-label" style="justify-content:space-between">
+        <span><span class="pl-accent">SEM</span> · YEAR STATUS</span>
+        <button onclick="openDates()" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;background:none;border:none;color:var(--gold);cursor:pointer;text-transform:uppercase">Edit</button>
+      </div>
       <div class="semester-ring-wrap">
         <svg class="ring-svg" width="72" height="72" viewBox="0 0 72 72">
           <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
@@ -1089,6 +1092,37 @@ body::after {
 
 </div>
 
+<!-- ── SCHOOL DATES MODAL ── -->
+<div class="ledit-backdrop" id="datesBackdrop" onclick="if(event.target===this)closeDates()">
+  <div class="ledit-modal" style="max-width:380px">
+    <div class="ledit-title">School year dates</div>
+    <p style="font-size:11.5px;color:var(--ink3);line-height:1.6;margin-bottom:1rem">
+      The ring tracks inservice through the last day. Syncs to your other devices.
+    </p>
+    <div class="ledit-field">
+      <label>Teachers report (inservice)</label>
+      <input type="date" id="sd_inservice">
+    </div>
+    <div class="ledit-field">
+      <label>First day for students</label>
+      <input type="date" id="sd_students">
+    </div>
+    <div class="ledit-field">
+      <label>End of fall semester</label>
+      <input type="date" id="sd_semBreak">
+    </div>
+    <div class="ledit-field">
+      <label>Last day of school</label>
+      <input type="date" id="sd_yearEnd">
+    </div>
+    <div class="ledit-btns">
+      <button class="ledit-save" onclick="saveDates()">Save</button>
+      <button class="ledit-cancel" onclick="closeDates()">Cancel</button>
+      <button class="ledit-cancel" onclick="resetDates()" style="margin-left:auto;color:var(--ink3)">Reset</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── SYNC MODAL ── -->
 <div class="ledit-backdrop" id="syncBackdrop" onclick="if(event.target===this)closeSync()">
   <div class="ledit-modal" style="max-width:440px;max-height:85vh;overflow-y:auto">
@@ -1209,58 +1243,117 @@ setInterval(tickClock, 1000);
 tickClock();
 
 // ─── SEMESTER RING ───
+/* Editable school-year dates — click the ring panel's EDIT to change them.
+   Stored locally and synced across devices. */
+const CAL_DATES_KEY='dc_school_dates_v1';
+const DEFAULT_DATES={
+  inservice:'2026-08-11',   // teachers report
+  students :'2026-08-17',   // first day for students
+  semBreak :'2026-12-19',   // end of fall semester
+  yearEnd  :'2027-05-27'    // last day of school
+};
+
+function schoolDates(){
+  try{return {...DEFAULT_DATES, ...(JSON.parse(localStorage.getItem(CAL_DATES_KEY))||{})};}
+  catch{return {...DEFAULT_DATES};}
+}
+function saveSchoolDates(d){
+  localStorage.setItem(CAL_DATES_KEY,JSON.stringify(d));
+  if(typeof syncPush==='function')syncPush();
+  computeSemester();
+}
+
 function computeSemester() {
-  const inservice  = new Date('2026-08-11'); // Teacher inservice week begins
-  const students   = new Date('2026-08-17'); // First day students on campus
-  const end        = new Date('2026-12-19'); // End of fall semester
-  const today      = new Date();
-  // Ring tracks the full school year (inservice → end)
-  const total      = end - inservice;
-  const elapsed    = today - inservice;
-  let pct = Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
-  const daysLeft   = Math.max(0, Math.ceil((end - today) / 86400000));
-  const daysIn     = Math.max(0, Math.floor(elapsed / 86400000));
-  const daysToInservice = Math.ceil((inservice - today) / 86400000);
-  const daysToStudents  = Math.ceil((students - today) / 86400000);
+  const D = schoolDates();
+  const inservice = new Date(D.inservice+'T12:00:00');
+  const students  = new Date(D.students +'T12:00:00');
+  const semBreak  = new Date(D.semBreak +'T12:00:00');
+  const yearEnd   = new Date(D.yearEnd  +'T12:00:00');
+  const today     = new Date();
+
+  // Ring tracks the WHOLE school year: inservice -> last day
+  const total   = yearEnd - inservice;
+  const elapsed = today   - inservice;
+  const pct     = Math.max(0, Math.min(100, Math.round((elapsed/total)*100)));
+
+  const dayMs = 86400000;
+  const daysToInservice = Math.ceil((inservice-today)/dayMs);
+  const daysToStudents  = Math.ceil((students -today)/dayMs);
+  const daysToSemBreak  = Math.ceil((semBreak -today)/dayMs);
+  const daysToYearEnd   = Math.ceil((yearEnd  -today)/dayMs);
+  const daysIn          = Math.max(0, Math.floor(elapsed/dayMs));
 
   document.getElementById('semPct').textContent = pct + '%';
 
+  const sub = document.getElementById('semDays');
   if (today < inservice) {
-    document.getElementById('semDays').textContent = `Inservice in ${daysToInservice}d · Students in ${daysToStudents}d`;
-  } else if (today >= inservice && today < students) {
-    document.getElementById('semDays').textContent = `Inservice week · Students arrive in ${daysToStudents}d`;
-  } else if (today > end) {
-    document.getElementById('semDays').textContent = 'Semester complete';
+    sub.textContent = `Inservice in ${daysToInservice}d · Students in ${daysToStudents}d`;
+  } else if (today < students) {
+    sub.textContent = `Inservice week · Students arrive in ${daysToStudents}d`;
+  } else if (today > yearEnd) {
+    sub.textContent = 'School year complete';
+  } else if (today <= semBreak) {
+    sub.textContent = `${daysIn}d in · ${daysToSemBreak}d to semester break`;
   } else {
-    document.getElementById('semDays').textContent = `${daysIn}d in · ${daysLeft}d remaining`;
+    sub.textContent = `${daysIn}d in · ${daysToYearEnd}d to last day`;
   }
 
-  // Ring animation
   const ring = document.getElementById('semRing');
   const circumference = 188.5;
-  setTimeout(() => {
-    ring.style.strokeDashoffset = circumference - (circumference * pct / 100);
-  }, 300);
+  setTimeout(()=>{ ring.style.strokeDashoffset = circumference - (circumference*pct/100); },300);
 
-  // Alerts
-  if (daysLeft > 0 && daysLeft <= 14) {
-    document.getElementById('activeAlert').style.display = 'flex';
-    document.getElementById('alertTitle').textContent = `Finals in ${daysLeft} days`;
-    document.getElementById('alertBody').textContent = 'Run finals analyzer · verify study guides · notify dept';
+  // ── Alerts ──
+  const alertEl = document.getElementById('activeAlert');
+  const setAlert = (t,b)=>{
+    alertEl.style.display='flex';
+    document.getElementById('alertTitle').textContent=t;
+    document.getElementById('alertBody').textContent=b;
+  };
+  alertEl.style.display='none';
+
+  if (today <= semBreak && daysToSemBreak > 0 && daysToSemBreak <= 14) {
+    setAlert(`Fall finals in ${daysToSemBreak} days`,
+             'Run finals analyzer · verify study guides · notify dept');
+  } else if (today > semBreak && daysToYearEnd > 0 && daysToYearEnd <= 14) {
+    setAlert(`Last day in ${daysToYearEnd} days`,
+             'Spring finals · year-end people-log summaries · dept wrap-up');
   } else if (today >= inservice && today < students) {
-    document.getElementById('activeAlert').style.display = 'flex';
-    document.getElementById('alertTitle').textContent = 'Inservice week — students arrive Aug 17';
-    document.getElementById('alertBody').textContent = 'Run semester startup checklist · send welcome email to both depts';
+    setAlert('Inservice week — students arrive soon',
+             'Run semester startup checklist · send welcome email to both depts');
   } else if (today < inservice && daysToInservice <= 30) {
-    document.getElementById('activeAlert').style.display = 'flex';
-    document.getElementById('alertTitle').textContent = `Inservice in ${daysToInservice} days`;
-    document.getElementById('alertBody').textContent = 'Good time to work through the semester startup checklist';
+    setAlert(`Inservice in ${daysToInservice} days`,
+             'Good time to work through the semester startup checklist');
   } else if (today < inservice) {
-    document.getElementById('activeAlert').style.display = 'flex';
-    document.getElementById('alertTitle').textContent = `Inservice Aug 11 · Students Aug 17`;
-    document.getElementById('alertBody').textContent = `${daysToInservice}d until inservice · ${daysToStudents}d until first day`;
+    setAlert('School year not started',
+             `${daysToInservice}d until inservice · ${daysToStudents}d until first day`);
   }
 }
+
+// ── Date editor ──
+function openDates(){
+  const D=schoolDates();
+  ['inservice','students','semBreak','yearEnd'].forEach(k=>{
+    const el=document.getElementById('sd_'+k);
+    if(el)el.value=D[k];
+  });
+  document.getElementById('datesBackdrop').classList.add('open');
+}
+function closeDates(){document.getElementById('datesBackdrop').classList.remove('open');}
+function saveDates(){
+  const D={};
+  ['inservice','students','semBreak','yearEnd'].forEach(k=>{
+    D[k]=document.getElementById('sd_'+k).value||DEFAULT_DATES[k];
+  });
+  saveSchoolDates(D);
+  closeDates();
+}
+function resetDates(){
+  if(!confirm('Reset to the default 2026–27 dates?'))return;
+  localStorage.removeItem(CAL_DATES_KEY);
+  computeSemester();
+  openDates();
+}
+
 computeSemester();
 
 // ─── TODO ───
@@ -1946,6 +2039,13 @@ const SYNC_MAP={
   ooStart: {get:()=>localStorage.getItem(OO_START_KEY)||'',
             set:v=>{if(v)localStorage.setItem(OO_START_KEY,v); renderOneOnOne();}},
   /* Google OAuth Client ID is public by design — syncing it saves re-pasting per device */
+  dates:   {get:()=>localStorage.getItem(CAL_DATES_KEY)||'',
+            set:v=>{
+              if(v===undefined||v===null)return;
+              if(v==='')localStorage.removeItem(CAL_DATES_KEY);
+              else localStorage.setItem(CAL_DATES_KEY,v);
+              computeSemester();
+            }},
   gcalId:  {get:()=>localStorage.getItem(CAL_CLIENT_KEY)||'',
             set:v=>{
               if(v===undefined||v===null)return;
