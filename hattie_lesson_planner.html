@@ -557,6 +557,55 @@ body::after {
 <main class="main">
 
   <!-- META -->
+  <!-- AI UNIT BUILDER -->
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between">
+    <span>AI Unit Builder</span>
+    <span id="ai-sync-note" style="font-size:10px;color:var(--ink3);letter-spacing:.06em"></span>
+  </div>
+  <div class="reference-panel" style="margin-bottom:1.5rem">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <input type="password" id="ai-key" placeholder="sk-ant-…" oninput="saveAiKey()"
+        style="flex:1;min-width:150px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--ink);font-size:11px;font-family:monospace;outline:none">
+      <input type="text" id="unit-topic" placeholder="Unit topic (e.g. Stoichiometry)"
+        style="flex:1;min-width:150px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--ink);font-size:12px;outline:none">
+      <select id="unit-days" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--ink);font-size:12px;outline:none">
+        <option value="3">3 days</option>
+        <option value="4">4 days</option>
+        <option value="5" selected>5 days</option>
+        <option value="6">6 days</option>
+        <option value="8">8 days</option>
+        <option value="10">10 days</option>
+      </select>
+      <select id="unit-level" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--ink);font-size:12px;outline:none">
+        <option value="College Prep">College Prep</option>
+        <option value="Honors">Honors</option>
+        <option value="Both">Both</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-gold" onclick="aiBuildUnit(this)">Build full unit plan</button>
+      <button class="btn" onclick="aiFillDay(this)">Fill this day's activities</button>
+      <button class="btn" onclick="aiCritique(this)">Critique this lesson</button>
+    </div>
+    <div id="ai-out" style="display:none;margin-top:10px;font-size:12px;line-height:1.65;color:var(--ink2);background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:10px 12px;white-space:pre-wrap;max-height:220px;overflow-y:auto"></div>
+  </div>
+
+  <!-- UNIT PLAN -->
+  <div id="unit-wrap" style="display:none">
+    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between">
+      <span id="unit-heading">Unit Plan</span>
+      <span>
+        <button class="btn" style="padding:4px 10px;font-size:11px" onclick="printUnit()">Print unit</button>
+        <button class="btn" style="padding:4px 10px;font-size:11px" onclick="copyUnit(this)">Copy</button>
+        <button class="btn" style="padding:4px 10px;font-size:11px;color:var(--red);border-color:rgba(248,113,113,.3)" onclick="clearUnit()">Clear</button>
+      </span>
+    </div>
+    <div class="reference-panel" style="margin-bottom:1.5rem">
+      <div id="unit-tabs" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px"></div>
+      <div id="unit-day"></div>
+    </div>
+  </div>
+
   <div class="section-label">Lesson Details</div>
   <div class="meta-panel">
     <div class="meta-grid">
@@ -1077,13 +1126,19 @@ function startSync(){
         localStorage.setItem('hattie-lessons',JSON.stringify(savedLessons));
         renderSavedList();
       }
+      if(r.unit!==undefined){
+        unitPlan=r.unit||null;
+        if(unitPlan)localStorage.setItem(UNIT_KEY,JSON.stringify(unitPlan));
+        else localStorage.removeItem(UNIT_KEY);
+        renderUnit();
+      }
     }finally{applyingRemote=false;}
   });
 }
 function stopSync(){if(fbRef){fbRef.off();fbRef=null;}}
 function pushAll(){
   if(!fbRef||applyingRemote)return;
-  fbRef.set({lessons:savedLessons,_at:Date.now()}).catch(()=>{});
+  fbRef.set({lessons:savedLessons,unit:unitPlan||null,_at:Date.now()}).catch(()=>{});
 }
 function syncPush(){
   if(!fbRef||applyingRemote)return;
@@ -1095,6 +1150,315 @@ function updateSyncBadge(){
   el.textContent=fbUser?'⬤ synced':'○ local only';
   el.style.color=fbUser?'#4ADE80':'var(--ink3)';
 }
+
+
+/* ═══════════════ AI UNIT BUILDER ═══════════════ */
+const AI_KEY='dc_hattie_apikey';
+const UNIT_KEY='dc_hattie_unit_v1';
+let unitPlan=null;
+let activeDay=0;
+
+function saveAiKey(){
+  const v=document.getElementById('ai-key').value.trim();
+  if(v)localStorage.setItem(AI_KEY,v); else localStorage.removeItem(AI_KEY);
+}
+function loadAiKey(){
+  const v=localStorage.getItem(AI_KEY);
+  if(v)document.getElementById('ai-key').value=v;
+}
+function aiOut(t){
+  const el=document.getElementById('ai-out');
+  el.style.display='block';el.textContent=t;
+}
+
+async function callClaude(system,user,btn,maxTokens){
+  const key=localStorage.getItem(AI_KEY);
+  if(!key){aiOut('Paste your Anthropic API key in the field above first.');return null;}
+  const o=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='Thinking…';}
+  aiOut('Working — this can take 20–40 seconds for a full unit…');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,
+        'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5-20250929',
+        max_tokens:maxTokens||4000,system,messages:[{role:'user',content:user}]})
+    });
+    const d=await r.json();
+    if(!r.ok){aiOut('API error: '+(d?.error?.message||r.status));return null;}
+    return d.content.map(b=>b.text||'').join('');
+  }catch(e){aiOut('Network error: '+e.message);return null;}
+  finally{if(btn){btn.disabled=false;btn.textContent=o;}}
+}
+
+/* The AI must choose from the real library, by id */
+function activityMenu(){
+  return ACTIVITIES.map(a=>`${a.id} | ${a.phase} | ${a.name} | d=${a.effect} | ${a.tag}`).join('\n');
+}
+
+function hattieSystem(){
+  return `You are a Visible Learning (John Hattie) instructional coach working with a high school chemistry teacher at La Salle.
+You design units that move deliberately through SURFACE (acquiring knowledge), DEEP (relating and connecting ideas), and TRANSFER (applying to novel contexts).
+Key principles you hold to:
+- Surface before deep before transfer, but not rigidly one day each — they interleave, and later days revisit surface briefly.
+- Every day needs a hinge question that reveals whether students actually understand.
+- Feedback must be planned, not incidental.
+- Activities are chosen for fit, not for effect size alone. A d=0.82 activity used at the wrong phase is a waste of a period.
+Return ONLY valid JSON. No markdown fences, no commentary.`;
+}
+
+/* ── Build a whole unit ── */
+async function aiBuildUnit(btn){
+  const topic=document.getElementById('unit-topic').value.trim()
+    || document.getElementById('unit-title').value.trim();
+  if(!topic){aiOut('Give the unit a topic first.');document.getElementById('unit-topic').focus();return;}
+  const days=+document.getElementById('unit-days').value;
+  const level=document.getElementById('unit-level').value;
+
+  // Pull in the PPT analysis if one was handed over
+  let ppt=null;
+  try{ppt=JSON.parse(localStorage.getItem('dc_ppt_to_hattie'));}catch{}
+  const pptBlock=ppt?`
+An existing PowerPoint for this unit was analyzed. Use it as the starting point and fix its weaknesses.
+Slide balance: ${ppt.counts?.surface||0} surface, ${ppt.counts?.deep||0} deep, ${ppt.counts?.transfer||0} transfer.
+Gaps identified: ${(ppt.gaps||[]).join(' | ')||'none listed'}
+Existing lesson plan draft: ${(ppt.lessonPlan||'').slice(0,1200)}
+`:'';
+
+  const res=await callClaude(hattieSystem(),
+`Design a ${days}-day unit on "${topic}" for a ${level} high school chemistry class. Periods are about 55 minutes.
+${pptBlock}
+Choose activities ONLY from this library, referencing them by id:
+${activityMenu()}
+
+Return JSON exactly in this shape:
+{
+ "unitTitle":"...",
+ "bigIdea":"one sentence — the enduring understanding",
+ "days":[
+  {"n":1,
+   "focus":"short label for the day",
+   "li":"Students will be able to...",
+   "sc":"I can... (2-3 criteria, separated by semicolons)",
+   "surface":["a01","a05"],
+   "deep":[],
+   "transfer":[],
+   "hinge":"one question that reveals real understanding",
+   "feedback":"how feedback happens this day",
+   "notes":"2-3 sentences on how the period runs and what to watch for"}
+ ],
+ "assessment":"how you would assess the unit",
+ "misconceptions":["common student misconception 1","2","3"]
+}
+
+Rules: the arc must move from surface toward transfer across the ${days} days. Not every day needs all three phases.
+Later days should still include brief surface retrieval. Use 2-4 activities per day total.`,
+  btn, 5000);
+
+  if(!res)return;
+  let plan=null;
+  try{
+    plan=JSON.parse(res.replace(/```json|```/g,'').trim());
+  }catch(e){aiOut('Could not read the response as JSON:\n\n'+res.slice(0,600));return;}
+  if(!plan.days||!plan.days.length){aiOut('No days returned.\n\n'+res.slice(0,400));return;}
+
+  unitPlan=plan;
+  activeDay=0;
+  persistUnit();
+  renderUnit();
+  document.getElementById('unit-wrap').scrollIntoView({behavior:'smooth',block:'start'});
+  aiOut(`✓ Built a ${plan.days.length}-day unit. Click any day to load it into the planner below and edit it.`);
+}
+
+/* ── Fill just the current day ── */
+async function aiFillDay(btn){
+  const li=document.getElementById('li').value.trim();
+  const unit=document.getElementById('unit-title').value.trim();
+  if(!li&&!unit){aiOut('Add a unit title or learning intention first so I know the topic.');return;}
+  const level=document.getElementById('unit-level').value;
+
+  const res=await callClaude(hattieSystem(),
+`Choose activities for ONE ${level} chemistry lesson (about 55 minutes).
+Unit: ${unit||'(not given)'}
+Learning intention: ${li||'(not given)'}
+Success criteria: ${document.getElementById('sc').value.trim()||'(not given)'}
+
+Choose ONLY from this library, by id:
+${activityMenu()}
+
+Return JSON:
+{"surface":["id"],"deep":["id"],"transfer":["id"],
+ "hinge":"one hinge question","feedback":"feedback plan","why":"2 sentences on why this sequence"}
+
+Use 2-4 activities total. Do not fill all three phases unless the lesson genuinely warrants it.`,
+  btn, 1200);
+
+  if(!res)return;
+  let d=null;
+  try{d=JSON.parse(res.replace(/```json|```/g,'').trim());}
+  catch(e){aiOut(res);return;}
+
+  lessonActivities={surface:[],deep:[],transfer:[]};
+  ['surface','deep','transfer'].forEach(ph=>{
+    (d[ph]||[]).forEach(id=>{
+      const a=ACTIVITIES.find(x=>x.id===id);
+      if(a)lessonActivities[ph].push({...a});
+    });
+  });
+  if(d.hinge)document.getElementById('hinge').value=d.hinge;
+  if(d.feedback)document.getElementById('feedback').value=d.feedback;
+  ['surface','deep','transfer'].forEach(p=>renderPhase(p));
+  aiOut('✓ Activities placed.'+(d.why?'\n\n'+d.why:''));
+}
+
+/* ── Critique the current lesson ── */
+async function aiCritique(btn){
+  const acts=['surface','deep','transfer']
+    .map(p=>`${p}: ${(lessonActivities[p]||[]).map(a=>a.name).join(', ')||'(none)'}`).join('\n');
+  const res=await callClaude(
+`You are a Visible Learning coach. Be specific and blunt. Plain text, no markdown, under 180 words.`,
+`Critique this high school chemistry lesson.
+
+Unit: ${document.getElementById('unit-title').value}
+Learning intention: ${document.getElementById('li').value}
+Success criteria: ${document.getElementById('sc').value}
+Activities:
+${acts}
+Hinge question: ${document.getElementById('hinge').value}
+Feedback plan: ${document.getElementById('feedback').value}
+
+Tell me: (1) whether the surface/deep/transfer balance fits the learning intention,
+(2) whether the hinge question would actually reveal misunderstanding or just compliance,
+(3) the single change that would most improve this lesson.`, btn, 900);
+  if(res)aiOut(res);
+}
+
+/* ── Unit rendering ── */
+function persistUnit(){
+  localStorage.setItem(UNIT_KEY,JSON.stringify(unitPlan));
+  if(typeof syncPush==='function')syncPush();
+}
+function loadUnit(){
+  try{unitPlan=JSON.parse(localStorage.getItem(UNIT_KEY));}catch{unitPlan=null;}
+  if(unitPlan)renderUnit();
+}
+function clearUnit(){
+  if(!confirm('Clear this unit plan?'))return;
+  unitPlan=null;localStorage.removeItem(UNIT_KEY);
+  document.getElementById('unit-wrap').style.display='none';
+  if(typeof syncPush==='function')syncPush();
+}
+
+function renderUnit(){
+  if(!unitPlan||!unitPlan.days){document.getElementById('unit-wrap').style.display='none';return;}
+  document.getElementById('unit-wrap').style.display='block';
+  document.getElementById('unit-heading').textContent=
+    unitPlan.unitTitle||'Unit Plan';
+
+  document.getElementById('unit-tabs').innerHTML=unitPlan.days.map((d,i)=>
+    `<button class="btn" style="padding:5px 12px;font-size:11px;${i===activeDay?'background:rgba(245,200,66,.14);border-color:rgba(245,200,66,.4);color:#F5C842':''}"
+      onclick="showDay(${i})">Day ${d.n||i+1}</button>`).join('')+
+    `<span style="flex:1"></span>`;
+
+  const d=unitPlan.days[activeDay];
+  if(!d)return;
+  const chips=ph=>(d[ph]||[]).map(id=>{
+    const a=ACTIVITIES.find(x=>x.id===id);
+    return a?`<span style="display:inline-block;font-size:11px;padding:3px 9px;border-radius:3px;margin:0 4px 4px 0;background:var(--bg3);border:1px solid var(--border2);color:var(--ink2)">${a.name} <span style="color:var(--ink3)">d=${a.effect}</span></span>`:'';
+  }).join('')||'<span style="font-size:11px;color:var(--ink3)">—</span>';
+
+  document.getElementById('unit-day').innerHTML=`
+    <div style="font-size:14px;color:var(--ink);margin-bottom:3px">${esc2(d.focus||'')}</div>
+    ${unitPlan.bigIdea&&activeDay===0?`<div style="font-size:11.5px;color:var(--ink3);margin-bottom:10px;font-style:italic">Big idea: ${esc2(unitPlan.bigIdea)}</div>`:''}
+    <div style="font-size:12px;color:var(--ink2);line-height:1.65;margin-bottom:10px">
+      <strong style="color:var(--ink)">LI:</strong> ${esc2(d.li||'')}<br>
+      <strong style="color:var(--ink)">SC:</strong> ${esc2(d.sc||'')}
+    </div>
+    <div style="margin-bottom:8px"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--surface-color);margin-bottom:4px">Surface</div>${chips('surface')}</div>
+    <div style="margin-bottom:8px"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--deep-color);margin-bottom:4px">Deep</div>${chips('deep')}</div>
+    <div style="margin-bottom:10px"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--transfer-color);margin-bottom:4px">Transfer</div>${chips('transfer')}</div>
+    ${d.hinge?`<div style="font-size:12px;color:var(--ink2);margin-bottom:6px"><strong style="color:var(--ink)">Hinge:</strong> ${esc2(d.hinge)}</div>`:''}
+    ${d.feedback?`<div style="font-size:12px;color:var(--ink2);margin-bottom:6px"><strong style="color:var(--ink)">Feedback:</strong> ${esc2(d.feedback)}</div>`:''}
+    ${d.notes?`<div style="font-size:11.5px;color:var(--ink3);line-height:1.6;margin-bottom:10px">${esc2(d.notes)}</div>`:''}
+    <button class="btn btn-gold" style="padding:5px 12px;font-size:11px" onclick="loadDayIntoPlanner(${activeDay})">Load Day ${d.n||activeDay+1} into the planner ↓</button>
+    ${activeDay===unitPlan.days.length-1&&unitPlan.assessment?`
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px">Unit assessment</div>
+        <div style="font-size:12px;color:var(--ink2);line-height:1.6">${esc2(unitPlan.assessment)}</div>
+      </div>`:''}
+    ${activeDay===0&&unitPlan.misconceptions?`
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px">Watch for these misconceptions</div>
+        <div style="font-size:12px;color:var(--ink2);line-height:1.7">${unitPlan.misconceptions.map(m=>'• '+esc2(m)).join('<br>')}</div>
+      </div>`:''}`;
+}
+
+function showDay(i){activeDay=i;renderUnit();}
+
+function loadDayIntoPlanner(i){
+  const d=unitPlan.days[i];if(!d)return;
+  document.getElementById('unit-title').value=unitPlan.unitTitle||'';
+  document.getElementById('li').value=d.li||'';
+  document.getElementById('sc').value=d.sc||'';
+  document.getElementById('hinge').value=d.hinge||'';
+  document.getElementById('feedback').value=d.feedback||'';
+  document.getElementById('save-name').value=(unitPlan.unitTitle||'Unit')+' — Day '+(d.n||i+1);
+  lessonActivities={surface:[],deep:[],transfer:[]};
+  ['surface','deep','transfer'].forEach(ph=>{
+    (d[ph]||[]).forEach(id=>{
+      const a=ACTIVITIES.find(x=>x.id===id);
+      if(a)lessonActivities[ph].push({...a});
+    });
+  });
+  ['surface','deep','transfer'].forEach(p=>renderPhase(p));
+  document.querySelector('.section-label').scrollIntoView({behavior:'smooth'});
+}
+
+function unitToText(){
+  if(!unitPlan)return '';
+  const L=[];
+  L.push('='.repeat(60));
+  L.push(unitPlan.unitTitle||'Unit Plan');
+  if(unitPlan.bigIdea)L.push('Big idea: '+unitPlan.bigIdea);
+  L.push('='.repeat(60));
+  unitPlan.days.forEach((d,i)=>{
+    L.push(`\nDAY ${d.n||i+1} — ${d.focus||''}`);
+    L.push('-'.repeat(50));
+    if(d.li)L.push('LI: '+d.li);
+    if(d.sc)L.push('SC: '+d.sc);
+    ['surface','deep','transfer'].forEach(ph=>{
+      const names=(d[ph]||[]).map(id=>{
+        const a=ACTIVITIES.find(x=>x.id===id);
+        return a?`${a.name} (d=${a.effect})`:null;
+      }).filter(Boolean);
+      if(names.length)L.push(ph.toUpperCase()+': '+names.join(', '));
+    });
+    if(d.hinge)L.push('Hinge: '+d.hinge);
+    if(d.feedback)L.push('Feedback: '+d.feedback);
+    if(d.notes)L.push(d.notes);
+  });
+  if(unitPlan.assessment)L.push('\nASSESSMENT\n'+unitPlan.assessment);
+  if(unitPlan.misconceptions)L.push('\nMISCONCEPTIONS\n'+unitPlan.misconceptions.map(m=>'• '+m).join('\n'));
+  return L.join('\n');
+}
+
+function copyUnit(btn){
+  navigator.clipboard.writeText(unitToText());
+  const o=btn.textContent;btn.textContent='✓';
+  setTimeout(()=>btn.textContent=o,1400);
+}
+
+function printUnit(){
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>${unitPlan?.unitTitle||'Unit Plan'}</title>
+    <style>body{font-family:Georgia,serif;max-width:7in;margin:.6in auto;line-height:1.6;color:#111}
+    pre{white-space:pre-wrap;font-family:Georgia,serif;font-size:11.5pt}</style></head>
+    <body><pre>${unitToText().replace(/</g,'&lt;')}</pre></body></html>`);
+  w.document.close();w.print();
+}
+
+function esc2(t){return String(t||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 /* ═══ HANDOFF RECEIVER ← PPT ANALYZER ═══ */
 function checkPptHandoff(){
@@ -1109,6 +1473,8 @@ function checkPptHandoff(){
   if(h.li)    document.getElementById('li').value=h.li;
   if(h.sc)    document.getElementById('sc').value=h.sc;
   if(h.hinge) document.getElementById('hinge').value=h.hinge;
+  if(h.title && document.getElementById('unit-topic') && !document.getElementById('unit-topic').value)
+    document.getElementById('unit-topic').value=h.title.replace(/\.pptx?$/i,'');
   if(h.context && !document.getElementById('unit-title').value)
     document.getElementById('unit-title').value=h.context.split(/[.,\n]/)[0].slice(0,60);
 
@@ -1148,6 +1514,7 @@ function checkPptHandoff(){
     `</div>`+
     (h.gaps&&h.gaps.length?`<div style="margin-top:6px;font-size:11.5px;color:var(--ink3)"><strong style="color:var(--ink2)">Gaps flagged:</strong> ${h.gaps.slice(0,3).map(g=>String(g)).join(' · ')}</div>`:'')+
     (h.lessonPlan?`<button class="btn" style="margin-top:8px;padding:4px 10px;font-size:11px" onclick="showImportedPlan()">View the analyzer's lesson plan draft</button>`:'')+
+    `<button class="btn btn-gold" style="margin-top:8px;padding:4px 10px;font-size:11px" onclick="document.getElementById('unit-topic').focus();document.getElementById('unit-topic').scrollIntoView({behavior:'smooth',block:'center'})">Build a full unit from this ↑</button>`+
     `<button class="btn" style="margin-top:8px;margin-left:6px;padding:4px 10px;font-size:11px" onclick="this.parentElement.remove()">Dismiss</button>`;
   document.querySelector('main.main').prepend(banner);
 
@@ -1170,7 +1537,7 @@ function showImportedPlan(){
   document.body.appendChild(m);
 }
 
-window.addEventListener('load',()=>{ initFirebase(); checkPptHandoff(); });
+window.addEventListener('load',()=>{ initFirebase(); loadAiKey(); loadUnit(); checkPptHandoff(); });
 
 function copyForClaude(){
   const unit = document.getElementById('unit-title').value||'(untitled)';
