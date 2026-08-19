@@ -764,13 +764,21 @@ h1 em {
         </div>
         <div class="field">
           <label>Total meeting length</label>
-          <select id="ag-length">
+          <select id="ag-length" onchange="onLengthChange()">
             <option>30 minutes</option>
             <option>45 minutes</option>
             <option selected>60 minutes</option>
             <option>75 minutes</option>
             <option>90 minutes</option>
+            <option>105 minutes</option>
+            <option>120 minutes</option>
+            <option>135 minutes</option>
+            <option>150 minutes</option>
+            <option>180 minutes</option>
+            <option value="custom">Custom…</option>
           </select>
+          <input type="text" id="ag-length-custom" placeholder="e.g. 1:00–3:15 PM (135 min)"
+            style="display:none;margin-top:6px;font-family:'Karla',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);outline:none">
         </div>
       </div>
 
@@ -899,7 +907,7 @@ h1 em {
       <div class="field-row full">
         <div class="field">
           <label>Who was in the meeting (optional)</label>
-          <input type="text" id="nt-attendees" placeholder="Gerry, Mr. Chen, Ms. Rivera, Mr. Denny" />
+          <input type="text" id="nt-attendees" placeholder="Gerry, Chen, Rivera" />
         </div>
       </div>
 
@@ -1319,6 +1327,20 @@ window.addEventListener('load', () => {
   }
 });
 
+function onLengthChange(){
+  const sel=document.getElementById('ag-length');
+  const cus=document.getElementById('ag-length-custom');
+  cus.style.display = sel.value==='custom' ? 'block' : 'none';
+  if(sel.value==='custom')cus.focus();
+}
+
+function meetingLength(){
+  const sel=document.getElementById('ag-length');
+  if(sel.value!=='custom')return sel.value;
+  const v=document.getElementById('ag-length-custom').value.trim();
+  return v||'60 minutes';
+}
+
 // ── Standing items ──
 function addStanding() {
   const list = document.getElementById('standing-list');
@@ -1403,7 +1425,7 @@ async function runAgenda() {
   const type     = document.getElementById('ag-type').value;
   const datetime = document.getElementById('ag-datetime').value.trim();
   const location = document.getElementById('ag-location').value.trim();
-  const length   = document.getElementById('ag-length').value;
+  const length   = meetingLength();
   const items    = document.getElementById('ag-items').value.trim();
   const context  = document.getElementById('ag-context').value.trim();
   const standing = getStandingItems();
@@ -1459,7 +1481,8 @@ function renderAgendaOutput(text) {
     <div class="output-actions">
       <button class="out-btn green" onclick="saveToArchive('agenda', this)">💾 Save to archive</button>
       <button class="out-btn" onclick="copyOutput('ag-out-text', this)">Copy agenda</button>
-      <button class="out-btn" onclick="copyForEmail('ag-out-text', this)">Copy for email</button>
+      <button class="out-btn" onclick="copyForEmail('ag-out-text', this, 'agenda')">Copy for email</button>
+      <button class="out-btn" onclick="sendToEmailLibrary(this)">→ Email Library</button>
       <span class="char-count" id="ag-char">${text.length} chars</span>
     </div>`;
 }
@@ -1525,7 +1548,7 @@ function renderNotesOutput(text) {
     <div class="output-actions">
       <button class="out-btn green" onclick="saveToArchive('notes', this)">💾 Save to archive</button>
       <button class="out-btn" onclick="copyOutput('nt-out-text', this)">Copy summary</button>
-      <button class="out-btn" onclick="copyForEmail('nt-out-text', this)">Copy for email</button>
+      <button class="out-btn" onclick="copyForEmail('nt-out-text', this, 'notes')">Copy for email</button>
       <span class="char-count">${text.length} chars</span>
     </div>`;
 }
@@ -1960,13 +1983,38 @@ async function copyOutput(id, btn) {
   }, 2000);
 }
 
-async function copyForEmail(id, btn) {
+/* Hand the agenda off to the Email Library's PLC template */
+function sendToEmailLibrary(btn){
+  const text=document.getElementById('ag-out-text')?.innerText||'';
+  if(!text){return;}
+  const payload={
+    kind:'agenda',
+    type: document.getElementById('ag-type').value,
+    datetime: document.getElementById('ag-datetime').value.trim(),
+    location: document.getElementById('ag-location').value.trim(),
+    prep: '',
+    items: document.getElementById('ag-items').value
+             .split('\n').map(x=>x.trim()).filter(Boolean),
+    body:text,
+    at:Date.now()
+  };
+  localStorage.setItem('dc_agenda_handoff',JSON.stringify(payload));
+  btn.textContent='✓ Sent';
+  setTimeout(()=>{window.location.href='email_template_library.html?from=agenda';},450);
+}
+
+async function copyForEmail(id, btn, kind) {
   const text = document.getElementById(id).innerText;
-  // wrap with a little email boilerplate
-  const wrapped = `Hi team,\n\nHere's a summary from our meeting:\n\n${text}\n\nReach out if you have questions.\n\nMr. Denny`;
+  const intro = kind === 'agenda'
+    ? "Hi team,\n\nHere's the agenda for our upcoming meeting:"
+    : "Hi team,\n\nHere's a recap of our meeting:";
+  const outro = kind === 'agenda'
+    ? "If you have something to add to the agenda, reply and let me know."
+    : "Reach out if anything needs clarification.";
+  const wrapped = `${intro}\n\n${text}\n\n${outro}`;
   await navigator.clipboard.writeText(wrapped);
   const orig = btn.textContent;
-  btn.textContent = '✓ Copied with greeting';
+  btn.textContent = '✓ Copied for email';
   setTimeout(() => { btn.textContent = orig; }, 2200);
 }
 </script>

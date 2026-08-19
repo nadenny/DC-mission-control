@@ -420,7 +420,6 @@ aside {
 </div>
 
 <script>
-const SENDER = 'Mr. Denny';
 const SCHOOL = 'La Salle';
 
 const TEMPLATES = [
@@ -453,10 +452,7 @@ A few quick items to kick off ${f.semester || '[semester]'}:
 
 As always, my door (and inbox) is open. Reach out anytime for supplies, admin navigation, or just a conversation.
 
-Looking forward to a strong semester.
-
-${SENDER}
-Department Chair, ${f.dept || 'Math & Science'} — ${SCHOOL}`
+Looking forward to a strong semester.`
   },
 
   {
@@ -482,10 +478,7 @@ Before you submit, do a quick check that yours includes:
   ✓  Late work and absent work policy
   ✓  Academic integrity expectations
 
-If you have questions about any of the above before submitting, let me know — happy to look at a draft.
-
-Thanks,
-${SENDER}`
+If you have questions about any of the above before submitting, let me know — happy to look at a draft.`
   },
 
   {
@@ -515,9 +508,7 @@ Here's what we're covering:
 
 If you have something to add to the agenda, reply by ${f.date ? 'the day before' : '[day before date]'} and I'll work it in.
 
-${f.prep_ask ? `One thing to have handy: ${f.prep_ask}.\n\n` : ''}We'll aim to be done on time. See you then.
-
-${SENDER}`
+${f.prep_ask ? `One thing to have handy: ${f.prep_ask}.\n\n` : ''}We'll aim to be done on time. See you then.`
   },
 
   {
@@ -552,9 +543,7 @@ Action items:
 
 Next meeting: ${f.next_date || '[date]'}. I'll send an agenda beforehand.
 
-Reach out if anything needs clarification.
-
-${SENDER}`
+Reach out if anything needs clarification.`
   },
 
   {
@@ -582,9 +571,6 @@ ${(f.items || '[list items here]').split('\n').map(l => '  • ' + l).join('\n')
 Reason: ${f.justification || '[brief justification]'}.
 
 Please let me know if you need additional documentation or if anything needs to go through a different channel. Happy to talk through priorities if budget is a concern.
-
-Thank you,
-${SENDER}
 Department Chair, ${f.dept || '[Dept]'} — ${SCHOOL}`
   },
 
@@ -610,10 +596,7 @@ I will be absent on ${f.date || '[date]'} and need coverage for: ${f.periods || 
 ${f.sub_name && f.sub_name.trim() ? `Sub: ${f.sub_name}\n\n` : ''}Instructions for the sub:
 ${(f.instructions || '[Instructions here]').split('\n').map(l => '  ' + l).join('\n')}
 
-I'll leave detailed plans on my desk and have notified the relevant teachers. Please reach out if anything comes up.
-
-Thank you,
-${SENDER}`
+I'll leave detailed plans on my desk and have notified the relevant teachers. Please reach out if anything comes up.`
   },
 
   {
@@ -639,10 +622,7 @@ Highlights:
   • ${f.highlight1 || '[Highlight 1]'}
   • ${f.highlight2 || '[Highlight 2]'}
 ${f.concern ? `\nOne item to flag:\n  ${f.concern}\n` : ''}
-Happy to discuss any of this further. I'll send another update at the end of next month.
-
-${SENDER}
-Department Chair, Math & Science — ${SCHOOL}`
+Happy to discuss any of this further. I'll send another update at the end of next month.`
   },
 
   {
@@ -671,9 +651,7 @@ The questions are:
 
 Responses are anonymous. Deadline: ${f.deadline || '[date]'}. I'll share a summary (no attribution) at our next meeting.
 
-I take this seriously — thank you in advance.
-
-${SENDER}`
+I take this seriously — thank you in advance.`
   },
 
   {
@@ -702,9 +680,7 @@ Policy summary:
 
 Students must use the formal request process — informal asks to teachers don't count.
 
-If you have questions or want to discuss the policy before the semester gets going, let me know by ${f.deadline || '[date]'}. After that, I'll assume everyone is aligned.
-
-${SENDER}`
+If you have questions or want to discuss the policy before the semester gets going, let me know by ${f.deadline || '[date]'}. After that, I'll assume everyone is aligned.`
   },
 
   {
@@ -724,10 +700,7 @@ ${SENDER}`
 
 I wanted to reach out about ${f.topic || '[topic]'}. Nothing alarming — I just want to make sure we're on the same page and that you have everything you need from my end.
 
-Would you have time for a quick conversation? ${f.meeting_ask || '[time/format]'}. We can also do this over email if that's easier.
-
-Thanks,
-${SENDER}`
+Would you have time for a quick conversation? ${f.meeting_ask || '[time/format]'}. We can also do this over email if that's easier.`
   },
 
   {
@@ -754,9 +727,7 @@ Next step: ${f.next_step || '[next concrete action]'}.
 
 I want your input before we move further: ${f.input_ask || '[question for team]'}. Please send me your thoughts by ${f.deadline || '[date]'} — even a quick reply counts.
 
-We're doing this deliberately, not quickly. I'll keep you posted at every stage.
-
-${SENDER}`
+We're doing this deliberately, not quickly. I'll keep you posted at every stage.`
   },
 ];
 
@@ -900,7 +871,51 @@ function copyEmail() {
   });
 }
 
+/* ── Agenda handoff from the Meeting Tool ── */
+function checkHandoff(){
+  const params=new URLSearchParams(location.search);
+  if(params.get('from')!=='agenda')return;
+  let h=null;
+  try{h=JSON.parse(localStorage.getItem('dc_agenda_handoff'));}catch{}
+  if(!h||!h.body)return;
+
+  // Open the PLC agenda template and prefill from the handoff
+  selectTemplate('plc_agenda');
+  fieldValues={
+    date:     h.datetime || '',
+    time:     h.location ? `${h.datetime||''}${h.location?' — '+h.location:''}`.replace(/^ — /,'') : (h.datetime||''),
+    item1:    h.items[0] || '',
+    item2:    h.items[1] || '',
+    item3:    h.items[2] || '',
+    prep_ask: h.prep || ''
+  };
+  renderContent(TEMPLATES.find(t=>t.id==='plc_agenda'));
+
+  // Banner offering the full generated agenda
+  const banner=document.createElement('div');
+  banner.style.cssText="background:var(--surface2);border:1px solid var(--accent-border);border-left:2px solid var(--accent);border-radius:5px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:12px;color:var(--ink2);line-height:1.6";
+  banner.innerHTML=`<strong style="color:var(--accent)">Agenda received from the Meeting Tool.</strong><br>
+    Fields below are prefilled. <button onclick="useFullAgenda()" style="font-family:'Inconsolata',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent);padding:4px 10px;border-radius:3px;cursor:pointer;margin-top:6px">Use the full timed agenda instead</button>`;
+  document.getElementById('content').prepend(banner);
+
+  history.replaceState({},'',location.pathname);
+}
+
+function useFullAgenda(){
+  let h=null;
+  try{h=JSON.parse(localStorage.getItem('dc_agenda_handoff'));}catch{}
+  if(!h)return;
+  const full=`Hi team,\n\nHere's the agenda for our upcoming meeting:\n\n${h.body}\n\nIf you have something to add to the agenda, reply and let me know.`;
+  navigator.clipboard.writeText(full).then(()=>{
+    const b=document.getElementById('copyBtn');
+    b.textContent='✓ Full agenda copied';
+    b.classList.add('copied');
+    setTimeout(()=>{b.textContent='Copy email';b.classList.remove('copied');},2400);
+  });
+}
+
 buildNav();
+checkHandoff();
 </script>
 </body>
 </html>
