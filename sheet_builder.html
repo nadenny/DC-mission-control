@@ -195,6 +195,17 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .lvl-btn{flex:1;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 6px;border-radius:3px;border:none;background:transparent;color:var(--chalk3);cursor:pointer;transition:all .13s}
 .lvl-btn.active{background:var(--flask-dim);color:var(--flask)}
 
+.chem-row{display:flex;flex-wrap:wrap;gap:4px}
+.chem-btn{font-family:'Space Grotesk',sans-serif;font-size:12px;min-width:34px;height:28px;padding:0 7px;
+  background:var(--slate2);border:1px solid var(--edge);border-radius:4px;color:var(--chalk2);cursor:pointer;transition:all .12s}
+.chem-btn:hover{border-color:var(--flask);color:var(--flask);background:var(--flask-dim)}
+.chem-btn sub,.chem-btn sup{font-size:8px}
+.chem-chip{font-family:'Space Grotesk',sans-serif;font-size:11px;padding:4px 8px;
+  background:var(--slate);border:1px solid var(--edge);border-radius:3px;color:var(--chalk3);cursor:pointer;transition:all .12s}
+.chem-chip:hover{border-color:var(--flask);color:var(--flask)}
+.chem-hint{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.02em;line-height:1.75;margin-top:7px}
+.chem-hint code{background:var(--slate);padding:1px 4px;border-radius:2px;color:var(--chalk2)}
+
 .blk-types{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:.6rem}
 .blk-btn{display:flex;align-items:center;gap:6px;padding:7px 9px;background:var(--slate2);border:1px solid var(--edge);border-radius:4px;cursor:pointer;transition:all .13s;text-align:left}
 .blk-btn:hover{border-color:var(--edge2);background:var(--slate3)}
@@ -401,6 +412,47 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
       <div id="aiOut" style="display:none;margin-top:.7rem;font-size:11.5px;line-height:1.6;color:var(--chalk2);background:var(--slate2);border:1px solid var(--edge);border-radius:4px;padding:9px 11px;white-space:pre-wrap;max-height:240px;overflow-y:auto"></div>
       <div class="opt-hint" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.04em;line-height:1.7;margin-top:.6rem">
         Everything respects your time budget — Claude is told the remaining minutes and won't overload the packet.
+      </div>
+    </div>
+
+
+    <!-- CHEM NOTATION BAR -->
+    <div class="pane" style="padding-bottom:.7rem">
+      <div class="pane-label" style="justify-content:space-between">
+        <span>Chem &amp; math notation</span>
+        <button onclick="toggleChemBar()" style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;background:none;border:none;color:var(--flask);cursor:pointer;text-transform:uppercase">Toggle</button>
+      </div>
+      <div id="chemBar">
+        <div class="chem-row">
+          <button class="chem-btn" onclick="chemInsert('_','')" title="Subscript: H_2O">X<sub>2</sub></button>
+          <button class="chem-btn" onclick="chemInsert('^','')" title="Superscript: Ca^2+">X<sup>2</sup></button>
+          <button class="chem-btn" onclick="chemInsert('_{','}')" title="Multi-char subscript: _{aq}">X<sub>abc</sub></button>
+          <button class="chem-btn" onclick="chemInsert('^{','}')" title="Multi-char superscript: ^{2-}">X<sup>abc</sup></button>
+          <button class="chem-btn" onclick="chemLiteral(' -> ')" title="Yields">&rarr;</button>
+          <button class="chem-btn" onclick="chemLiteral(' <-> ')" title="Equilibrium">&#8652;</button>
+          <button class="chem-btn" onclick="chemLiteral('°')" title="Degree">&deg;</button>
+          <button class="chem-btn" onclick="chemLiteral('Δ')" title="Delta">&Delta;</button>
+        </div>
+        <div class="chem-row" style="margin-top:5px">
+          <button class="chem-chip" onclick="chemLiteral('H_2O')">H₂O</button>
+          <button class="chem-chip" onclick="chemLiteral('CO_2')">CO₂</button>
+          <button class="chem-chip" onclick="chemLiteral('O_2')">O₂</button>
+          <button class="chem-chip" onclick="chemLiteral('H_2SO_4')">H₂SO₄</button>
+          <button class="chem-chip" onclick="chemLiteral('NaCl')">NaCl</button>
+          <button class="chem-chip" onclick="chemLiteral('CH_4')">CH₄</button>
+          <button class="chem-chip" onclick="chemLiteral('NH_3')">NH₃</button>
+          <button class="chem-chip" onclick="chemLiteral('C_6H_12O_6')">C₆H₁₂O₆</button>
+          <button class="chem-chip" onclick="chemLiteral('SO_4^2-')">SO₄²⁻</button>
+          <button class="chem-chip" onclick="chemLiteral('NO_3^-')">NO₃⁻</button>
+          <button class="chem-chip" onclick="chemLiteral('_{(aq)}')">(aq)</button>
+          <button class="chem-chip" onclick="chemLiteral('_{(s)}')">(s)</button>
+          <button class="chem-chip" onclick="chemLiteral('_{(g)}')">(g)</button>
+          <button class="chem-chip" onclick="chemLiteral('_{(l)}')">(l)</button>
+        </div>
+        <div class="chem-hint">
+          Type <code>H_2O</code> &rarr; H₂O · <code>Ca^2+</code> &rarr; Ca²⁺ · <code>-&gt;</code> &rarr; → · <code>&lt;-&gt;</code> &rarr; ⇌<br>
+          Works in every field. Preview shows the real output.
+        </div>
       </div>
     </div>
 
@@ -699,11 +751,11 @@ function buildPaper(letter){
       <div class="ws-field period"><span class="ws-field-label">Period</span><span class="ws-field-line"></span></div>
       ${showDate?`<div class="ws-field date"><span class="ws-field-label">Date</span><span class="ws-field-line"></span></div>`:''}
     </div>
-    <div class="ws-title">${esc(title)||(mode==='test'?'Untitled test':'Untitled worksheet')}</div>
-    ${courseLine?`<div class="ws-course">${esc(courseLine)}</div>`:''}
+    <div class="ws-title">${escC(title)||(mode==='test'?'Untitled test':'Untitled worksheet')}</div>
+    ${courseLine?`<div class="ws-course">${escC(courseLine)}</div>`:''}
   </div>`;
 
-  if(instr)h+=`<div class="ws-instructions">${esc(instr).replace(/\n/g,'<br>')}</div>`;
+  if(instr)h+=`<div class="ws-instructions">${escC(instr).replace(/\n/g,'<br>')}</div>`;
 
   if(!list.length){
     h+=`<div style="text-align:center;padding:1.5in 0;color:#B0BAC6;font-family:'Space Grotesk',sans-serif;font-size:10pt">Questions appear here as you add them</div>`;
@@ -712,7 +764,7 @@ function buildPaper(letter){
   let n=0;
   list.forEach(q=>{
     if(q.type==='section'){
-      h+=`<div class="ws-section">${esc(q.text)||'Section'}</div>`;return;
+      h+=`<div class="ws-section">${escC(q.text)||'Section'}</div>`;return;
     }
     n++;
     const pts=showPts?`<span class="ws-q-pts">(${q.pts} pt${q.pts==1?'':'s'})</span>`:'';
@@ -726,7 +778,7 @@ function buildPaper(letter){
         shown.map((o,oi)=>`<div class="ws-choice">
           <span class="ws-choice-bubble"></span>
           <span class="ws-choice-letter">${String.fromCharCode(97+oi)})</span>
-          <span>${esc(o)}</span></div>`).join('')+`</div>`;
+          <span>${escC(o)}</span></div>`).join('')+`</div>`;
     }
     if(q.type==='tf'){
       body=`<div class="ws-tf">
@@ -750,13 +802,13 @@ function buildPaper(letter){
           ${lefts.map((l,i)=>`<div class="ws-match-row">
             <span class="ws-match-blank"></span>
             <span class="ws-match-num">${i+1}.</span>
-            <span class="ws-match-txt">${esc(l)}</span>
+            <span class="ws-match-txt">${escC(l)}</span>
           </div>`).join('')}
         </div>
         <div class="ws-match-col">
           ${shuffled.map((r,i)=>`<div class="ws-match-row">
             <span class="ws-match-let">${String.fromCharCode(65+i)}.</span>
-            <span class="ws-match-txt">${esc(r)}</span>
+            <span class="ws-match-txt">${escC(r)}</span>
           </div>`).join('')}
         </div>
       </div>`;
@@ -769,7 +821,7 @@ function buildPaper(letter){
       body=`<div class="ws-order">
         ${shown.map(it=>`<div class="ws-order-row">
           <span class="ws-order-blank"></span>
-          <span class="ws-match-txt">${esc(it)}</span>
+          <span class="ws-match-txt">${escC(it)}</span>
         </div>`).join('')}
       </div>`;
     }
@@ -781,7 +833,7 @@ function buildPaper(letter){
     if(q.type==='graph')
       body=`<div class="ws-grid-box" style="height:${q.height}in"></div>`;
 
-    let txt=esc(q.text)||'<span style="color:#B0BAC6">…</span>';
+    let txt=escC(q.text)||'<span style="color:#B0BAC6">…</span>';
     if(q.type==='fill')txt=txt.replace(/_{2,}/g,'<span class="ws-answer-blank"></span>');
 
     h+=`<div class="ws-q"><div class="ws-q-head">
@@ -792,7 +844,7 @@ function buildPaper(letter){
 
   if(qOnly.length){
     h+=`<div class="ws-footer">
-      <span>${esc(course||'La Salle High School')}${mode==='test'&&versionCount>1?` · Version ${letter}`:''}</span>
+      <span>${escC(course||'La Salle High School')}${mode==='test'&&versionCount>1?` · Version ${letter}`:''}</span>
       <span>${qOnly.length} question${qOnly.length===1?'':'s'}${showPts?` · ${totalPts} points`:''}</span>
     </div>`;
   }
@@ -818,6 +870,92 @@ function buildKey(letter){
 
 
 let apiKey='';
+
+
+/* ═══════════ CHEM / MATH NOTATION ═══════════
+   H_2O        -> H₂O
+   SO_4^2-     -> SO₄²⁻
+   Ca^2+       -> Ca²⁺
+   H_2SO_4     -> H₂SO₄
+   x^2         -> x²
+   ->          -> →      <->  -> ⇌      =>  -> ⇒
+   Use _{...} or ^{...} for multi-character runs.                              */
+const SUB_MAP={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉',
+  '+':'₊','-':'₋','=':'₌','(':'₍',')':'₎','a':'ₐ','e':'ₑ','o':'ₒ','x':'ₓ','h':'ₕ','k':'ₖ',
+  'l':'ₗ','m':'ₘ','n':'ₙ','p':'ₚ','s':'ₛ','t':'ₜ','i':'ᵢ','j':'ⱼ','r':'ᵣ','u':'ᵤ','v':'ᵥ'};
+const SUP_MAP={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹',
+  '+':'⁺','-':'⁻','=':'⁼','(':'⁽',')':'⁾','n':'ⁿ','i':'ⁱ','o':'°','a':'ᵃ','b':'ᵇ','c':'ᶜ',
+  'd':'ᵈ','e':'ᵉ','x':'ˣ','y':'ʸ','k':'ᵏ','m':'ᵐ','t':'ᵗ'};
+
+function mapRun(str,map){
+  return str.split('').map(c=>map[c]!==undefined?map[c]:(map[c.toLowerCase()]!==undefined?map[c.toLowerCase()]:c)).join('');
+}
+
+function chemFormat(t){
+  if(!t)return t;
+  let out=String(t);
+
+  // Arrows first, before ^/_ handling
+  out=out.replace(/<->/g,'⇌').replace(/<=>/g,'⇌')
+         .replace(/-->/g,'⟶').replace(/->/g,'→')
+         .replace(/=>/g,'⇒').replace(/<-/g,'←');
+
+  // Braced runs:  _{aq}  ^{2-}
+  out=out.replace(/_\{([^}]*)\}/g,(m,g)=>mapRun(g,SUB_MAP));
+  out=out.replace(/\^\{([^}]*)\}/g,(m,g)=>mapRun(g,SUP_MAP));
+
+  // Bare runs: _2  ^2-  ^3+   (digits then optional sign)
+  out=out.replace(/_([0-9]+[+\-]?)/g,(m,g)=>mapRun(g,SUB_MAP));
+  out=out.replace(/\^([0-9]*[+\-]?)/g,(m,g)=>g?mapRun(g,SUP_MAP):m);
+  // Single-character fallback: _x  ^n
+  out=out.replace(/_([A-Za-z()])/g,(m,g)=>mapRun(g,SUB_MAP));
+  out=out.replace(/\^([A-Za-z()])/g,(m,g)=>mapRun(g,SUP_MAP));
+
+  // Degree + common units
+  out=out.replace(/\bdeg C\b/g,'°C').replace(/\bdeg F\b/g,'°F');
+
+  return out;
+}
+
+/* esc() + chem, for anything printed on the page */
+function escC(t){ return esc(chemFormat(t)); }
+
+/* ── Insert helper: wraps the selection in the active input ── */
+let lastFocused=null;
+document.addEventListener('focusin',e=>{
+  if(e.target.matches('textarea, input[type=text]'))lastFocused=e.target;
+});
+
+function chemInsert(before,after){
+  const el=lastFocused;
+  if(!el){flash('Click into a question box first');return;}
+  el.focus();
+  const s=el.selectionStart, e=el.selectionEnd;
+  const sel=el.value.slice(s,e);
+  const ins=before+sel+(after||'');
+  el.value=el.value.slice(0,s)+ins+el.value.slice(e);
+  const pos=sel?s+ins.length:s+before.length;
+  el.setSelectionRange(pos,pos);
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+}
+
+function chemLiteral(txt){
+  const el=lastFocused;
+  if(!el){flash('Click into a question box first');return;}
+  el.focus();
+  const s=el.selectionStart,e=el.selectionEnd;
+  el.value=el.value.slice(0,s)+txt+el.value.slice(e);
+  const pos=s+txt.length;
+  el.setSelectionRange(pos,pos);
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+}
+
+function toggleChemBar(){
+  const b=document.getElementById('chemBar');
+  const open=b.style.display!=='none';
+  b.style.display=open?'none':'block';
+  localStorage.setItem('dc_chembar_open',open?'0':'1');
+}
 
 /* ═══════════ AI ASSIST — worksheet & test ═══════════ */
 function qAiShow(t){const el=document.getElementById('qAiOut');el.style.display='block';el.textContent=t;}
@@ -850,7 +988,8 @@ function qAiSys(){
   return `You help a high school teacher at La Salle build ${mode==='test'?'tests':'worksheets'} for ${course}.
 Match the difficulty, topic, and style of what is already on the sheet.
 Never invent content outside the topic shown. Be precise with scientific and mathematical language.
-Plain text only. No markdown, no asterisks, no preamble. Output exactly what is asked for.`;
+Plain text only. No markdown, no asterisks, no preamble. Output exactly what is asked for.
+For chemistry, write formulas with underscore/caret notation: H_2O, SO_4^2-, Ca^2+, and use -> for yields, <-> for equilibrium.`;
 }
 
 /* ── 1. Clean up wording of existing questions ── */
@@ -1268,11 +1407,11 @@ function buildLabPaper(lvl){
     <div class="lab-meta-row">
       <div class="lab-field grow"><span class="lab-flabel">Partner(s)</span><span class="lab-fline"></span></div>
     </div>
-    <div class="ws-title lab-title">${esc(title)||'Untitled lab'}</div>
-    ${courseLine?`<div class="ws-course">${esc(courseLine)}</div>`:''}
+    <div class="ws-title lab-title">${escC(title)||'Untitled lab'}</div>
+    ${courseLine?`<div class="ws-course">${escC(courseLine)}</div>`:''}
   </div>`;
 
-  if(instr)h+=`<div class="ws-instructions">${esc(instr).replace(/\n/g,'<br>')}</div>`;
+  if(instr)h+=`<div class="ws-instructions">${escC(instr).replace(/\n/g,'<br>')}</div>`;
 
   if(!list.length){
     h+=`<div style="text-align:center;padding:1.5in 0;color:#B0BAC6;font-family:'Space Grotesk',sans-serif;font-size:10pt">Lab sections appear here as you add them</div>`;
@@ -1290,22 +1429,22 @@ function buildLabPaper(lvl){
       const m=b.steps.reduce((s,x)=>s+(+x.min||0),0);
       if(m)secTime=`<span class="lab-sec-time">≈ ${m} min</span>`;
     }
-    h+=`<div class="lab-sec">${esc(b.title)||BLK[b.kind].sec}${honTag}${secTime}</div>`;
+    h+=`<div class="lab-sec">${escC(b.title)||BLK[b.kind].sec}${honTag}${secTime}</div>`;
 
     if(b.kind==='objective'||b.kind==='background'){
-      h+=`<div class="lab-prose">${esc(b.text).replace(/\n/g,'<br>')||'<span style="color:#B0BAC6">…</span>'}</div>`;
+      h+=`<div class="lab-prose">${escC(b.text).replace(/\n/g,'<br>')||'<span style="color:#B0BAC6">…</span>'}</div>`;
     }
 
     if(b.kind==='materials'){
       const items=itemsFor(b,'items',lvl).filter(x=>x.t.trim());
-      h+=`<ul class="lab-list">${(items.length?items:[{t:'…'}]).map(x=>`<li>${esc(x.t)}</li>`).join('')}</ul>`;
+      h+=`<ul class="lab-list">${(items.length?items:[{t:'…'}]).map(x=>`<li>${escC(x.t)}</li>`).join('')}</ul>`;
     }
 
     if(b.kind==='safety'){
       const items=itemsFor(b,'items',lvl).filter(x=>x.t.trim());
       h+=`<div class="lab-safety">
         <div class="lab-safety-hd">⚠ Safety — read before you begin</div>
-        <ul>${(items.length?items:[{t:'…'}]).map(x=>`<li>${esc(x.t)}</li>`).join('')}</ul>
+        <ul>${(items.length?items:[{t:'…'}]).map(x=>`<li>${escC(x.t)}</li>`).join('')}</ul>
       </div>`;
     }
 
@@ -1314,7 +1453,7 @@ function buildLabPaper(lvl){
         qn++;
         h+=`<div class="ws-q"><div class="ws-q-head">
           <span class="ws-q-num">${qn}.</span>
-          <span class="ws-q-text">${esc(q.t)||'<span style="color:#B0BAC6">…</span>'}</span>
+          <span class="ws-q-text">${escC(q.t)||'<span style="color:#B0BAC6">…</span>'}</span>
         </div><div class="ws-lines">${Array(q.lines).fill('<div class="ws-line"></div>').join('')}</div></div>`;
       });
     }
@@ -1324,7 +1463,7 @@ function buildLabPaper(lvl){
         h+=`<div class="lab-step">
           <span class="lab-step-chk"></span>
           <span class="lab-step-n">${i+1}.</span>
-          <span class="lab-step-t">${esc(s.t)||'<span style="color:#B0BAC6">…</span>'}</span>
+          <span class="lab-step-t">${escC(s.t)||'<span style="color:#B0BAC6">…</span>'}</span>
         </div>`;
       });
     }
@@ -1332,7 +1471,7 @@ function buildLabPaper(lvl){
     if(b.kind==='datatable'){
       const cols=b.cols.filter(c=>c.trim());
       const cs=cols.length?cols:['Trial','Value'];
-      h+=`<table class="lab-table"><thead><tr>${cs.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+      h+=`<table class="lab-table"><thead><tr>${cs.map(c=>`<th>${escC(c)}</th>`).join('')}</tr></thead><tbody>`;
       for(let r=0;r<b.rows;r++)h+=`<tr>${cs.map(()=>'<td></td>').join('')}</tr>`;
       h+=`</tbody></table>`;
     }
@@ -1344,7 +1483,7 @@ function buildLabPaper(lvl){
 
   if(list.length){
     h+=`<div class="ws-footer">
-      <span>${esc(course||'La Salle High School')}${printLevel==='both'?` · ${lvl==='honors'?'Honors':'College Prep'}`:''}</span>
+      <span>${escC(course||'La Salle High School')}${printLevel==='both'?` · ${lvl==='honors'?'Honors':'College Prep'}`:''}</span>
       <span>Est. ${Math.round(t.total)} of ${cap} min</span>
     </div>`;
   }
@@ -1399,6 +1538,7 @@ Two audiences share this lab: a College Preparatory (CP) section and an Honors s
 When a question or step suits only one, say which.
 HARD CONSTRAINT: the entire lab — setup, procedure, writing, cleanup — must finish inside ${cap} minutes.
 Never propose additions that would push it over. Fewer, better questions beat more questions.
+For chemistry, write formulas with underscore/caret notation: H_2O, SO_4^2-, Ca^2+, and use -> for yields, <-> for equilibrium.
 Write in plain text. No markdown headers, no asterisks, no preamble. Output only what is asked for.`;
 }
 
@@ -1607,7 +1747,9 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveSheet();}
 });
 
-loadApiKey();renderVerStrip();renderEditor();render();
+loadApiKey();
+if(localStorage.getItem('dc_chembar_open')==='0')document.getElementById('chemBar').style.display='none';
+renderVerStrip();renderEditor();render();
 </script>
 </body>
 </html>
