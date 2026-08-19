@@ -65,6 +65,16 @@ aside {
   border-bottom:1px solid var(--rule);
 }
 
+.back-link {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:'Inconsolata',monospace; font-size:10px;
+  letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink3); text-decoration:none;
+  padding:4px 10px; border:1px solid var(--rule);
+  border-radius:4px; margin-bottom:12px; transition:all .15s;
+}
+.back-link:hover { color:var(--accent); border-color:var(--accent-border); }
+
 .aside-wordmark {
   font-family:'Inconsolata',monospace;
   font-size:10px;
@@ -378,6 +388,7 @@ aside {
 
 <aside>
   <div class="aside-header">
+    <a href="dc_mission_control.html" class="back-link">← Mission Control</a>
     <div class="aside-wordmark">La Salle · DC Tools</div>
     <div class="aside-title">Email <em>library</em></div>
   </div>

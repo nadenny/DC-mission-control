@@ -62,6 +62,17 @@
     border: 1px solid rgba(255,255,255,0.06);
   }
 
+  .back-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: rgba(255,255,255,.45); text-decoration: none;
+    padding: 4px 10px; border: 1px solid rgba(255,255,255,.15);
+    border-radius: 4px; margin-bottom: 14px; transition: all .15s;
+    position: relative; z-index: 2;
+  }
+  .back-link:hover { color: #E8A07A; border-color: rgba(232,160,122,.4); }
+
   .header-eyebrow {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
@@ -436,11 +447,16 @@
   @media (max-width: 640px) {
     header, .controls, main, .footer-note { padding-left: 1.25rem; padding-right: 1.25rem; }
   }
+
+  @media print {
+    .back-link, .controls { display: none !important; }
+  }
 </style>
 </head>
 <body>
 
 <header>
+  <a href="dc_mission_control.html" class="back-link">← Mission Control</a>
   <div class="header-eyebrow">Department Chair · La Salle High School</div>
   <h1>Semester <em>startup</em><br>checklist</h1>
   <div class="header-meta">

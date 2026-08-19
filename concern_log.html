@@ -72,6 +72,16 @@ header {
 
 .header-text { flex: 1; }
 
+.back-link {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:500;
+  letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink3); text-decoration:none;
+  padding:3px 10px; border:1px solid var(--rule);
+  border-radius:3px; margin-bottom:10px; transition:all .15s;
+}
+.back-link:hover { color:var(--ink); border-color:var(--rule2); background:#fff; }
+
 .header-kicker {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 10px;
@@ -671,6 +681,7 @@ h1 em {
 
 /* ─── PRINT ─── */
 @media print {
+  .back-link{display:none!important}
   .toolbar, .new-btn, .modal-backdrop, header .header-stats { display: none; }
   .case-card { break-inside: avoid; }
 }
@@ -691,6 +702,7 @@ h1 em {
 <header>
   <div class="header-inner">
     <div class="header-text">
+      <a href="dc_mission_control.html" class="back-link">← Mission Control</a>
       <div class="header-kicker">La Salle · Department Chair · Confidential Records</div>
       <h1>Student &amp; parent concern <em>log</em></h1>
     </div>
