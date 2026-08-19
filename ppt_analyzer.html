@@ -174,6 +174,10 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 </head>
 <body>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
 <header class="header">
   <div>
     <div class="header-logo">DC Mission Control</div>
@@ -246,6 +250,20 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
   </div>
 
   <!-- RESULTS -->
+  <!-- SAVED ANALYSES -->
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between">
+    <span>Saved Analyses</span>
+    <span><span id="sync-badge" style="font-size:10px;color:var(--ink3);letter-spacing:.06em;margin-right:10px">○ local only</span><span id="lib-count" style="font-size:10px;color:var(--ink3);letter-spacing:.08em"></span></span>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-bottom:1.6rem">
+    <div style="display:flex;gap:8px;margin-bottom:.75rem;flex-wrap:wrap">
+      <input type="text" id="lib-search" placeholder="Search saved analyses…" oninput="renderLibrary()"
+        style="flex:1;min-width:160px;font-family:inherit;font-size:12px;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--ink);outline:none">
+      <button class="btn" onclick="exportLibrary()">Export all</button>
+    </div>
+    <div id="lib-list" style="display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+
   <div class="results" id="results">
 
     <!-- SCORE ROW -->
@@ -333,6 +351,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
         <div class="lesson-plan-box" id="r-plan"></div>
         <div style="display:flex;gap:8px">
           <button class="copy-btn" onclick="copyPlan()">Copy lesson plan</button>
+          <button class="copy-btn" onclick="sendToPlanner(this)" style="background:var(--gold-dim,rgba(245,200,66,.14));border-color:rgba(245,200,66,.35);color:var(--gold,#F5C842)">→ Open in Hattie Planner</button>
           <button class="copy-btn" onclick="copyForPlanner()">Copy to Hattie Planner format ↗</button>
         </div>
       </div>
@@ -379,6 +398,144 @@ function callClaude(apiKey, prompt){
 // ── STATE ───────────────────────────────────────────────────────
 let pptFile = null, notesFile = null;
 let analysisResult = null;
+
+/* ═══════════ SAVED ANALYSES LIBRARY ═══════════ */
+const PPT_LIB_KEY='dc_ppt_library_v1';
+let pptLib=[];
+let lastSlideCount=0;
+
+function loadLibrary(){
+  try{pptLib=JSON.parse(localStorage.getItem(PPT_LIB_KEY))||[];}catch{pptLib=[];}
+  renderLibrary();
+}
+function persistLibrary(){
+  localStorage.setItem(PPT_LIB_KEY,JSON.stringify(pptLib));
+  renderLibrary();
+  if(typeof syncPush==='function')syncPush();
+}
+
+function showSaveBar(){
+  if(document.getElementById('save-bar'))return;
+  const bar=document.createElement('div');
+  bar.id='save-bar';
+  bar.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.75rem .9rem;margin-bottom:1rem';
+  bar.innerHTML=`
+    <input type="text" id="save-title" placeholder="Name this analysis (e.g. Unit 6 Stoich — Day 2)"
+      style="flex:1;min-width:180px;font-family:inherit;font-size:12px;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--ink);outline:none">
+    <input type="text" id="save-course" placeholder="Course"
+      style="width:130px;font-family:inherit;font-size:12px;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--ink);outline:none">
+    <button class="btn btn-gold" onclick="saveAnalysis(this)">Save analysis</button>`;
+  const res=document.getElementById('results');
+  res.parentNode.insertBefore(bar,res);
+}
+
+function saveAnalysis(btn){
+  if(!analysisResult){return;}
+  const title=(document.getElementById('save-title').value.trim())
+    || (document.getElementById('ppt-name')?.textContent.trim())
+    || 'Untitled analysis';
+  const course=document.getElementById('save-course').value.trim();
+  pptLib.unshift({
+    id:'a'+Date.now(),
+    title, course,
+    date:new Date().toISOString().slice(0,10),
+    slides:lastSlideCount,
+    context:document.getElementById('extra-context')?.value.trim()||'',
+    notes:document.getElementById('pasted-notes')?.value.trim()||'',
+    result:analysisResult
+  });
+  persistLibrary();
+  document.getElementById('save-title').value='';
+  const o=btn.textContent;btn.textContent='✓ Saved';
+  setTimeout(()=>btn.textContent=o,1800);
+}
+
+function renderLibrary(){
+  const el=document.getElementById('lib-list');
+  if(!el)return;
+  const q=(document.getElementById('lib-search')?.value||'').toLowerCase();
+  const items=pptLib.filter(a=>!q||((a.title+' '+(a.course||'')+' '+(a.context||'')).toLowerCase().includes(q)));
+  document.getElementById('lib-count').textContent=
+    pptLib.length?`${items.length} of ${pptLib.length}`:'';
+
+  if(!items.length){
+    el.innerHTML=`<span style="font-size:12px;color:var(--ink3)">${pptLib.length?'No matches.':'No saved analyses yet — run one and save it.'}</span>`;
+    return;
+  }
+  el.innerHTML=items.map(a=>{
+    const i=pptLib.indexOf(a);
+    const s=a.result?.scores||{};
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;flex-wrap:wrap">
+      <div style="flex:1;min-width:150px">
+        <div style="font-size:12.5px;color:var(--ink)">${escapeHTML(a.title)}</div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:2px">
+          ${a.course?escapeHTML(a.course)+' · ':''}${a.date}${a.slides?' · '+a.slides+' slides':''}
+        </div>
+      </div>
+      <button class="btn" style="padding:4px 10px;font-size:11px" onclick="openAnalysis(${i})">Open</button>
+      <button class="btn" style="padding:4px 10px;font-size:11px" onclick="copyAnalysis(${i},this)">Copy</button>
+      <button class="btn" style="padding:4px 10px;font-size:11px;color:var(--red);border-color:rgba(248,113,113,.3)" onclick="deleteAnalysis(${i})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function openAnalysis(i){
+  const a=pptLib[i];if(!a)return;
+  analysisResult=a.result;
+  lastSlideCount=a.slides||0;
+  if(a.context&&document.getElementById('extra-context'))document.getElementById('extra-context').value=a.context;
+  if(a.notes&&document.getElementById('pasted-notes'))document.getElementById('pasted-notes').value=a.notes;
+  renderResults(a.result,a.slides||0);
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function deleteAnalysis(i){
+  const a=pptLib[i];if(!a)return;
+  if(!confirm('Delete "'+a.title+'"?'))return;
+  pptLib.splice(i,1);
+  persistLibrary();
+}
+
+function analysisToText(a){
+  const d=a.result||{};
+  const L=[];
+  L.push('='.repeat(58));
+  L.push(a.title+(a.course?'  ('+a.course+')':''));
+  L.push(a.date+(a.slides?'  ·  '+a.slides+' slides':''));
+  L.push('='.repeat(58));
+  if(d.scores)L.push('\nSCORES  surface '+(d.scores.surface??'—')+
+    ' | deep '+(d.scores.deep??'—')+' | transfer '+(d.scores.transfer??'—'));
+  if(d.overall)L.push('\nOVERALL\n'+d.overall);
+  if(d.strengths)L.push('\nSTRENGTHS\n'+(Array.isArray(d.strengths)?d.strengths.map(x=>'  • '+x).join('\n'):d.strengths));
+  if(d.gaps)L.push('\nGAPS\n'+(Array.isArray(d.gaps)?d.gaps.map(x=>'  • '+x).join('\n'):d.gaps));
+  if(d.suggestions)L.push('\nSUGGESTED ACTIVITIES\n'+(Array.isArray(d.suggestions)
+      ?d.suggestions.map(x=>'  • '+(x.title? x.title+': '+(x.description||'') : x)).join('\n'):d.suggestions));
+  if(a.context)L.push('\nCONTEXT GIVEN\n'+a.context);
+  if(a.notes)L.push('\nMY NOTES\n'+a.notes);
+  return L.join('\n');
+}
+
+function copyAnalysis(i,btn){
+  const a=pptLib[i];if(!a)return;
+  navigator.clipboard.writeText(analysisToText(a));
+  const o=btn.textContent;btn.textContent='✓';
+  setTimeout(()=>btn.textContent=o,1500);
+}
+
+function exportLibrary(){
+  if(!pptLib.length)return;
+  const txt=pptLib.map(analysisToText).join('\n\n');
+  const b=new Blob([txt],{type:'text/plain'});
+  const link=document.createElement('a');
+  link.href=URL.createObjectURL(b);
+  link.download='ppt-analyses-'+new Date().toISOString().slice(0,10)+'.txt';
+  link.click();
+}
+
+function escapeHTML(t){
+  return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 
 // ── CLOCK ───────────────────────────────────────────────────────
 function updateClock(){
@@ -567,6 +724,8 @@ function renderResults(d, totalSlides){
   document.getElementById('loading').classList.remove('active');
   document.getElementById('analyze-btn').disabled=false;
   document.getElementById('results').classList.add('active');
+  lastSlideCount = totalSlides;
+  showSaveBar();
 
   // scores
   const c = d.counts||{};
@@ -664,6 +823,41 @@ function copyPlan(){
   });
 }
 
+/* ═══ HANDOFF → HATTIE LESSON PLANNER ═══ */
+function sendToPlanner(btn){
+  if(!analysisResult){return;}
+  const d=analysisResult;
+  const sugsFor=ph=>(d.suggestions||[])
+    .filter(s=>s.phase===ph)
+    .map(s=>({title:s.title||String(s), description:s.description||''}));
+
+  const payload={
+    from:'ppt-analyzer',
+    at:Date.now(),
+    title: (document.getElementById('save-title')?.value.trim())
+           || (document.getElementById('ppt-name')?.textContent.trim())
+           || 'Lesson from PPT analysis',
+    course: document.getElementById('save-course')?.value.trim() || '',
+    context: document.getElementById('extra-context')?.value.trim() || '',
+    li: d.learningIntention || d.objective || '',
+    sc: d.successCriteria || '',
+    counts: d.counts || {},
+    scores: d.scores || {},
+    gaps: Array.isArray(d.gaps) ? d.gaps : (d.gaps ? [d.gaps] : []),
+    hinge: Array.isArray(d.hingeQuestions) ? d.hingeQuestions.join('\n')
+           : (d.hingeQuestions || d.questions || ''),
+    lessonPlan: d.lessonPlan || '',
+    suggestions:{
+      surface: sugsFor('surface'),
+      deep:    sugsFor('deep'),
+      transfer:sugsFor('transfer')
+    }
+  };
+  localStorage.setItem('dc_ppt_to_hattie', JSON.stringify(payload));
+  if(btn){btn.textContent='✓ Sent';}
+  setTimeout(()=>{window.location.href='hattie_lesson_planner.html?from=ppt';},400);
+}
+
 function copyForPlanner(){
   if(!analysisResult) return;
   const d=analysisResult;
@@ -687,7 +881,60 @@ function clearAll(){
   document.getElementById('error-msg').textContent='';
   document.getElementById('results').classList.remove('active');
   document.getElementById('loading').classList.remove('active');
+  document.getElementById('save-bar')?.remove();
 }
+
+// ═══ FIREBASE SYNC (reuses Mission Control's project + account) ═══
+const FB_CFG_KEY='dc_fb_config_v1';
+let fbApp=null,fbAuth=null,fbDb=null,fbUser=null,fbRef=null;
+let applyingRemote=false,pushTimer=null;
+
+function initFirebase(){
+  const raw=localStorage.getItem(FB_CFG_KEY);
+  if(!raw||!window.firebase||fbApp)return;
+  try{
+    fbApp=firebase.initializeApp(JSON.parse(raw));
+    fbAuth=firebase.auth();fbDb=firebase.database();
+    fbAuth.onAuthStateChanged(u=>{
+      fbUser=u;
+      if(u)startSync();else stopSync();
+      updateSyncBadge();
+    });
+  }catch(e){}
+}
+function startSync(){
+  if(!fbUser||!fbDb)return;
+  fbRef=fbDb.ref('users/'+fbUser.uid+'/pptLib');
+  fbRef.on('value',snap=>{
+    const r=snap.val();
+    if(!r){pushAll();return;}
+    applyingRemote=true;
+    try{
+      if(Array.isArray(r.items)){
+        pptLib=r.items;
+        localStorage.setItem(PPT_LIB_KEY,JSON.stringify(pptLib));
+        renderLibrary();
+      }
+    }finally{applyingRemote=false;}
+  });
+}
+function stopSync(){if(fbRef){fbRef.off();fbRef=null;}}
+function pushAll(){
+  if(!fbRef||applyingRemote)return;
+  fbRef.set({items:pptLib,_at:Date.now()}).catch(()=>{});
+}
+function syncPush(){
+  if(!fbRef||applyingRemote)return;
+  clearTimeout(pushTimer);pushTimer=setTimeout(pushAll,400);
+}
+function updateSyncBadge(){
+  const el=document.getElementById('sync-badge');
+  if(!el)return;
+  el.textContent=fbUser?'⬤ synced':'○ local only';
+  el.style.color=fbUser?'var(--green,#4ADE80)':'var(--ink3)';
+}
+
+window.addEventListener('load',()=>{ loadLibrary(); initFirebase(); });
 </script>
 </body>
 </html>

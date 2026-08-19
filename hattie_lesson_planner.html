@@ -539,6 +539,10 @@ body::after {
 <body>
 
 <!-- HEADER -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
 <header class="header">
   <div>
     <div class="header-logo">DC Mission Control</div>
@@ -679,9 +683,15 @@ body::after {
   <!-- SAVED LESSONS -->
   <div class="section-label">Saved Lessons</div>
   <div class="reference-panel" style="margin-bottom:1.5rem">
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-      <input type="text" id="save-name" placeholder="Lesson name…" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--ink);font-size:12px;outline:none;flex:1">
-      <button class="btn" onclick="saveLesson()">Save current lesson</button>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="save-name" placeholder="Lesson name…" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--ink);font-size:12px;outline:none;flex:1;min-width:150px">
+      <input type="text" id="save-course" placeholder="Course" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--ink);font-size:12px;outline:none;width:130px">
+      <button class="btn" onclick="saveLesson(this)">Save lesson</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="lesson-search" placeholder="Search saved lessons…" oninput="renderSavedList()" style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:6px 10px;color:var(--ink);font-size:12px;outline:none;flex:1;min-width:150px">
+      <button class="btn" onclick="exportLessons()">Export all</button>
+      <span id="sync-badge" style="font-size:10px;color:var(--ink3);letter-spacing:.06em">○ local only</span>
     </div>
     <div id="saved-list" style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--ink3)">
       <span>No saved lessons yet.</span>
@@ -913,11 +923,14 @@ function buildReference(){
 }
 
 // ── SAVE / LOAD ───────────────────────────────────────────────
-function saveLesson(){
+function saveLesson(btn){
   const name = document.getElementById('save-name').value.trim() ||
                document.getElementById('unit-title').value.trim() || 'Untitled lesson';
   const lesson = {
-    name, date: new Date().toLocaleDateString(),
+    id:'l'+Date.now(),
+    name,
+    course: document.getElementById('save-course').value.trim(),
+    date: new Date().toISOString().slice(0,10),
     unit: document.getElementById('unit-title').value,
     li:   document.getElementById('li').value,
     sc:   document.getElementById('sc').value,
@@ -926,13 +939,55 @@ function saveLesson(){
     activities: JSON.parse(JSON.stringify(lessonActivities))
   };
   savedLessons.unshift(lesson);
-  localStorage.setItem('hattie-lessons', JSON.stringify(savedLessons));
+  persistLessons();
   document.getElementById('save-name').value='';
+  if(btn){const o=btn.textContent;btn.textContent='✓ Saved';setTimeout(()=>btn.textContent=o,1600);}
+}
+
+function persistLessons(){
+  localStorage.setItem('hattie-lessons', JSON.stringify(savedLessons));
   renderSavedList();
+  if(typeof syncPush==='function')syncPush();
+}
+
+function lessonToText(l){
+  const L=[];
+  L.push('='.repeat(58));
+  L.push(l.name+(l.course?'  ('+l.course+')':''));
+  L.push((l.date||'')+(l.unit?'  ·  '+l.unit:''));
+  L.push('='.repeat(58));
+  if(l.li)L.push('\nLEARNING INTENTION\n'+l.li);
+  if(l.sc)L.push('\nSUCCESS CRITERIA\n'+l.sc);
+  ['surface','deep','transfer'].forEach(p=>{
+    const acts=(l.activities&&l.activities[p])||[];
+    if(acts.length)L.push('\n'+p.toUpperCase()+'\n'+acts.map(a=>'  • '+(a.name||a.title||a)).join('\n'));
+  });
+  if(l.hinge)L.push('\nHINGE QUESTIONS\n'+l.hinge);
+  if(l.feedback)L.push('\nFEEDBACK PLAN\n'+l.feedback);
+  return L.join('\n');
+}
+
+function exportLessons(){
+  if(!savedLessons.length)return;
+  const txt=savedLessons.map(lessonToText).join('\n\n');
+  const b=new Blob([txt],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  a.download='hattie-lessons-'+new Date().toISOString().slice(0,10)+'.txt';
+  a.click();
+}
+
+function copyLesson(idx,btn){
+  const l=savedLessons[idx];if(!l)return;
+  navigator.clipboard.writeText(lessonToText(l));
+  const o=btn.textContent;btn.textContent='✓';
+  setTimeout(()=>btn.textContent=o,1400);
 }
 
 function loadLesson(idx){
   const l = savedLessons[idx];
+  if(!l)return;
+  if(document.getElementById('save-course'))document.getElementById('save-course').value=l.course||'';
   document.getElementById('unit-title').value = l.unit||'';
   document.getElementById('li').value          = l.li||'';
   document.getElementById('sc').value          = l.sc||'';
@@ -943,23 +998,42 @@ function loadLesson(idx){
 }
 
 function deleteLesson(idx){
+  const l=savedLessons[idx];
+  if(l && !confirm('Delete "'+l.name+'"?'))return;
   savedLessons.splice(idx,1);
-  localStorage.setItem('hattie-lessons', JSON.stringify(savedLessons));
-  renderSavedList();
+  persistLessons();
 }
 
 function renderSavedList(){
   const el = document.getElementById('saved-list');
-  if(!savedLessons.length){
-    el.innerHTML='<span>No saved lessons yet.</span>'; return;
+  if(!el)return;
+  const q=(document.getElementById('lesson-search')?.value||'').toLowerCase();
+  const items=savedLessons.filter(l=>!q||
+    ((l.name+' '+(l.course||'')+' '+(l.unit||'')+' '+(l.li||'')).toLowerCase().includes(q)));
+
+  if(!items.length){
+    el.innerHTML='<span>'+(savedLessons.length?'No matches.':'No saved lessons yet.')+'</span>';
+    return;
   }
-  el.innerHTML = savedLessons.map((l,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;">
-      <span style="flex:1;font-size:12px;color:var(--ink)">${l.name}</span>
-      <span style="font-size:10px;color:var(--ink3)">${l.date}</span>
+  el.innerHTML = items.map(l=>{
+    const i=savedLessons.indexOf(l);
+    const counts=['surface','deep','transfer']
+      .map(p=>((l.activities&&l.activities[p])||[]).length);
+    return `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;flex-wrap:wrap">
+      <div style="flex:1;min-width:140px">
+        <div style="font-size:12.5px;color:var(--ink)">${l.name}</div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:2px">
+          ${l.course?l.course+' · ':''}${l.date||''}
+          <span style="margin-left:6px;color:var(--surface-color)">S${counts[0]}</span>
+          <span style="color:var(--deep-color)">D${counts[1]}</span>
+          <span style="color:var(--transfer-color)">T${counts[2]}</span>
+        </div>
+      </div>
       <button class="btn" style="padding:4px 10px;font-size:11px" onclick="loadLesson(${i})">Load</button>
-      <button class="btn" style="padding:4px 10px;font-size:11px;color:var(--red);border-color:rgba(248,113,113,0.3)" onclick="deleteLesson(${i})">Delete</button>
-    </div>`).join('');
+      <button class="btn" style="padding:4px 10px;font-size:11px" onclick="copyLesson(${i},this)">Copy</button>
+      <button class="btn" style="padding:4px 10px;font-size:11px;color:var(--red);border-color:rgba(248,113,113,0.3)" onclick="deleteLesson(${i})">×</button>
+    </div>`;}).join('');
 }
 
 // ── ACTIONS ───────────────────────────────────────────────────
@@ -971,6 +1045,132 @@ function clearAll(){
 }
 
 function printLesson(){ window.print(); }
+
+/* ═══ FIREBASE SYNC (reuses Mission Control's project + account) ═══ */
+const FB_CFG_KEY='dc_fb_config_v1';
+let fbApp=null,fbAuth=null,fbDb=null,fbUser=null,fbRef=null;
+let applyingRemote=false,pushTimer=null;
+
+function initFirebase(){
+  const raw=localStorage.getItem(FB_CFG_KEY);
+  if(!raw||!window.firebase||fbApp)return;
+  try{
+    fbApp=firebase.initializeApp(JSON.parse(raw));
+    fbAuth=firebase.auth();fbDb=firebase.database();
+    fbAuth.onAuthStateChanged(u=>{
+      fbUser=u;
+      if(u)startSync();else stopSync();
+      updateSyncBadge();
+    });
+  }catch(e){}
+}
+function startSync(){
+  if(!fbUser||!fbDb)return;
+  fbRef=fbDb.ref('users/'+fbUser.uid+'/hattie');
+  fbRef.on('value',snap=>{
+    const r=snap.val();
+    if(!r){pushAll();return;}
+    applyingRemote=true;
+    try{
+      if(Array.isArray(r.lessons)){
+        savedLessons=r.lessons;
+        localStorage.setItem('hattie-lessons',JSON.stringify(savedLessons));
+        renderSavedList();
+      }
+    }finally{applyingRemote=false;}
+  });
+}
+function stopSync(){if(fbRef){fbRef.off();fbRef=null;}}
+function pushAll(){
+  if(!fbRef||applyingRemote)return;
+  fbRef.set({lessons:savedLessons,_at:Date.now()}).catch(()=>{});
+}
+function syncPush(){
+  if(!fbRef||applyingRemote)return;
+  clearTimeout(pushTimer);pushTimer=setTimeout(pushAll,400);
+}
+function updateSyncBadge(){
+  const el=document.getElementById('sync-badge');
+  if(!el)return;
+  el.textContent=fbUser?'⬤ synced':'○ local only';
+  el.style.color=fbUser?'#4ADE80':'var(--ink3)';
+}
+
+/* ═══ HANDOFF RECEIVER ← PPT ANALYZER ═══ */
+function checkPptHandoff(){
+  if(new URLSearchParams(location.search).get('from')!=='ppt')return;
+  let h=null;
+  try{h=JSON.parse(localStorage.getItem('dc_ppt_to_hattie'));}catch{}
+  if(!h)return;
+
+  // Prefill lesson details
+  if(h.title  && document.getElementById('save-name'))   document.getElementById('save-name').value=h.title;
+  if(h.course && document.getElementById('save-course')) document.getElementById('save-course').value=h.course;
+  if(h.li)    document.getElementById('li').value=h.li;
+  if(h.sc)    document.getElementById('sc').value=h.sc;
+  if(h.hinge) document.getElementById('hinge').value=h.hinge;
+  if(h.context && !document.getElementById('unit-title').value)
+    document.getElementById('unit-title').value=h.context.split(/[.,\n]/)[0].slice(0,60);
+
+  // Match suggested activities to the built-in library; keep the rest as custom
+  let matched=0, custom=0;
+  ['surface','deep','transfer'].forEach(phase=>{
+    (h.suggestions?.[phase]||[]).forEach(sug=>{
+      const title=(sug.title||'').toLowerCase().trim();
+      if(!title)return;
+      const hit=ACTIVITIES.find(a=>{
+        const n=a.name.toLowerCase();
+        return n===title || n.includes(title) || title.includes(n);
+      });
+      if(hit && !lessonActivities[phase].some(x=>x.id===hit.id)){
+        lessonActivities[phase].push({...hit});
+        matched++;
+      }else if(!hit){
+        lessonActivities[phase].push({
+          id:'c'+Date.now()+Math.random().toString(36).slice(2,5),
+          name:sug.title, phase, tag:'From PPT analysis', effect:0.50, custom:true
+        });
+        custom++;
+      }
+    });
+  });
+  ['surface','deep','transfer'].forEach(p=>renderPhase(p));
+
+  // Banner
+  const banner=document.createElement('div');
+  banner.style.cssText='background:var(--bg2);border:1px solid rgba(245,200,66,.3);border-left:3px solid #F5C842;border-radius:6px;padding:.85rem 1rem;margin-bottom:1.25rem;font-size:12.5px;color:var(--ink2);line-height:1.65';
+  const c=h.counts||{}, sc=h.scores||{};
+  banner.innerHTML=
+    `<div style="color:#F5C842;font-weight:500;margin-bottom:4px">Imported from PPT Analyzer</div>`+
+    `<div>${matched} activit${matched===1?'y':'ies'} matched to the library`+
+    (custom?`, ${custom} added as custom`:'')+`.`+
+    (Object.keys(c).length?` Original deck: ${c.surface||0} surface · ${c.deep||0} deep · ${c.transfer||0} transfer slides.`:'')+
+    `</div>`+
+    (h.gaps&&h.gaps.length?`<div style="margin-top:6px;font-size:11.5px;color:var(--ink3)"><strong style="color:var(--ink2)">Gaps flagged:</strong> ${h.gaps.slice(0,3).map(g=>String(g)).join(' · ')}</div>`:'')+
+    (h.lessonPlan?`<button class="btn" style="margin-top:8px;padding:4px 10px;font-size:11px" onclick="showImportedPlan()">View the analyzer's lesson plan draft</button>`:'')+
+    `<button class="btn" style="margin-top:8px;margin-left:6px;padding:4px 10px;font-size:11px" onclick="this.parentElement.remove()">Dismiss</button>`;
+  document.querySelector('main.main').prepend(banner);
+
+  history.replaceState({},'',location.pathname);
+}
+
+function showImportedPlan(){
+  let h=null;
+  try{h=JSON.parse(localStorage.getItem('dc_ppt_to_hattie'));}catch{}
+  if(!h?.lessonPlan)return;
+  const m=document.createElement('div');
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:flex;align-items:center;justify-content:center;padding:1.5rem';
+  m.onclick=e=>{if(e.target===m)m.remove();};
+  m.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:1.4rem;max-width:640px;max-height:80vh;overflow-y:auto">
+    <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:.75rem">Lesson plan draft from the analyzer</div>
+    <div style="font-size:13px;line-height:1.7;color:var(--ink2);white-space:pre-wrap">${String(h.lessonPlan).replace(/</g,'&lt;')}</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem">
+      <button class="btn" onclick="this.closest('div[style*=fixed]').remove()">Close</button>
+    </div></div>`;
+  document.body.appendChild(m);
+}
+
+window.addEventListener('load',()=>{ initFirebase(); checkPptHandoff(); });
 
 function copyForClaude(){
   const unit = document.getElementById('unit-title').value||'(untitled)';
