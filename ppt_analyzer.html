@@ -308,12 +308,42 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <button class="tab active" onclick="switchTab('slides',this)">Slide Map</button>
       <button class="tab" onclick="switchTab('analysis',this)">Analysis</button>
       <button class="tab" onclick="switchTab('activities',this)">Suggested Activities</button>
+      <button class="tab" onclick="switchTab('pacing',this)">Pacing</button>
       <button class="tab" onclick="switchTab('plan',this)">Lesson Plan Draft</button>
     </div>
 
     <!-- TAB: SLIDE MAP -->
     <div class="tab-panel active" id="tab-slides">
       <div class="slide-map" id="slide-map"></div>
+    </div>
+
+    <!-- TAB: PACING -->
+    <div class="tab-panel" id="tab-pacing">
+      <div id="pacing-empty">
+        <div style="font-size:12.5px;color:var(--ink3);line-height:1.7;margin-bottom:1rem">
+          A 30-slide deck is a unit, not a period. Have Claude split it into days —
+          it reads the actual slide content, groups slides that belong together,
+          and paces them against your period length.
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
+          <label style="font-size:11px;color:var(--ink3)">Period length</label>
+          <select id="pace-mins" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--ink);font-size:12px;outline:none">
+            <option value="45">45 min</option>
+            <option value="50">50 min</option>
+            <option value="55" selected>55 min</option>
+            <option value="60">60 min</option>
+            <option value="70">70 min</option>
+            <option value="90">90 min (block)</option>
+          </select>
+          <label style="font-size:11px;color:var(--ink3);margin-left:6px">Level</label>
+          <select id="pace-level" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;color:var(--ink);font-size:12px;outline:none">
+            <option value="College Prep">College Prep</option>
+            <option value="Honors">Honors</option>
+          </select>
+          <button class="btn btn-gold" onclick="aiPacing(this)">Break into days</button>
+        </div>
+      </div>
+      <div id="pacing-out"></div>
     </div>
 
     <!-- TAB: ANALYSIS -->
@@ -823,6 +853,208 @@ function copyPlan(){
   });
 }
 
+
+/* ═══════════════ PACING — split a deck into days ═══════════════ */
+let pacingPlan=null;
+
+async function aiPacing(btn){
+  if(!analysisResult){pacingOut('Run an analysis first.');return;}
+  const key=localStorage.getItem('dc_ppt_apikey')||localStorage.getItem('dc_hattie_apikey')||getApiKey();
+  if(!key){pacingOut('No API key found. Enter it at the top of the page.');return;}
+
+  const d=analysisResult;
+  const map=(d.slideMap||[]);
+  if(!map.length){pacingOut('No slide map available — re-run the analysis.');return;}
+
+  const mins=document.getElementById('pace-mins').value;
+  const level=document.getElementById('pace-level').value;
+  const o=btn.textContent; btn.disabled=true; btn.textContent='Pacing…';
+  pacingOut('Reading '+map.length+' slides and working out the arc…');
+
+  const slideList=map.map(sl=>`${sl.num}. [${sl.phase||'?'}] ${sl.title||''} — ${sl.note||''}`).join('\n');
+
+  const system=`You are a Visible Learning instructional coach working with a high school chemistry teacher.
+You pace content honestly: a slide that introduces a new concept needs practice time, not just airtime.
+You know that covering 30 slides in one period is not teaching, it is talking.
+Return ONLY valid JSON. No markdown fences, no commentary.`;
+
+  const user=`Split this ${map.length}-slide deck into a realistic day-by-day sequence.
+Period length: ${mins} minutes. Class level: ${level}.
+
+Slides:
+${slideList}
+
+Rules:
+- Group slides that genuinely belong together conceptually. Do not split a worked example across days.
+- Each day needs time for practice and checking understanding, not just slide delivery. Assume roughly
+  half a period of actual slide time at most.
+- Later days should open with brief retrieval of prior days.
+- Be honest about how many days this really needs.
+
+Return JSON exactly:
+{
+ "totalDays": 5,
+ "verdict": "one blunt sentence about whether this deck is realistically paced as-is",
+ "days":[
+   {"n":1,
+    "slides":[1,2,3,4],
+    "focus":"short label",
+    "phase":"surface",
+    "why":"one sentence on why these slides group together",
+    "slideMinutes":22,
+    "practiceMinutes":18,
+    "checkMinutes":10,
+    "warning":"optional — only if this day is at risk of running long or is conceptually heavy"}
+ ]
+}`;
+
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,
+        'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5-20250929',max_tokens:3000,system,
+        messages:[{role:'user',content:user}]})
+    });
+    const j=await r.json();
+    if(!r.ok){pacingOut('API error: '+(j?.error?.message||r.status));return;}
+    const txt=j.content.map(b=>b.text||'').join('');
+    let plan=null;
+    try{plan=JSON.parse(txt.replace(/```json|```/g,'').trim());}
+    catch(e){pacingOut('Could not parse the response:\n\n'+txt.slice(0,500));return;}
+    if(!plan.days||!plan.days.length){pacingOut('No days returned.');return;}
+    pacingPlan=plan;
+    renderPacing();
+  }catch(e){pacingOut('Network error: '+e.message);}
+  finally{btn.disabled=false;btn.textContent=o;}
+}
+
+function getApiKey(){
+  const el=document.getElementById('api-key')||document.getElementById('apiKey');
+  return el?el.value.trim():'';
+}
+
+function pacingOut(t){
+  document.getElementById('pacing-out').innerHTML=
+    `<div style="font-size:12px;color:var(--ink3);line-height:1.7;white-space:pre-wrap">${escHtml(t)}</div>`;
+}
+
+function renderPacing(){
+  if(!pacingPlan)return;
+  const map=(analysisResult?.slideMap)||[];
+  const title=t=>{const sl=map.find(x=>String(x.num)===String(t));return sl?(sl.title||''):'';};
+
+  const html=`
+  <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold,#F5C842);border-radius:6px;padding:.85rem 1rem;margin-bottom:1.1rem">
+    <div style="font-size:13px;color:var(--gold,#F5C842);margin-bottom:4px">
+      ${pacingPlan.totalDays} days recommended for ${map.length} slides
+    </div>
+    <div style="font-size:12px;color:var(--ink2);line-height:1.6">${escHtml(pacingPlan.verdict||'')}</div>
+  </div>
+
+  ${pacingPlan.days.map(day=>{
+    const total=(day.slideMinutes||0)+(day.practiceMinutes||0)+(day.checkMinutes||0);
+    const cap=+document.getElementById('pace-mins').value||55;
+    const over=total>cap;
+    const badge=day.phase==='surface'?'badge-surface':day.phase==='deep'?'badge-deep':'badge-transfer';
+    return `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:6px">
+        <span style="font-size:13px;color:var(--ink)">Day ${day.n}</span>
+        <span class="slide-phase-badge ${badge}">${(day.phase||'').toUpperCase()}</span>
+        <span style="font-size:12px;color:var(--ink2)">${escHtml(day.focus||'')}</span>
+        <span style="flex:1"></span>
+        <span style="font-size:11px;color:${over?'#F87171':'var(--ink3)'}">${total} / ${cap} min</span>
+      </div>
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:6px">
+        Slides ${(day.slides||[]).join(', ')}
+      </div>
+      <div style="display:flex;height:5px;border-radius:3px;overflow:hidden;margin-bottom:7px;background:var(--bg3)">
+        <div style="width:${(day.slideMinutes/cap)*100}%;background:var(--surface-color,#60A5FA)"></div>
+        <div style="width:${(day.practiceMinutes/cap)*100}%;background:var(--deep-color,#A78BFA)"></div>
+        <div style="width:${(day.checkMinutes/cap)*100}%;background:var(--transfer-color,#4ADE80)"></div>
+      </div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-bottom:6px">
+        ${day.slideMinutes||0}m slides · ${day.practiceMinutes||0}m practice · ${day.checkMinutes||0}m checking
+      </div>
+      <div style="font-size:11.5px;color:var(--ink2);line-height:1.6">${escHtml(day.why||'')}</div>
+      ${day.warning?`<div style="font-size:11.5px;color:#F0B429;line-height:1.6;margin-top:6px">⚠ ${escHtml(day.warning)}</div>`:''}
+      ${(day.slides||[]).length?`<div style="font-size:10.5px;color:var(--ink3);margin-top:7px;line-height:1.65">
+        ${(day.slides||[]).map(n=>`<div>${n}. ${escHtml(title(n))}</div>`).join('')}
+      </div>`:''}
+    </div>`;}).join('')}
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:1rem">
+    <button class="copy-btn" onclick="sendPacingToPlanner(this)"
+      style="background:rgba(245,200,66,.14);border-color:rgba(245,200,66,.35);color:#F5C842">
+      → Build this unit in Hattie Planner</button>
+    <button class="copy-btn" onclick="copyPacing(this)">Copy pacing</button>
+  </div>`;
+
+  document.getElementById('pacing-empty').style.display='none';
+  document.getElementById('pacing-out').innerHTML=html;
+}
+
+function pacingToText(){
+  if(!pacingPlan)return '';
+  const map=(analysisResult?.slideMap)||[];
+  const L=[`PACING — ${pacingPlan.totalDays} days for ${map.length} slides`,'='.repeat(52)];
+  if(pacingPlan.verdict)L.push(pacingPlan.verdict,'');
+  pacingPlan.days.forEach(d=>{
+    L.push(`DAY ${d.n} — ${d.focus||''}  [${(d.phase||'').toUpperCase()}]`);
+    L.push(`  Slides: ${(d.slides||[]).join(', ')}`);
+    L.push(`  ${d.slideMinutes||0}m slides / ${d.practiceMinutes||0}m practice / ${d.checkMinutes||0}m checking`);
+    if(d.why)L.push('  '+d.why);
+    if(d.warning)L.push('  WARNING: '+d.warning);
+    L.push('');
+  });
+  return L.join('\n');
+}
+
+function copyPacing(btn){
+  navigator.clipboard.writeText(pacingToText());
+  const o=btn.textContent;btn.textContent='✓ Copied';
+  setTimeout(()=>btn.textContent=o,1600);
+}
+
+/* Hand the pacing (plus the analysis) to the Hattie planner */
+function sendPacingToPlanner(btn){
+  if(!pacingPlan)return;
+  const d=analysisResult||{};
+  const sugsFor=ph=>(d.suggestions||[]).filter(x=>x.phase===ph)
+    .map(x=>({title:x.title||String(x),description:x.description||''}));
+  const payload={
+    from:'ppt-analyzer',
+    at:Date.now(),
+    title:(document.getElementById('save-title')?.value.trim())
+          ||(document.getElementById('ppt-name')?.textContent.trim())||'Unit from PPT analysis',
+    course:document.getElementById('save-course')?.value.trim()||'',
+    context:document.getElementById('extra-context')?.value.trim()||'',
+    li:d.learningIntention||d.objective||'',
+    sc:d.successCriteria||'',
+    counts:d.counts||{},
+    scores:d.scores||{},
+    gaps:Array.isArray(d.gaps)?d.gaps:(d.gaps?[d.gaps]:[]),
+    hinge:Array.isArray(d.hingeQuestions)?d.hingeQuestions.join('\n'):(d.hingeQuestions||''),
+    lessonPlan:d.lessonPlan||'',
+    suggestions:{surface:sugsFor('surface'),deep:sugsFor('deep'),transfer:sugsFor('transfer')},
+    pacing:{
+      totalDays:pacingPlan.totalDays,
+      verdict:pacingPlan.verdict||'',
+      periodMinutes:+document.getElementById('pace-mins').value||55,
+      level:document.getElementById('pace-level').value||'College Prep',
+      days:pacingPlan.days.map(x=>({
+        n:x.n, focus:x.focus, phase:x.phase, slides:x.slides,
+        why:x.why, warning:x.warning||''
+      })),
+      slideTitles:((analysisResult?.slideMap)||[]).map(s=>({num:s.num,title:s.title,phase:s.phase}))
+    }
+  };
+  localStorage.setItem('dc_ppt_to_hattie',JSON.stringify(payload));
+  btn.textContent='✓ Sent';
+  setTimeout(()=>{window.location.href='hattie_lesson_planner.html?from=ppt';},400);
+}
+
 /* ═══ HANDOFF → HATTIE LESSON PLANNER ═══ */
 function sendToPlanner(btn){
   if(!analysisResult){return;}
@@ -851,7 +1083,15 @@ function sendToPlanner(btn){
       surface: sugsFor('surface'),
       deep:    sugsFor('deep'),
       transfer:sugsFor('transfer')
-    }
+    },
+    pacing: pacingPlan ? {
+      totalDays: pacingPlan.totalDays,
+      verdict: pacingPlan.verdict||'',
+      periodMinutes: +document.getElementById('pace-mins')?.value||55,
+      level: document.getElementById('pace-level')?.value||'College Prep',
+      days: pacingPlan.days.map(x=>({n:x.n,focus:x.focus,phase:x.phase,slides:x.slides,why:x.why,warning:x.warning||''})),
+      slideTitles: ((analysisResult?.slideMap)||[]).map(sl=>({num:sl.num,title:sl.title,phase:sl.phase}))
+    } : null
   };
   localStorage.setItem('dc_ppt_to_hattie', JSON.stringify(payload));
   if(btn){btn.textContent='✓ Sent';}

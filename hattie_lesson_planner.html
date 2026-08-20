@@ -1243,12 +1243,31 @@ async function aiBuildUnit(btn){
   // Pull in the PPT analysis if one was handed over
   let ppt=null;
   try{ppt=JSON.parse(localStorage.getItem('dc_ppt_to_hattie'));}catch{}
-  const pptBlock=ppt?`
+  let pptBlock='';
+  if(ppt){
+    pptBlock=`
 An existing PowerPoint for this unit was analyzed. Use it as the starting point and fix its weaknesses.
 Slide balance: ${ppt.counts?.surface||0} surface, ${ppt.counts?.deep||0} deep, ${ppt.counts?.transfer||0} transfer.
 Gaps identified: ${(ppt.gaps||[]).join(' | ')||'none listed'}
-Existing lesson plan draft: ${(ppt.lessonPlan||'').slice(0,1200)}
-`:'';
+`;
+    if(ppt.pacing&&ppt.pacing.days&&ppt.pacing.days.length){
+      pptBlock+=`
+A PACING PLAN was already worked out for this deck. FOLLOW IT — match your day numbering to it exactly.
+Verdict on the deck: ${ppt.pacing.verdict||''}
+Period length: ${ppt.pacing.periodMinutes||55} minutes.
+`+ppt.pacing.days.map(d=>
+`Day ${d.n} [${(d.phase||'').toUpperCase()}] — ${d.focus||''}
+   Slides: ${(d.slides||[]).join(', ')}
+   Rationale: ${d.why||''}${d.warning?'\n   Watch: '+d.warning:''}`).join('\n');
+      if(ppt.pacing.slideTitles&&ppt.pacing.slideTitles.length){
+        pptBlock+=`\n\nSlide titles for reference:\n`+
+          ppt.pacing.slideTitles.map(sl=>`${sl.num}. ${sl.title||''}`).join('\n');
+      }
+      pptBlock+=`\n\nBuild ${ppt.pacing.days.length} days matching this pacing. Give each day the activities,
+hinge question, and feedback plan it needs to actually land the slides assigned to it.\n`;
+    }
+    if(ppt.lessonPlan)pptBlock+=`\nExisting lesson plan draft: ${(ppt.lessonPlan||'').slice(0,900)}\n`;
+  }
 
   const res=await callClaude(hattieSystem(),
 `Design a ${days}-day unit on "${topic}" for a ${level} high school chemistry class. Periods are about 55 minutes.
@@ -1506,6 +1525,19 @@ function checkPptHandoff(){
   if(h.li)    document.getElementById('li').value=h.li;
   if(h.sc)    document.getElementById('sc').value=h.sc;
   if(h.hinge) document.getElementById('hinge').value=h.hinge;
+  if(h.pacing){
+    const ds=document.getElementById('unit-days');
+    if(ds){
+      const want=String(h.pacing.totalDays||h.pacing.days?.length||5);
+      if(![...ds.options].some(o=>o.value===want)){
+        const opt=document.createElement('option');opt.value=want;opt.textContent=want+' days';
+        ds.appendChild(opt);
+      }
+      ds.value=want;
+    }
+    const lv=document.getElementById('unit-level');
+    if(lv&&h.pacing.level&&[...lv.options].some(o=>o.value===h.pacing.level))lv.value=h.pacing.level;
+  }
   if(h.title && document.getElementById('unit-topic') && !document.getElementById('unit-topic').value)
     document.getElementById('unit-topic').value=h.title.replace(/\.pptx?$/i,'');
   if(h.context && !document.getElementById('unit-title').value)
@@ -1545,6 +1577,7 @@ function checkPptHandoff(){
     `<div>${matched} activit${matched===1?'y':'ies'} matched to the library`+
     (custom?`, ${custom} added as custom`:'')+`.`+
     (Object.keys(c).length?` Original deck: ${c.surface||0} surface · ${c.deep||0} deep · ${c.transfer||0} transfer slides.`:'')+
+    (h.pacing?`<div style="margin-top:6px;font-size:11.5px;color:#F5C842">Pacing plan received — ${h.pacing.totalDays} days. Building the unit will follow it.</div>`:'')+
     `</div>`+
     (h.gaps&&h.gaps.length?`<div style="margin-top:6px;font-size:11.5px;color:var(--ink3)"><strong style="color:var(--ink2)">Gaps flagged:</strong> ${h.gaps.slice(0,3).map(g=>String(g)).join(' · ')}</div>`:'')+
     (h.lessonPlan?`<button class="btn" style="margin-top:8px;padding:4px 10px;font-size:11px" onclick="showImportedPlan()">View the analyzer's lesson plan draft</button>`:'')+
