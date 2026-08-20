@@ -625,6 +625,12 @@ body::after {
   </div>
 
   <!-- EFFECT SUMMARY -->
+  <div style="font-size:11px;color:var(--ink3);line-height:1.6;margin-bottom:8px">
+    Average <strong style="color:var(--ink2)">effect size (d)</strong> of the activities you've placed in each phase.
+    Hattie's benchmark is <strong style="color:var(--ink2)">d = 0.40</strong> — the point where a strategy outperforms
+    a typical year of growth. The bar fills toward d = 1.0. An empty phase isn't automatically wrong, but a lesson
+    that never leaves Surface is worth a second look.
+  </div>
   <div class="effect-row">
     <div class="effect-card" id="ec-surface">
       <div class="effect-card-header">
@@ -909,17 +915,35 @@ function renderPhase(phase){
 }
 
 function updateEffectCard(phase){
-  const ids = lessonActivities[phase];
+  const ids  = lessonActivities[phase];
   const fill = document.getElementById('eff-'+phase[0]+'-fill');
   const val  = document.getElementById('eff-'+phase[0]+'-val');
   const cnt  = document.getElementById('eff-'+phase[0]+'-count');
+
   if(!ids.length){
-    fill.style.width='0%'; val.textContent='—'; cnt.textContent='0 activities'; return;
+    fill.style.width='0%';
+    val.textContent='—';
+    cnt.textContent='nothing here yet';
+    cnt.title='Drag an activity into this column, or let the AI fill it.';
+    return;
   }
-  const avg = ids.reduce((s,id)=>{ const a=ACTIVITIES.find(x=>x.id===id); return s+(a?a.effect:0); },0)/ids.length;
+
+  const acts = ids.map(id=>ACTIVITIES.find(x=>x.id===id)).filter(Boolean);
+  const avg  = acts.reduce((s,a)=>s+(a.effect||0),0)/(acts.length||1);
+
+  // Bar is scaled against d=1.0; the 0.40 "hinge point" sits at 40%
   fill.style.width = Math.min(avg,1)*100+'%';
-  val.textContent = 'd='+avg.toFixed(2);
-  cnt.textContent = ids.length+' activit'+(ids.length===1?'y':'ies');
+  val.textContent  = 'd = '+avg.toFixed(2);
+
+  const n = acts.length;
+  let verdict;
+  if(avg >= 0.70)      verdict = 'strong — well above the 0.40 hinge point';
+  else if(avg >= 0.40) verdict = 'above the 0.40 hinge point';
+  else                 verdict = 'below 0.40 — unlikely to move learning much';
+
+  cnt.textContent = n+' activit'+(n===1?'y':'ies')+' · '+verdict;
+  cnt.title = 'Average effect size of the activities in this phase. '+
+              'Hattie considers d = 0.40 the point where an intervention beats a year of typical growth.';
 }
 
 function removeAct(phase, id){
@@ -1302,8 +1326,8 @@ Use 2-4 activities total. Do not fill all three phases unless the lesson genuine
   lessonActivities={surface:[],deep:[],transfer:[]};
   ['surface','deep','transfer'].forEach(ph=>{
     (d[ph]||[]).forEach(id=>{
-      const a=ACTIVITIES.find(x=>x.id===id);
-      if(a)lessonActivities[ph].push({...a});
+      if(ACTIVITIES.some(x=>x.id===id) && !lessonActivities[ph].includes(id))
+        lessonActivities[ph].push(id);
     });
   });
   if(d.hinge)document.getElementById('hinge').value=d.hinge;
@@ -1381,7 +1405,7 @@ function renderUnit(){
     ${d.hinge?`<div style="font-size:12px;color:var(--ink2);margin-bottom:6px"><strong style="color:var(--ink)">Hinge:</strong> ${esc2(d.hinge)}</div>`:''}
     ${d.feedback?`<div style="font-size:12px;color:var(--ink2);margin-bottom:6px"><strong style="color:var(--ink)">Feedback:</strong> ${esc2(d.feedback)}</div>`:''}
     ${d.notes?`<div style="font-size:11.5px;color:var(--ink3);line-height:1.6;margin-bottom:10px">${esc2(d.notes)}</div>`:''}
-    <button class="btn btn-gold" style="padding:5px 12px;font-size:11px" onclick="loadDayIntoPlanner(${activeDay})">Load Day ${d.n||activeDay+1} into the planner ↓</button>
+    <button class="btn btn-gold" style="padding:5px 12px;font-size:11px" onclick="loadDayIntoPlanner(${activeDay})">↓ Edit Day ${d.n||activeDay+1} in the board below</button>
     ${activeDay===unitPlan.days.length-1&&unitPlan.assessment?`
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px">Unit assessment</div>
@@ -1407,12 +1431,13 @@ function loadDayIntoPlanner(i){
   lessonActivities={surface:[],deep:[],transfer:[]};
   ['surface','deep','transfer'].forEach(ph=>{
     (d[ph]||[]).forEach(id=>{
-      const a=ACTIVITIES.find(x=>x.id===id);
-      if(a)lessonActivities[ph].push({...a});
+      if(ACTIVITIES.some(x=>x.id===id) && !lessonActivities[ph].includes(id))
+        lessonActivities[ph].push(id);
     });
   });
   ['surface','deep','transfer'].forEach(p=>renderPhase(p));
-  document.querySelector('.section-label').scrollIntoView({behavior:'smooth'});
+  document.getElementById('li').scrollIntoView({behavior:'smooth',block:'center'});
+  flashPlanner('Day '+(d.n||i+1)+' loaded below');
 }
 
 function unitToText(){
@@ -1458,6 +1483,14 @@ function printUnit(){
   w.document.close();w.print();
 }
 
+function flashPlanner(msg){
+  const el=document.createElement('div');
+  el.textContent=msg;
+  el.style.cssText='position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#F5C842;color:#111;font-size:12px;font-weight:500;padding:9px 18px;border-radius:5px;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,.35)';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1900);
+}
+
 function esc2(t){return String(t||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 /* ═══ HANDOFF RECEIVER ← PPT ANALYZER ═══ */
@@ -1488,14 +1521,15 @@ function checkPptHandoff(){
         const n=a.name.toLowerCase();
         return n===title || n.includes(title) || title.includes(n);
       });
-      if(hit && !lessonActivities[phase].some(x=>x.id===hit.id)){
-        lessonActivities[phase].push({...hit});
-        matched++;
-      }else if(!hit){
-        lessonActivities[phase].push({
-          id:'c'+Date.now()+Math.random().toString(36).slice(2,5),
-          name:sug.title, phase, tag:'From PPT analysis', effect:0.50, custom:true
-        });
+      if(hit){
+        if(!lessonActivities[phase].includes(hit.id)){
+          lessonActivities[phase].push(hit.id);
+          matched++;
+        }
+      }else{
+        const cid='c'+Date.now()+Math.random().toString(36).slice(2,5);
+        ACTIVITIES.push({id:cid,name:sug.title,phase,tag:'From PPT analysis',effect:0.50,custom:true});
+        lessonActivities[phase].push(cid);
         custom++;
       }
     });

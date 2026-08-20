@@ -1,7 +1,7 @@
 /* DC Mission Control — service worker
    HTML is ALWAYS fetched fresh from the network. Only static assets are cached.
    This makes a stale or blank page impossible, while still working offline. */
-const CACHE_VERSION = 'dc-mc-v14';
+const CACHE_VERSION = 'dc-mc-v15';
 
 // Only truly static things get pre-cached. No HTML here, on purpose.
 const ASSETS = [
