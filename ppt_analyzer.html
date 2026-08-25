@@ -1151,7 +1151,11 @@ function startSync(){
     applyingRemote=true;
     try{
       if(Array.isArray(r.items)){
-        pptLib=r.items;
+        // MERGE, never clobber
+        const seen=new Map();
+        r.items.forEach(a=>seen.set(a.id||(a.title+'|'+a.date),a));
+        pptLib.forEach(a=>{const k=a.id||(a.title+'|'+a.date);if(!seen.has(k))seen.set(k,a);});
+        pptLib=[...seen.values()].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
         localStorage.setItem(PPT_LIB_KEY,JSON.stringify(pptLib));
         renderLibrary();
       }

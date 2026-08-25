@@ -1098,10 +1098,19 @@ function loadLesson(idx){
     });
   });
 
-  ['surface','deep','transfer'].forEach(p=>renderPhase(p));
-  const li=document.getElementById('li');
-  if(li)li.scrollIntoView({behavior:'smooth',block:'center'});
-  if(typeof flashPlanner==='function')flashPlanner('Loaded: '+(l.name||'lesson'));
+  // Render each phase independently so one bad phase can't kill the rest
+  ['surface','deep','transfer'].forEach(p=>{
+    try{ renderPhase(p); }catch(e){ console.warn('renderPhase failed for',p,e); }
+  });
+
+  // Cosmetic extras must never break the load
+  try{
+    const li=document.getElementById('li');
+    if(li&&li.scrollIntoView)li.scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(e){}
+  try{
+    if(typeof flashPlanner==='function')flashPlanner('Loaded: '+(l.name||'lesson'));
+  }catch(e){}
 }
 
 function deleteLesson(idx){
@@ -1171,6 +1180,25 @@ function initFirebase(){
     });
   }catch(e){}
 }
+/* Merge two lesson lists by identity, keeping the newer copy of duplicates. */
+function lessonKey(l){
+  return l.id || ((l.name||'')+'|'+(l.date||'')+'|'+(l.unit||''));
+}
+function mergeLessons(localArr, remoteArr){
+  const out=new Map();
+  (Array.isArray(remoteArr)?remoteArr:[]).forEach(l=>out.set(lessonKey(l),l));
+  (Array.isArray(localArr)?localArr:[]).forEach(l=>{
+    const k=lessonKey(l);
+    const existing=out.get(k);
+    if(!existing){ out.set(k,l); return; }
+    // Prefer whichever has more content, then whichever is newer
+    const score=x=>((x.li||'').length+(x.sc||'').length+
+      ['surface','deep','transfer'].reduce((s,p)=>s+(((x.activities||{})[p]||[]).length),0)*20);
+    if(score(l)>score(existing))out.set(k,l);
+  });
+  return [...out.values()].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+}
+
 function startSync(){
   if(!fbUser||!fbDb)return;
   fbRef=fbDb.ref('users/'+fbUser.uid+'/hattie');
@@ -1180,14 +1208,15 @@ function startSync(){
     applyingRemote=true;
     try{
       if(Array.isArray(r.lessons)){
-        savedLessons=r.lessons;
+        // MERGE, never clobber. An empty cloud must not wipe local work.
+        savedLessons = mergeLessons(savedLessons, r.lessons);
         localStorage.setItem('hattie-lessons',JSON.stringify(savedLessons));
         renderSavedList();
       }
-      if(r.unit!==undefined){
-        unitPlan=r.unit||null;
-        if(unitPlan)localStorage.setItem(UNIT_KEY,JSON.stringify(unitPlan));
-        else localStorage.removeItem(UNIT_KEY);
+      // Only accept a remote unit plan if we don't already have one locally
+      if(r.unit && !unitPlan){
+        unitPlan=r.unit;
+        localStorage.setItem(UNIT_KEY,JSON.stringify(unitPlan));
         renderUnit();
       }
     }finally{applyingRemote=false;}
@@ -1488,9 +1517,14 @@ function loadDayIntoPlanner(i){
         lessonActivities[ph].push(id);
     });
   });
-  ['surface','deep','transfer'].forEach(p=>renderPhase(p));
-  document.getElementById('li').scrollIntoView({behavior:'smooth',block:'center'});
-  flashPlanner('Day '+(d.n||i+1)+' loaded below');
+  ['surface','deep','transfer'].forEach(p=>{
+    try{ renderPhase(p); }catch(e){ console.warn('renderPhase failed for',p,e); }
+  });
+  try{
+    const li=document.getElementById('li');
+    if(li&&li.scrollIntoView)li.scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(e){}
+  try{ flashPlanner('Day '+(d.n||i+1)+' loaded below'); }catch(e){}
 }
 
 function unitToText(){
