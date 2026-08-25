@@ -1009,7 +1009,11 @@ function saveLesson(btn){
     sc:   document.getElementById('sc').value,
     hinge:document.getElementById('hinge').value,
     feedback:document.getElementById('feedback').value,
-    activities: JSON.parse(JSON.stringify(lessonActivities))
+    activities: {
+      surface : (lessonActivities.surface ||[]).map(x=>typeof x==='string'?x:x.id).filter(Boolean),
+      deep    : (lessonActivities.deep    ||[]).map(x=>typeof x==='string'?x:x.id).filter(Boolean),
+      transfer: (lessonActivities.transfer||[]).map(x=>typeof x==='string'?x:x.id).filter(Boolean)
+    }
   };
   savedLessons.unshift(lesson);
   persistLessons();
@@ -1059,15 +1063,45 @@ function copyLesson(idx,btn){
 
 function loadLesson(idx){
   const l = savedLessons[idx];
-  if(!l)return;
-  if(document.getElementById('save-course'))document.getElementById('save-course').value=l.course||'';
-  document.getElementById('unit-title').value = l.unit||'';
-  document.getElementById('li').value          = l.li||'';
-  document.getElementById('sc').value          = l.sc||'';
-  document.getElementById('hinge').value       = l.hinge||'';
-  document.getElementById('feedback').value    = l.feedback||'';
-  lessonActivities = JSON.parse(JSON.stringify(l.activities));
+  if(!l){console.warn('No lesson at index',idx);return;}
+
+  const setVal=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+  setVal('save-course', l.course);
+  setVal('save-name',   l.name);
+  setVal('unit-title',  l.unit);
+  setVal('li',          l.li);
+  setVal('sc',          l.sc);
+  setVal('hinge',       l.hinge);
+  setVal('feedback',    l.feedback);
+
+  // Normalize activities — older saves may hold objects instead of IDs,
+  // and some saves predate the field entirely.
+  lessonActivities = {surface:[],deep:[],transfer:[]};
+  const src = l.activities || {};
+  ['surface','deep','transfer'].forEach(ph=>{
+    const arr = Array.isArray(src[ph]) ? src[ph] : [];
+    arr.forEach(entry=>{
+      let id = null;
+      if(typeof entry === 'string')      id = entry;
+      else if(entry && entry.id)         id = entry.id;
+      if(!id) return;
+
+      // If it was a custom activity saved as an object, re-register it
+      if(!ACTIVITIES.some(a=>a.id===id) && typeof entry === 'object' && entry.name){
+        ACTIVITIES.push({
+          id, name:entry.name, phase:entry.phase||ph,
+          tag:entry.tag||'Saved activity', effect:entry.effect||0.50, custom:true
+        });
+      }
+      if(ACTIVITIES.some(a=>a.id===id) && !lessonActivities[ph].includes(id))
+        lessonActivities[ph].push(id);
+    });
+  });
+
   ['surface','deep','transfer'].forEach(p=>renderPhase(p));
+  const li=document.getElementById('li');
+  if(li)li.scrollIntoView({behavior:'smooth',block:'center'});
+  if(typeof flashPlanner==='function')flashPlanner('Loaded: '+(l.name||'lesson'));
 }
 
 function deleteLesson(idx){
