@@ -253,6 +253,46 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .ws-order-row{display:flex;align-items:baseline;gap:9px;font-size:10.5pt;line-height:1.35}
 .ws-order-blank{border-bottom:1px solid var(--ink);width:.42in;flex-shrink:0;height:14px}
 
+/* Column width controls */
+.col-w{width:52px;height:16px;accent-color:var(--flask);cursor:pointer;flex-shrink:0;margin-top:5px}
+.col-w-n{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);width:28px;text-align:right;flex-shrink:0;padding-top:7px}
+
+/* Graph type picker */
+.gtype-row{display:flex;gap:4px;flex-wrap:wrap}
+.gtype-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;
+  padding:5px 10px;border-radius:3px;border:1px solid var(--edge);background:var(--slate2);color:var(--chalk3);cursor:pointer;transition:all .12s}
+.gtype-btn:hover{border-color:var(--edge2);color:var(--chalk2)}
+.gtype-btn.on{background:var(--flask-dim);color:var(--flask);border-color:rgba(79,209,197,.4)}
+
+/* Printed graphs */
+.g-wrap{display:flex;gap:7px;margin:8px 0 .16in .34in;align-items:stretch}
+.g-ylab{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:16px}
+.g-ylab span{writing-mode:vertical-rl;transform:rotate(180deg);font-family:'Space Grotesk',sans-serif;
+  font-size:9pt;font-weight:500;white-space:nowrap;letter-spacing:.02em}
+.g-body{flex:1;min-width:0}
+.g-xlab{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:9pt;font-weight:500;margin-top:4px;letter-spacing:.02em}
+
+.g-plot{width:100%;border-left:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+.g-plot-grid{
+  background-image:linear-gradient(var(--rule) .5px,transparent .5px),
+                   linear-gradient(90deg,var(--rule) .5px,transparent .5px);
+  background-position:left bottom;
+}
+.g-plot-dots{
+  background-image:radial-gradient(circle, var(--rule) .6px, transparent .7px);
+  background-position:left bottom;
+}
+.g-plot-axes{
+  background-image:linear-gradient(var(--rule) .4px,transparent .4px),
+                   linear-gradient(90deg,var(--rule) .4px,transparent .4px);
+  background-size:.4in .4in;
+  background-position:left bottom;
+}
+.g-bars{display:flex;border-left:1.5px solid transparent}
+.g-bar-slot{flex:1;text-align:center;padding-top:4px;border-right:.5px dashed var(--rule)}
+.g-bar-slot:last-child{border-right:none}
+.g-bar-slot span{font-family:'Space Grotesk',sans-serif;font-size:8.5pt;line-height:1.2;display:inline-block;word-break:break-word}
+
 /* Lab header — generous write-in lines, no date, tag kept clear of fields */
 .lab-meta-row{display:flex;gap:.3in;align-items:flex-end;margin-bottom:.16in}
 .lab-field{display:flex;align-items:flex-end;gap:7px;font-family:'Space Grotesk',sans-serif}
@@ -392,6 +432,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
         <button class="blk-btn" onclick="addBlk('prelab')"><span class="blk-ico">❓</span><span class="blk-nm">Pre-lab Qs</span></button>
         <button class="blk-btn" onclick="addBlk('procedure')"><span class="blk-ico">🔬</span><span class="blk-nm">Procedure</span></button>
         <button class="blk-btn" onclick="addBlk('datatable')"><span class="blk-ico">📊</span><span class="blk-nm">Data table</span></button>
+        <button class="blk-btn" onclick="addBlk('graph')"><span class="blk-ico">📈</span><span class="blk-nm">Graph / plot</span></button>
         <button class="blk-btn" onclick="addBlk('observations')"><span class="blk-ico">👁️</span><span class="blk-nm">Observations</span></button>
         <button class="blk-btn" onclick="addBlk('analysis')"><span class="blk-ico">🧠</span><span class="blk-nm">Analysis Qs</span></button>
         <button class="blk-btn" onclick="addBlk('conclusion')"><span class="blk-ico">✅</span><span class="blk-nm">Conclusion</span></button>
@@ -1133,6 +1174,7 @@ const BLK={
   prelab:      {icon:'❓',label:'Pre-lab Qs',     sec:'Pre-Lab Questions'},
   procedure:   {icon:'🔬',label:'Procedure',      sec:'Procedure'},
   datatable:   {icon:'📊',label:'Data table',     sec:'Data'},
+  graph:       {icon:'📈',label:'Graph / plot',   sec:'Graph'},
   observations:{icon:'👁️',label:'Observations',   sec:'Observations'},
   analysis:    {icon:'🧠',label:'Analysis Qs',    sec:'Analysis Questions'},
   conclusion:  {icon:'✅',label:'Conclusion',     sec:'Conclusion'},
@@ -1171,7 +1213,14 @@ function newBlk(kind){
   if(kind==='materials'||kind==='safety')b.items=[{t:'',lvl:'both'}];
   if(kind==='prelab'||kind==='analysis')b.questions=[{t:'',lines:3,lvl:'both'}];
   if(kind==='procedure')b.steps=[{t:'',min:5,lvl:'both'}];
-  if(kind==='datatable'){b.cols=['Trial','Mass (g)','Volume (mL)'];b.rows=5;}
+  if(kind==='datatable'){
+    b.cols=[{t:'Trial',w:1},{t:'Mass (g)',w:2},{t:'Volume (mL)',w:2}];
+    b.rows=5; b.rowH=0.3;
+  }
+  if(kind==='graph'){
+    b.gtype='grid'; b.height=3.2; b.gridSize=0.2;
+    b.xLabel=''; b.yLabel=''; b.bars=['','',''];
+  }
   if(kind==='observations')b.lines=6;
   if(kind==='conclusion')b.lines=8;
   return b;
@@ -1180,6 +1229,17 @@ function newBlk(kind){
 /* Older saved labs stored items as plain strings — upgrade them in place */
 function migrateBlocks(){
   blocks.forEach(b=>{
+    if(b.kind==='datatable'){
+      if(Array.isArray(b.cols))
+        b.cols=b.cols.map(c=>typeof c==='string'?{t:c,w:2}:(c.w?c:{...c,w:2}));
+      if(b.rowH===undefined)b.rowH=0.3;
+    }
+    if(b.kind==='graph'){
+      if(!b.gtype)b.gtype='grid';
+      if(!b.height)b.height=3.2;
+      if(!b.gridSize)b.gridSize=0.2;
+      if(!b.bars)b.bars=['','',''];
+    }
     if(b.items)b.items=b.items.map(x=>typeof x==='string'?{t:x,lvl:'both'}:(x.lvl?x:{...x,lvl:'both'}));
     if(b.questions)b.questions=b.questions.map(q=>q.lvl?q:{...q,lvl:'both'});
     if(b.steps)b.steps=b.steps.map(x=>x.lvl?x:{...x,lvl:'both'});
@@ -1223,6 +1283,14 @@ function addArr(id,f,def){const b=blocks.find(x=>x.id===id);if(!b)return;
   b[f].push(structuredClone(def));renderLabEditor();render();}
 function delArr(id,f,i){const b=blocks.find(x=>x.id===id);if(!b||b[f].length<=1)return;
   b[f].splice(i,1);renderLabEditor();render();}
+
+function moveCol(id,i,d){
+  const b=blocks.find(x=>x.id===id);if(!b)return;
+  const j=i+d;
+  if(j<0||j>=b.cols.length)return;
+  [b.cols[i],b.cols[j]]=[b.cols[j],b.cols[i]];
+  renderLabEditor();render();
+}
 
 function labStarter(){
   if(blocks.length&&!confirm('Replace current lab sections with a full skeleton?'))return;
@@ -1346,15 +1414,50 @@ function renderLabEditor(){
     }
 
     if(b.kind==='datatable'){
-      body=`<div class="qmeta-row" style="margin-top:0"><span>Columns</span></div>`+
+      const totalW=b.cols.reduce((s,c)=>s+(+c.w||1),0);
+      body=`<div class="qmeta-row" style="margin-top:0"><span>Columns</span><span style="margin-left:auto;color:var(--chalk3)">width →</span></div>`+
         b.cols.map((c,i)=>`<div class="step-row">
           <span class="step-n">${i+1}</span>
-          <input type="text" value="${esc(c)}" placeholder="Column header" oninput="updArr('${b.id}','cols',${i},this.value)">
+          <input type="text" value="${esc(c.t)}" placeholder="Column header"
+            oninput="updArr('${b.id}','cols',${i},this.value,'t')" style="flex:1">
+          <button class="icon-btn" onclick="moveCol('${b.id}',${i},-1)" title="Move left" ${i===0?'disabled style="opacity:.3;padding-top:7px"':'style="padding-top:7px"'}>◀</button>
+          <button class="icon-btn" onclick="moveCol('${b.id}',${i},1)" title="Move right" ${i===b.cols.length-1?'disabled style="opacity:.3;padding-top:7px"':'style="padding-top:7px"'}>▶</button>
+          <input class="col-w" type="range" min="1" max="6" value="${c.w||2}"
+            oninput="updArr('${b.id}','cols',${i},+this.value,'w')" title="Column width">
+          <span class="col-w-n">${Math.round(((+c.w||1)/totalW)*100)}%</span>
           ${b.cols.length>1?`<button class="icon-btn danger" onclick="delArr('${b.id}','cols',${i})" style="padding-top:7px">×</button>`:''}
         </div>`).join('')+
-        `<button class="mini-btn" onclick="addArr('${b.id}','cols','')">+ Add column</button>
-         <div class="qmeta-row"><span>Data rows</span>
-           <input class="inline-num" type="number" min="1" max="20" value="${b.rows}" oninput="updBlk('${b.id}','rows',Math.max(1,+this.value||1))"></div>`;
+        `<button class="mini-btn" onclick="addArr('${b.id}','cols',{t:'',w:2})">+ Add column</button>
+         <div class="qmeta-row"><span>Rows</span>
+           <input class="inline-num" type="number" min="1" max="30" value="${b.rows}" oninput="updBlk('${b.id}','rows',Math.max(1,+this.value||1))">
+           <span style="margin-left:10px">Row height (in)</span>
+           <input class="inline-num" type="number" min="0.2" max="1" step="0.05" value="${b.rowH||0.3}" oninput="updBlk('${b.id}','rowH',Math.max(.2,+this.value||.3))">
+         </div>`;
+    }
+
+    if(b.kind==='graph'){
+      const isBar=b.gtype==='bar';
+      body=`<div class="qmeta-row" style="margin-top:0"><span>Type</span></div>
+        <div class="gtype-row">
+          ${[['grid','Grid / plot'],['bar','Bar graph'],['line','Line axes'],['dots','Dot plot']].map(([v,label])=>
+            `<button class="gtype-btn ${b.gtype===v?'on':''}" onclick="updBlk('${b.id}','gtype','${v}');renderLabEditor()">${label}</button>`).join('')}
+        </div>
+        <div class="step-row" style="margin-top:6px">
+          <input type="text" value="${esc(b.xLabel||'')}" placeholder="X-axis label" oninput="updBlk('${b.id}','xLabel',this.value)">
+          <input type="text" value="${esc(b.yLabel||'')}" placeholder="Y-axis label" oninput="updBlk('${b.id}','yLabel',this.value)">
+        </div>
+        ${isBar?`<div class="qmeta-row"><span>Bar categories</span></div>`+
+          b.bars.map((bar,i)=>`<div class="step-row">
+            <span class="step-n">${i+1}</span>
+            <input type="text" value="${esc(bar)}" placeholder="Category ${i+1}" oninput="updArr('${b.id}','bars',${i},this.value)">
+            ${b.bars.length>2?`<button class="icon-btn danger" onclick="delArr('${b.id}','bars',${i})" style="padding-top:7px">×</button>`:''}
+          </div>`).join('')+
+          `${b.bars.length<10?`<button class="mini-btn" onclick="addArr('${b.id}','bars','')">+ Add category</button>`:''}`:''}
+        <div class="qmeta-row"><span>Height (in)</span>
+          <input class="inline-num" type="number" min="1" max="8" step="0.2" value="${b.height}" oninput="updBlk('${b.id}','height',Math.max(1,+this.value||3))">
+          ${b.gtype!=='bar'?`<span style="margin-left:10px">Grid (in)</span>
+          <input class="inline-num" type="number" min="0.1" max="0.5" step="0.05" value="${b.gridSize}" oninput="updBlk('${b.id}','gridSize',Math.max(.1,+this.value||.2))">`:''}
+        </div>`;
     }
 
     if(b.kind==='observations'||b.kind==='conclusion'){
@@ -1469,11 +1572,20 @@ function buildLabPaper(lvl){
     }
 
     if(b.kind==='datatable'){
-      const cols=b.cols.filter(c=>c.trim());
-      const cs=cols.length?cols:['Trial','Value'];
-      h+=`<table class="lab-table"><thead><tr>${cs.map(c=>`<th>${escC(c)}</th>`).join('')}</tr></thead><tbody>`;
-      for(let r=0;r<b.rows;r++)h+=`<tr>${cs.map(()=>'<td></td>').join('')}</tr>`;
+      const cols=b.cols.filter(c=>(c.t||'').trim());
+      const cs=cols.length?cols:[{t:'Trial',w:1},{t:'Value',w:2}];
+      const tot=cs.reduce((s,c)=>s+(+c.w||1),0);
+      const rh=b.rowH||0.3;
+      h+=`<table class="lab-table"><colgroup>`+
+         cs.map(c=>`<col style="width:${(((+c.w||1)/tot)*100).toFixed(1)}%">`).join('')+
+         `</colgroup><thead><tr>${cs.map(c=>`<th>${escC(c.t)}</th>`).join('')}</tr></thead><tbody>`;
+      for(let r=0;r<b.rows;r++)
+        h+=`<tr>${cs.map(()=>`<td style="height:${rh}in"></td>`).join('')}</tr>`;
       h+=`</tbody></table>`;
+    }
+
+    if(b.kind==='graph'){
+      h+=buildGraph(b);
     }
 
     if(b.kind==='observations'||b.kind==='conclusion'){
@@ -1491,6 +1603,48 @@ function buildLabPaper(lvl){
   return h;
 }
 
+/* ── GRAPH RENDERING ── */
+function buildGraph(b){
+  const H=b.height||3.2;
+  const grid=b.gridSize||0.2;
+  const yLab=b.yLabel?`<div class="g-ylab"><span>${escC(b.yLabel)}</span></div>`:'';
+  const xLab=b.xLabel?`<div class="g-xlab">${escC(b.xLabel)}</div>`:'';
+
+  if(b.gtype==='bar'){
+    const bars=(b.bars||[]).filter(x=>x.trim());
+    const cats=bars.length?bars:['','',''];
+    return `<div class="g-wrap">${yLab}
+      <div class="g-body">
+        <div class="g-plot g-plot-grid" style="height:${H}in;background-size:${grid}in ${grid}in"></div>
+        <div class="g-bars">${cats.map(c=>`<div class="g-bar-slot"><span>${escC(c)}</span></div>`).join('')}</div>
+        ${xLab}
+      </div></div>`;
+  }
+
+  if(b.gtype==='line'){
+    return `<div class="g-wrap">${yLab}
+      <div class="g-body">
+        <div class="g-plot g-plot-axes" style="height:${H}in"></div>
+        ${xLab}
+      </div></div>`;
+  }
+
+  if(b.gtype==='dots'){
+    return `<div class="g-wrap">${yLab}
+      <div class="g-body">
+        <div class="g-plot g-plot-dots" style="height:${H}in;background-size:${grid}in ${grid}in"></div>
+        ${xLab}
+      </div></div>`;
+  }
+
+  // default: full grid for plotting
+  return `<div class="g-wrap">${yLab}
+    <div class="g-body">
+      <div class="g-plot g-plot-grid" style="height:${H}in;background-size:${grid}in ${grid}in"></div>
+      ${xLab}
+    </div></div>`;
+}
+
 /* ── AI ASSIST ── */
 function labContext(lvl){
   const list=blocksFor(lvl);
@@ -1501,7 +1655,7 @@ function labContext(lvl){
     if(b.items)return head+'\n'+itemsFor(b,'items',lvl).filter(x=>x.t.trim()).map(x=>'- '+x.t+tag(x)).join('\n');
     if(b.questions)return head+'\n'+itemsFor(b,'questions',lvl).map((q,i)=>`${i+1}. ${q.t}${tag(q)}`).join('\n');
     if(b.steps)return head+'\n'+itemsFor(b,'steps',lvl).map((s,i)=>`${i+1}. [${s.min}min] ${s.t}${tag(s)}`).join('\n');
-    if(b.cols)return head+'\nColumns: '+b.cols.join(' | ')+` (${b.rows} rows)`;
+    if(b.cols)return head+'\nColumns: '+b.cols.map(c=>typeof c==='string'?c:c.t).join(' | ')+` (${b.rows} rows)`;
     return head+`\n(${b.lines} lines for writing)`;
   }).join('\n\n');
 }
