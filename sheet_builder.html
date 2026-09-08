@@ -253,6 +253,60 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .ws-order-row{display:flex;align-items:baseline;gap:9px;font-size:10.5pt;line-height:1.35}
 .ws-order-blank{border-bottom:1px solid var(--ink);width:.42in;flex-shrink:0;height:14px}
 
+/* Question bank */
+.bank-wrap{width:100%;max-width:920px}
+.bank-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--slate2);
+  border:1px solid var(--edge);border-radius:6px;padding:.6rem .8rem;margin-bottom:.8rem;position:sticky;top:0;z-index:5}
+.bank-stats{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--chalk3)}
+.bank-picked{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--flask);background:var(--flask-dim);border:1px solid rgba(79,209,197,.3);padding:2px 9px;border-radius:3px}
+.bank-list{display:flex;flex-direction:column;gap:7px;padding-bottom:3rem}
+.bank-card{background:var(--slate2);border:1px solid var(--edge);border-left:2px solid transparent;
+  border-radius:5px;padding:10px 12px;cursor:pointer;transition:all .12s}
+.bank-card:hover{border-color:var(--edge2);background:var(--slate3)}
+.bank-card.on{border-left-color:var(--flask);background:rgba(79,209,197,.07);border-color:rgba(79,209,197,.3)}
+.bk-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px}
+.bk-type{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;
+  background:var(--slate);color:var(--chalk3);padding:2px 7px;border-radius:3px}
+.bk-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px}
+.bk-tag.hon{background:rgba(167,139,250,.16);color:var(--violet)}
+.bk-tag.cp{background:var(--flask-dim);color:var(--flask)}
+.bk-tag.d-easy{background:rgba(74,222,128,.14);color:#4ADE80}
+.bk-tag.d-medium{background:rgba(240,180,41,.14);color:var(--amber)}
+.bk-tag.d-hard{background:rgba(245,101,101,.14);color:var(--rose)}
+.bk-topic{font-size:10.5px;color:var(--chalk2)}
+.bk-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.03em}
+.bk-del{background:none;border:none;color:var(--chalk3);cursor:pointer;font-size:14px;line-height:1;padding:0 3px;transition:color .12s}
+.bk-del:hover{color:var(--rose)}
+.bk-text{font-size:12.5px;line-height:1.5;color:var(--chalk)}
+.bk-opts{font-size:11px;color:var(--chalk3);margin-top:5px;line-height:1.5}
+.bank-empty{text-align:center;padding:4rem 1rem;max-width:460px;margin:0 auto}
+.bank-empty-t{font-family:'Newsreader',serif;font-style:italic;font-size:22px;color:var(--chalk2);margin-bottom:8px}
+.bank-empty-s{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.05em;color:var(--chalk3);line-height:1.9}
+
+/* Study guide */
+.sg-paper{background:#FFFEFA}
+.sg-topic{margin-bottom:.2in;break-inside:avoid}
+.sg-topic-hd{font-family:'Space Grotesk',sans-serif;font-size:11.5pt;font-weight:600;
+  border-bottom:1px solid var(--rule);padding-bottom:3px;margin-bottom:6px;display:flex;align-items:baseline;gap:8px}
+.sg-lvl{font-family:'IBM Plex Mono',monospace;font-size:7.5pt;letter-spacing:.06em;padding:1px 6px;border-radius:2px;margin-left:auto}
+.sg-lvl.hon{background:#EEEBFB;color:#4A3A9A;border:1px solid #C4B8F0}
+.sg-lvl.cp{background:#E1F5EE;color:#0F6E56;border:1px solid #9AD4C4}
+.sg-list{margin:0 0 6px .28in;font-size:10.5pt;line-height:1.55}
+.sg-list li{margin-bottom:3px}
+.sg-mistake{font-size:10pt;line-height:1.5;background:#FFF6EC;border-left:2px solid #D9922B;
+  padding:5px 9px;margin:0 0 5px .28in;border-radius:0 2px 2px 0}
+.sg-practice{font-size:10pt;line-height:1.5;margin:0 0 4px .28in;color:#3A4652}
+.sg-sec{font-family:'Space Grotesk',sans-serif;font-size:11pt;font-weight:600;letter-spacing:.02em;
+  border-bottom:1.5px solid var(--ink);padding-bottom:3px;margin:.24in 0 .12in;break-after:avoid}
+.sg-formulas li{font-family:'Space Grotesk',sans-serif}
+.sg-vocab li{margin-bottom:4px}
+.sg-check{margin-left:.28in}
+.sg-check-row{display:flex;align-items:flex-start;gap:8px;font-size:10.5pt;line-height:1.5;margin-bottom:6px}
+.sg-box{width:11px;height:11px;border:1.2px solid var(--ink);border-radius:2px;flex-shrink:0;margin-top:3px}
+.sg-time{font-size:10pt;line-height:1.55;background:#F4F6F8;border-left:2px solid var(--ink);
+  padding:7px 11px;margin-top:.2in;border-radius:0 2px 2px 0}
+
 /* Column width controls */
 .col-w{width:52px;height:16px;accent-color:var(--flask);cursor:pointer;flex-shrink:0;margin-top:5px}
 .col-w-n{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);width:28px;text-align:right;flex-shrink:0;padding-top:7px}
@@ -337,6 +391,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
     <button class="mode-btn active" id="modeWS" onclick="setMode('worksheet')">Worksheet</button>
     <button class="mode-btn" id="modeTest" onclick="setMode('test')">Test</button>
     <button class="mode-btn" id="modeLab" onclick="setMode('lab')">Lab</button>
+    <button class="mode-btn" id="modeBank" onclick="setMode('bank')">Bank <span id="bankCount" style="opacity:.6;font-size:8px"></span></button>
   </div>
   <div class="tb-spacer"></div>
   <input type="password" id="apiKey" placeholder="sk-ant-… (for AI)" oninput="onApiInput()" autocomplete="off"
@@ -344,6 +399,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
   <button class="btn" onclick="newSheet()">New</button>
   <button class="btn" onclick="saveSheet()">Save</button>
   <button class="btn" onclick="openLoad()">Open</button>
+  <button class="btn" id="bankBtn" onclick="bankDeposit()" title="Add these questions to the bank">↓ Bank</button>
   <button class="btn" id="reshuffleBtn" onclick="reshuffle()" style="display:none">↻ Reshuffle</button>
   <button class="btn btn-primary" onclick="window.print()">Print / PDF</button>
 </div>
@@ -389,9 +445,20 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
         <input type="checkbox" id="optShuffleC" checked onchange="reshuffle()">
         <label for="optShuffleC">Scramble multiple-choice answers</label>
       </div>
+      <div style="margin:.7rem 0 .5rem">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk3);margin-bottom:5px">Printing for</div>
+        <div class="lvl-pick">
+          <button class="lvl-btn active" id="tLvlBoth" onclick="setTestLevel('both')">Both</button>
+          <button class="lvl-btn" id="tLvlReg" onclick="setTestLevel('regular')">College Prep</button>
+          <button class="lvl-btn" id="tLvlHon" onclick="setTestLevel('honors')">Honors</button>
+        </div>
+      </div>
       <div class="opt-row">
         <input type="checkbox" id="optKey" onchange="render()">
         <label for="optKey">Print a blank answer key sheet per version</label>
+      </div>
+      <div style="margin-top:.5rem">
+        <button class="mini-btn" onclick="clearStudyGuide()" style="border-color:var(--edge)">Remove study guide from preview</button>
       </div>
       <div class="opt-hint">
         Shuffling stays inside each section. Lock a question with 🔒 to pin it in place across all versions.
@@ -497,6 +564,70 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
       </div>
     </div>
 
+    <!-- BANK: filters -->
+    <div class="pane" id="bankFilterPane" style="display:none">
+      <div class="pane-label">Filter the bank</div>
+      <div class="fgrid">
+        <div class="f"><label>Search</label>
+          <input type="text" id="bkSearch" placeholder="text, topic, tag…" oninput="renderBank()"></div>
+        <div class="fgrid two">
+          <div class="f"><label>Course</label><select id="bkCourse" onchange="renderBank()"></select></div>
+          <div class="f"><label>Unit</label><select id="bkUnit" onchange="renderBank()"></select></div>
+        </div>
+        <div class="fgrid two">
+          <div class="f"><label>Type</label>
+            <select id="bkType" onchange="renderBank()">
+              <option value="">Any</option><option value="mc">Multiple choice</option>
+              <option value="short">Short answer</option><option value="long">Long response</option>
+              <option value="tf">True / False</option><option value="matching">Matching</option>
+              <option value="ordering">Ordering</option><option value="fill">Fill in blank</option>
+              <option value="work">Show work</option>
+            </select></div>
+          <div class="f"><label>Level</label>
+            <select id="bkLvl" onchange="renderBank()">
+              <option value="">Any</option><option value="both">Both</option>
+              <option value="honors">Honors</option><option value="regular">College Prep</option>
+            </select></div>
+        </div>
+        <div class="fgrid two">
+          <div class="f"><label>Difficulty</label>
+            <select id="bkDiff" onchange="renderBank()">
+              <option value="">Any</option><option value="easy">Easy</option>
+              <option value="medium">Medium</option><option value="hard">Hard</option>
+            </select></div>
+          <div class="f"><label>Usage</label>
+            <select id="bkUsed" onchange="renderBank()">
+              <option value="">Any</option><option value="never">Never used</option>
+              <option value="stale">Not used in 1+ year</option><option value="recent">Used recently</option>
+            </select></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BANK: actions -->
+    <div class="pane" id="bankActionPane" style="display:none">
+      <div class="pane-label">Build from the bank</div>
+      <div class="fgrid two" style="margin-bottom:8px">
+        <div class="f"><label>How many</label>
+          <input type="number" id="bkGenCount" value="15" min="1" max="60"></div>
+        <div class="f"><label>Prefer</label>
+          <select id="bkGenPref">
+            <option value="unused">Unused / stale first</option>
+            <option value="mixed">Mixed difficulty</option>
+            <option value="any">Anything matching</option>
+          </select></div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="ai-btn" onclick="bankQuickBuild(this)" style="border-color:rgba(79,209,197,.35);background:var(--flask-dim);color:var(--flask)">Build test from filters</button>
+        <button class="ai-btn" onclick="aiBankBuild(this)">&#10024; AI-balanced test</button>
+        <button class="ai-btn" onclick="aiBankTag(this)">&#10024; Tag untagged</button>
+      </div>
+      <div id="bankAiOut" style="display:none;margin-top:.7rem;font-size:11.5px;line-height:1.6;color:var(--chalk2);background:var(--slate2);border:1px solid var(--edge);border-radius:4px;padding:9px 11px;white-space:pre-wrap;max-height:200px;overflow-y:auto"></div>
+      <div class="opt-hint" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.04em;line-height:1.7;margin-top:.7rem">
+        Questions are banked automatically whenever you save a test. Usage is tracked so you can avoid repeating last year's exam.
+      </div>
+    </div>
+
     <div class="pane" id="qAIPane">
       <div class="pane-label">AI assist</div>
       <div class="ai-bar" style="border:none;padding:0;margin:0">
@@ -505,6 +636,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
         <button class="ai-btn" onclick="aiInstructions(this)">&#10024; Write instructions</button>
         <button class="ai-btn" onclick="aiDistractors(this)">&#10024; Better MC choices</button>
         <button class="ai-btn" onclick="aiReview(this)">&#10024; Review this sheet</button>
+        <button class="ai-btn" onclick="aiStudyGuide(this)" style="border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.12);color:var(--violet)">&#10024; Build study guide</button>
       </div>
       <div id="qAiOut" style="display:none;margin-top:.7rem;font-size:11.5px;line-height:1.6;color:var(--chalk2);background:var(--slate2);border:1px solid var(--edge);border-radius:4px;padding:9px 11px;white-space:pre-wrap;max-height:240px;overflow-y:auto"></div>
     </div>
@@ -550,6 +682,16 @@ let mode='worksheet';
 let questions=[];
 let versionCount=2;
 let seeds={};                       // version letter -> shuffle seed
+let testLevel='both';               // which class level to print
+
+function setTestLevel(l){
+  testLevel=l;
+  ['Both','Reg','Hon'].forEach((sfx,i)=>{
+    const el=document.getElementById('tLvl'+sfx);
+    if(el)el.classList.toggle('active',['both','regular','honors'][i]===l);
+  });
+  render();
+}
 
 const TYPE_LABEL={short:'Short answer',mc:'Multiple choice',tf:'True / False',matching:'Matching',ordering:'Ordering',work:'Show work',graph:'Graph',long:'Long response',fill:'Fill in blank',section:'Section'};
 const DEFAULTS={
@@ -576,28 +718,35 @@ function shuffleSeeded(arr,rand){const a=[...arr];for(let i=a.length-1;i>0;i--){
 /* ── MODE ── */
 function setMode(m){
   mode=m;
-  const isLab=m==='lab', isTest=m==='test';
+  const isLab=m==='lab', isTest=m==='test', isBank=m==='bank';
   document.getElementById('modeWS').classList.toggle('active',m==='worksheet');
   document.getElementById('modeTest').classList.toggle('active',isTest);
   document.getElementById('modeLab').classList.toggle('active',isLab);
+  document.getElementById('modeBank').classList.toggle('active',isBank);
+  document.getElementById('bankFilterPane').style.display=isBank?'':'none';
+  document.getElementById('bankActionPane').style.display=isBank?'':'none';
 
   document.getElementById('versionPane').style.display=isTest?'':'none';
   document.getElementById('reshuffleBtn').style.display=isTest?'':'none';
   document.getElementById('labControlPane').style.display=isLab?'':'none';
   document.getElementById('labAddPane').style.display=isLab?'':'none';
   document.getElementById('labAIPane').style.display=isLab?'':'none';
-  document.getElementById('qAddPane').style.display=isLab?'none':'';
-  document.getElementById('qAIPane').style.display=isLab?'none':'';
-  document.getElementById('qList').style.display=isLab?'none':'';
+  document.getElementById('qAddPane').style.display=(isLab||isBank)?'none':'';
+  document.getElementById('qAIPane').style.display=(isLab||isBank)?'none':'';
+  document.getElementById('qList').style.display=(isLab||isBank)?'none':'';
   document.getElementById('labList').style.display=isLab?'':'none';
   document.getElementById('apiKey').style.display='';
+  document.getElementById('bankBtn').style.display=(isBank||isLab)?'none':'';
   document.getElementById('listLabel').textContent=isLab?'Lab sections':'Questions';
   document.getElementById('dateRow').style.display=isLab?'none':'';
+  const dp=document.querySelector('.pane');
+  if(dp)dp.style.display=isBank?'none':'';
 
   document.getElementById('titleLabel').textContent=isLab?'Lab title':(isTest?'Test title':'Title');
   document.getElementById('wsTitle').placeholder=isLab?'Determining the Molar Volume of a Gas'
     :(isTest?'Unit 6 Exam — Stoichiometry':'Stoichiometry Practice');
 
+  if(isBank){refreshBankDropdowns();renderBank();return;}
   if(isTest&&!Object.keys(seeds).length)reshuffle();
   renderVerStrip();
   if(isLab)renderLabEditor();else renderEditor();
@@ -619,7 +768,7 @@ function reshuffle(){
 
 /* ── QUESTIONS ── */
 function addQ(type){
-  questions.push({id:uid(),type,text:'',pts:type==='section'?0:1,locked:false,...structuredClone(DEFAULTS[type])});
+  questions.push({id:uid(),type,text:'',pts:type==='section'?0:1,locked:false,lvl:'both',...structuredClone(DEFAULTS[type])});
   renderEditor();render();
   setTimeout(()=>{const e=document.querySelectorAll('.qcard textarea, .sec-input');e[e.length-1]?.focus();},30);
 }
@@ -628,6 +777,18 @@ function moveQ(id,d){const i=questions.findIndex(q=>q.id===id),j=i+d;if(i<0||j<0
 function dupQ(id){const i=questions.findIndex(q=>q.id===id);if(i<0)return;const c=structuredClone(questions[i]);c.id=uid();questions.splice(i+1,0,c);renderEditor();render();}
 function updQ(id,f,v){const q=questions.find(x=>x.id===id);if(q){q[f]=v;render();}}
 function toggleLock(id){const q=questions.find(x=>x.id===id);if(q){q.locked=!q.locked;renderEditor();render();}}
+function cycleQLevel(id){
+  const q=questions.find(x=>x.id===id);if(!q)return;
+  const c=q.lvl||'both';
+  q.lvl = c==='both'?'honors' : c==='honors'?'regular' : 'both';
+  renderEditor();render();
+}
+function qLevelOf(q){return q.lvl||'both';}
+function qVisible(q,lvl){
+  if(!lvl||lvl==='both')return true;
+  const l=qLevelOf(q);
+  return l==='both'||l===lvl;
+}
 function updPair(id,side,i,v){const q=questions.find(x=>x.id===id);if(q){q[side][i]=v;render();}}
 function addPair(id){const q=questions.find(x=>x.id===id);if(q){q.left.push('');q.right.push('');renderEditor();render();}}
 function delPair(id,i){const q=questions.find(x=>x.id===id);if(q&&q.left.length>2){q.left.splice(i,1);q.right.splice(i,1);renderEditor();render();}}
@@ -719,11 +880,12 @@ function renderEditor(){
     const ptsField=`<span style="margin-left:auto">Pts</span>
       <input class="inline-num" type="number" min="0" max="50" value="${q.pts}" oninput="updQ('${q.id}','pts',Math.max(0,+this.value||0))">`;
 
-    return `<div class="qcard ${q.locked?'locked':''}">
+    return `<div class="qcard ${q.locked?'locked':''} ${mode==='test'&&qLevelOf(q)!=='both'?qLevelOf(q):''}">
       <div class="qcard-head">
         <span class="qnum">${n}.</span>
         <span class="qbadge">${TYPE_LABEL[q.type]}</span>
         <div class="qcard-actions">
+          ${mode==='test'?`<button class="lab-lvl-tag ${qLevelOf(q)}" onclick="cycleQLevel('${q.id}')" title="Both / Honors only / College Prep only">${qLevelOf(q)==='both'?'BOTH':qLevelOf(q)==='honors'?'HON':'CP'}</button>`:''}
           ${mode==='test'?`<button class="icon-btn ${q.locked?'on':''}" onclick="toggleLock('${q.id}')" title="${q.locked?'Unlock position':'Lock in place across versions'}">${q.locked?'🔒':'🔓'}</button>`:''}
           <button class="icon-btn" onclick="moveQ('${q.id}',-1)">↑</button>
           <button class="icon-btn" onclick="moveQ('${q.id}',1)">↓</button>
@@ -739,10 +901,13 @@ function renderEditor(){
 }
 
 /* ── ORDER FOR A VERSION ── */
-function orderFor(letter){
-  if(mode!=='test'||letter==='A'&&!seeds[letter])return questions;
+function orderFor(letter,lvl){
+  const pool = (mode==='test'&&lvl&&lvl!=='both')
+    ? questions.filter(q=>q.type==='section'||qVisible(q,lvl))
+    : questions;
+  if(mode!=='test'||letter==='A'&&!seeds[letter])return pool;
   const shuffleQ=document.getElementById('optShuffleQ')?.checked;
-  if(!shuffleQ)return questions;
+  if(!shuffleQ)return pool;
 
   const rand=rng(seeds[letter]||1);
   // split into blocks by section header; shuffle within each block, keep locked in place
@@ -756,12 +921,18 @@ function orderFor(letter){
     block.forEach((q,i)=>merged.push(lockedIdx.includes(i)?q:shuffled[si++]));
     out.push(...merged);block=[];
   };
-  questions.forEach(q=>{
+  pool.forEach(q=>{
     if(q.type==='section'){flush();out.push(q);}
     else block.push(q);
   });
   flush();
-  return out;
+  // Drop section headings that ended up with nothing under them
+  return out.filter((q,i)=>{
+    if(q.type!=='section')return true;
+    const next=out.slice(i+1).find(x=>x.type==='section');
+    const end=next?out.indexOf(next):out.length;
+    return out.slice(i+1,end).length>0;
+  });
 }
 
 function choicesFor(q,letter){
@@ -771,7 +942,7 @@ function choicesFor(q,letter){
 }
 
 /* ── PAPER RENDER ── */
-function buildPaper(letter){
+function buildPaper(letter,lvl){
   const title=document.getElementById('wsTitle').value.trim();
   const course=document.getElementById('wsCourse').value.trim();
   const unit=document.getElementById('wsUnit').value.trim();
@@ -779,12 +950,13 @@ function buildPaper(letter){
   const showDate=document.getElementById('wsDate').value==='yes';
   const showPts=document.getElementById('wsPts').value==='yes';
   const courseLine=[course,unit].filter(Boolean).join('  ·  ');
-  const list=orderFor(letter);
+  const list=orderFor(letter,lvl);
   const qOnly=list.filter(q=>q.type!=='section');
   const totalPts=qOnly.reduce((s,q)=>s+(+q.pts||0),0);
 
   let h=`<div class="paper">`;
-  if(mode==='test'&&versionCount>1)h+=`<div class="ver-tag">${letter}</div>`;
+  if(mode==='test'&&(versionCount>1||(lvl&&lvl!=='both')))
+    h+=`<div class="ver-tag">${versionCount>1?letter:''}${lvl&&lvl!=='both'?(versionCount>1?' · ':'')+(lvl==='honors'?'HON':'CP'):''}</div>`;
 
   h+=`<div class="ws-head">
     <div class="ws-meta-row">
@@ -885,7 +1057,7 @@ function buildPaper(letter){
 
   if(qOnly.length){
     h+=`<div class="ws-footer">
-      <span>${escC(course||'La Salle High School')}${mode==='test'&&versionCount>1?` · Version ${letter}`:''}</span>
+      <span>${escC(course||'La Salle High School')}${mode==='test'&&versionCount>1?` · Version ${letter}`:''}${mode==='test'&&lvl&&lvl!=='both'?` · ${lvl==='honors'?'Honors':'College Prep'}`:''}</span>
       <span>${qOnly.length} question${qOnly.length===1?'':'s'}${showPts?` · ${totalPts} points`:''}</span>
     </div>`;
   }
@@ -893,14 +1065,14 @@ function buildPaper(letter){
   return h;
 }
 
-function buildKey(letter){
+function buildKey(letter,lvl){
   const title=document.getElementById('wsTitle').value.trim();
-  const list=orderFor(letter).filter(q=>q.type!=='section');
+  const list=orderFor(letter,lvl).filter(q=>q.type!=='section');
   if(!list.length)return '';
-  let h=`<div class="paper key-paper"><div class="key-tag">KEY · ${letter}</div>
+  let h=`<div class="paper key-paper"><div class="key-tag">KEY · ${letter}${lvl&&lvl!=='both'?' · '+(lvl==='honors'?'HON':'CP'):''}</div>
     <div class="ws-head" style="border-bottom-width:1px;padding-bottom:.16in;margin-bottom:.2in">
       <div class="ws-title" style="font-size:15pt">${esc(title)||'Untitled test'}</div>
-      <div class="ws-course">Answer key — version ${letter}</div>
+      <div class="ws-course">Answer key — version ${letter}${lvl&&lvl!=='both'?' · '+(lvl==='honors'?'Honors':'College Prep'):''}</div>
     </div><div class="key-grid">`;
   list.forEach((q,i)=>{
     h+=`<div class="key-item"><span class="key-n">${i+1}.</span><span class="key-blank">_____</span></div>`;
@@ -1160,6 +1332,447 @@ In under 180 words tell me:
 
 Be specific and reference question numbers. Be blunt. Plain text, no headers.`,btn);
   if(res)qAiShow(res);
+}
+
+
+/* ── STUDY GUIDE GENERATOR ── */
+let studyGuide=null;
+
+async function aiStudyGuide(btn){
+  const real=questions.filter(q=>q.type!=='section'&&q.text.trim());
+  if(!real.length){qAiShow('Add some questions first — the guide is built from what the test actually assesses.');return;}
+
+  const lvlNote = (mode==='test'&&questions.some(q=>qLevelOf(q)!=='both'))
+    ? `\nSome questions are tagged for one level only. Note which topics are Honors-only in the guide.`
+    : '';
+
+  const res=await callAI(qAiSys(),
+`Build a student study guide for this ${mode==='test'?'test':'worksheet'}.
+
+${sheetContext()}
+${lvlNote}
+
+The guide must help students prepare WITHOUT handing them the answers.
+Do not restate the test questions. Work at the level of concepts and skills.
+
+Return JSON exactly:
+{
+ "title":"Study Guide — ...",
+ "overview":"2 sentences on what this assessment covers and how to approach studying",
+ "topics":[
+   {"name":"topic name",
+    "whatToKnow":["specific thing to know or be able to do","..."],
+    "commonMistake":"the mistake students most often make here",
+    "practice":"a practice suggestion — a type of problem to work, not a specific answer",
+    "level":"both"}
+ ],
+ "vocabulary":["term — short definition","..."],
+ "formulas":["formula in H_2O / x^2 notation with what each symbol means"],
+ "selfCheck":["a question a student can ask themselves to test readiness","..."],
+ "timePlan":"a realistic suggestion for how to spend study time"
+}
+
+Set "level" on each topic to "both", "honors", or "regular".
+Use underscore/caret chemistry notation. 4-8 topics. Be specific to the actual content, never generic.`,
+  btn, 3000);
+
+  if(!res)return;
+  let g=null;
+  try{g=JSON.parse(res.replace(/```json|```/g,'').trim());}
+  catch(e){qAiShow('Could not parse the response:\n\n'+res.slice(0,500));return;}
+  if(!g.topics){qAiShow(res);return;}
+
+  studyGuide=g;
+  renderStudyGuide();
+  qAiShow('✓ Study guide built. It is showing in the preview — Print to hand it out, or click again to regenerate.');
+}
+
+function studyGuideHTML(){
+  if(!studyGuide)return '';
+  const g=studyGuide;
+  const course=document.getElementById('wsCourse').value.trim();
+  const unit=document.getElementById('wsUnit').value.trim();
+  const lvlTag=l=>l==='honors'?'<span class="sg-lvl hon">HONORS</span>'
+              :l==='regular'?'<span class="sg-lvl cp">CP</span>':'';
+
+  return `<div class="paper sg-paper">
+    <div class="ws-head">
+      <div class="ws-meta-row">
+        <div class="ws-field name"><span class="ws-field-label">Name</span><span class="ws-field-line"></span></div>
+        <div class="ws-field period"><span class="ws-field-label">Period</span><span class="ws-field-line"></span></div>
+      </div>
+      <div class="ws-title">${escC(g.title||'Study Guide')}</div>
+      ${(course||unit)?`<div class="ws-course">${escC([course,unit].filter(Boolean).join('  ·  '))}</div>`:''}
+    </div>
+
+    ${g.overview?`<div class="ws-instructions">${escC(g.overview)}</div>`:''}
+
+    ${(g.topics||[]).map((t,i)=>`
+      <div class="sg-topic">
+        <div class="sg-topic-hd">${i+1}. ${escC(t.name||'')}${lvlTag(t.level)}</div>
+        ${(t.whatToKnow||[]).length?`<ul class="sg-list">${t.whatToKnow.map(x=>`<li>${escC(x)}</li>`).join('')}</ul>`:''}
+        ${t.commonMistake?`<div class="sg-mistake"><strong>Watch out:</strong> ${escC(t.commonMistake)}</div>`:''}
+        ${t.practice?`<div class="sg-practice"><strong>Practice:</strong> ${escC(t.practice)}</div>`:''}
+      </div>`).join('')}
+
+    ${(g.formulas||[]).length?`
+      <div class="sg-sec">Formulas &amp; Relationships</div>
+      <ul class="sg-list sg-formulas">${g.formulas.map(f=>`<li>${escC(f)}</li>`).join('')}</ul>`:''}
+
+    ${(g.vocabulary||[]).length?`
+      <div class="sg-sec">Vocabulary</div>
+      <ul class="sg-list sg-vocab">${g.vocabulary.map(v=>`<li>${escC(v)}</li>`).join('')}</ul>`:''}
+
+    ${(g.selfCheck||[]).length?`
+      <div class="sg-sec">Check Yourself</div>
+      <div class="sg-check">${g.selfCheck.map(c=>`<div class="sg-check-row"><span class="sg-box"></span>${escC(c)}</div>`).join('')}</div>`:''}
+
+    ${g.timePlan?`<div class="sg-time"><strong>How to spend your study time:</strong> ${escC(g.timePlan)}</div>`:''}
+
+    <div class="ws-footer">
+      <span>${escC(course||'La Salle High School')} · Study Guide</span>
+      <span>${(g.topics||[]).length} topics</span>
+    </div>
+  </div>`;
+}
+
+function renderStudyGuide(){
+  const stage=document.getElementById('stage');
+  stage.innerHTML = studyGuideHTML() + stage.innerHTML;
+  stage.scrollTop = 0;
+}
+
+function clearStudyGuide(){
+  studyGuide=null;
+  render();
+  qAiShow('Study guide cleared.');
+}
+
+
+/* ═══════════════ QUESTION BANK ═══════════════ */
+const BANK_KEY='dc_question_bank_v1';
+let bank=[];
+let bankPicked=new Set();
+
+function loadBank(){
+  try{bank=JSON.parse(localStorage.getItem(BANK_KEY))||[];}catch{bank=[];}
+  updateBankCount();
+}
+function persistBank(){
+  localStorage.setItem(BANK_KEY,JSON.stringify(bank));
+  updateBankCount();
+  if(typeof syncPush==='function')syncPush();
+}
+function updateBankCount(){
+  const el=document.getElementById('bankCount');
+  if(el)el.textContent=bank.length?'('+bank.length+')':'';
+}
+
+/* Fingerprint so the same question isn't banked twice */
+function qFingerprint(q){
+  return (q.type+'|'+(q.text||'').toLowerCase().replace(/\s+/g,' ').trim()).slice(0,300);
+}
+
+/* Deposit the current sheet's questions into the bank */
+function bankDeposit(silent){
+  const course=document.getElementById('wsCourse').value.trim();
+  const unit=document.getElementById('wsUnit').value.trim();
+  const today=new Date().toISOString().slice(0,10);
+  let added=0, bumped=0;
+
+  questions.filter(q=>q.type!=='section'&&(q.text||'').trim()).forEach(q=>{
+    const fp=qFingerprint(q);
+    const hit=bank.find(b=>b.fp===fp);
+    if(hit){
+      hit.lastUsed=today;
+      hit.useCount=(hit.useCount||0)+1;
+      if(course&&!hit.course)hit.course=course;
+      if(unit&&!hit.unit)hit.unit=unit;
+      bumped++;
+    }else{
+      const copy=structuredClone(q);
+      delete copy.id;
+      bank.push({
+        id:'b'+Date.now()+Math.random().toString(36).slice(2,6),
+        fp, ...copy,
+        course, unit,
+        topic:'', difficulty:'', tags:[],
+        addedAt:today, lastUsed:today, useCount:1
+      });
+      added++;
+    }
+  });
+  persistBank();
+  if(!silent)bankOut(`Banked ${added} new question${added===1?'':'s'}`+
+    (bumped?`, updated ${bumped} already there.`:'.'));
+  return {added,bumped};
+}
+
+function bankOut(t){
+  const el=document.getElementById('bankAiOut');
+  if(!el)return;
+  el.style.display='block';el.textContent=t;
+}
+
+/* ── Filtering ── */
+function bankFilters(){
+  return {
+    q:(document.getElementById('bkSearch')?.value||'').toLowerCase(),
+    course:document.getElementById('bkCourse')?.value||'',
+    unit:document.getElementById('bkUnit')?.value||'',
+    type:document.getElementById('bkType')?.value||'',
+    lvl:document.getElementById('bkLvl')?.value||'',
+    diff:document.getElementById('bkDiff')?.value||'',
+    used:document.getElementById('bkUsed')?.value||''
+  };
+}
+
+function bankMatches(b,f){
+  if(f.q){
+    const hay=(b.text+' '+(b.topic||'')+' '+(b.tags||[]).join(' ')+' '+(b.unit||'')).toLowerCase();
+    if(!hay.includes(f.q))return false;
+  }
+  if(f.course && b.course!==f.course)return false;
+  if(f.unit   && b.unit!==f.unit)return false;
+  if(f.type   && b.type!==f.type)return false;
+  if(f.lvl    && (b.lvl||'both')!==f.lvl)return false;
+  if(f.diff   && b.difficulty!==f.diff)return false;
+  if(f.used){
+    const yearAgo=new Date(Date.now()-365*864e5).toISOString().slice(0,10);
+    if(f.used==='never'  && (b.useCount||0)>1)return false;
+    if(f.used==='stale'  && (b.lastUsed||'')>yearAgo)return false;
+    if(f.used==='recent' && (b.lastUsed||'')<=yearAgo)return false;
+  }
+  return true;
+}
+
+function refreshBankDropdowns(){
+  const set=(id,vals,label)=>{
+    const el=document.getElementById(id);if(!el)return;
+    const cur=el.value;
+    el.innerHTML=`<option value="">Any ${label}</option>`+
+      [...new Set(vals.filter(Boolean))].sort().map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    if([...el.options].some(o=>o.value===cur))el.value=cur;
+  };
+  set('bkCourse',bank.map(b=>b.course),'course');
+  set('bkUnit',  bank.map(b=>b.unit),'unit');
+}
+
+/* ── Bank browser ── */
+function renderBank(){
+  const stage=document.getElementById('stage');
+  const f=bankFilters();
+  const items=bank.filter(b=>bankMatches(b,f));
+
+  if(!bank.length){
+    stage.innerHTML=`<div class="bank-empty">
+      <div class="bank-empty-t">Your question bank is empty</div>
+      <div class="bank-empty-s">Build a test, then click Save — every question is banked automatically.<br>
+      You can also open an existing test and press "Bank these questions".</div>
+      <button class="btn btn-primary" style="margin-top:1rem" onclick="setMode('test')">Go build a test</button>
+    </div>`;
+    return;
+  }
+
+  const stats=`${items.length} of ${bank.length} questions`;
+  const picked=bankPicked.size;
+
+  stage.innerHTML=`
+    <div class="bank-wrap">
+      <div class="bank-bar">
+        <span class="bank-stats">${stats}</span>
+        ${picked?`<span class="bank-picked">${picked} selected</span>`:''}
+        <span style="flex:1"></span>
+        ${picked?`<button class="btn" onclick="bankInsert()">Insert ${picked} into test →</button>
+                  <button class="btn" onclick="bankPicked.clear();renderBank()">Clear</button>`:''}
+        <button class="btn" onclick="bankPickAll()">Select all shown</button>
+        <button class="btn" onclick="bankExport()">Export</button>
+      </div>
+      <div class="bank-list">
+        ${items.map(b=>bankCard(b)).join('')}
+      </div>
+    </div>`;
+}
+
+function bankCard(b){
+  const on=bankPicked.has(b.id);
+  const lvl=b.lvl||'both';
+  const lvlTag=lvl==='honors'?'<span class="bk-tag hon">HON</span>'
+             :lvl==='regular'?'<span class="bk-tag cp">CP</span>':'';
+  const diffTag=b.difficulty?`<span class="bk-tag d-${b.difficulty}">${b.difficulty}</span>`:'';
+  const used=(b.useCount||0);
+  const opts=(b.type==='mc'&&b.options)
+    ? `<div class="bk-opts">${b.options.filter(o=>o.trim()).map((o,i)=>
+        `${String.fromCharCode(97+i)}) ${escC(o)}`).join('&nbsp;&nbsp;·&nbsp;&nbsp;')}</div>` : '';
+  return `<div class="bank-card ${on?'on':''}" onclick="bankToggle('${b.id}')">
+    <div class="bk-head">
+      <span class="bk-type">${TYPE_LABEL[b.type]||b.type}</span>
+      ${lvlTag}${diffTag}
+      ${b.topic?`<span class="bk-topic">${escC(b.topic)}</span>`:''}
+      <span style="flex:1"></span>
+      <span class="bk-meta">${b.unit?escC(b.unit)+' · ':''}used ${used}×${b.lastUsed?' · '+b.lastUsed:''}</span>
+      <button class="bk-del" onclick="event.stopPropagation();bankDelete('${b.id}')" title="Remove">×</button>
+    </div>
+    <div class="bk-text">${escC(b.text)}</div>
+    ${opts}
+  </div>`;
+}
+
+function bankToggle(id){
+  if(bankPicked.has(id))bankPicked.delete(id); else bankPicked.add(id);
+  renderBank();
+}
+function bankPickAll(){
+  const f=bankFilters();
+  bank.filter(b=>bankMatches(b,f)).forEach(b=>bankPicked.add(b.id));
+  renderBank();
+}
+function bankDelete(id){
+  const b=bank.find(x=>x.id===id);if(!b)return;
+  if(!confirm('Remove this question from the bank permanently?'))return;
+  bank=bank.filter(x=>x.id!==id);
+  bankPicked.delete(id);
+  persistBank();renderBank();
+}
+
+/* ── Insert selected questions into the current test ── */
+function bankInsert(){
+  if(!bankPicked.size)return;
+  const today=new Date().toISOString().slice(0,10);
+  let n=0;
+  bank.filter(b=>bankPicked.has(b.id)).forEach(b=>{
+    const q=structuredClone(b);
+    ['fp','course','unit','topic','difficulty','tags','addedAt','lastUsed','useCount'].forEach(k=>delete q[k]);
+    q.id=uid();
+    q.locked=false;
+    questions.push(q);
+    b.lastUsed=today;b.useCount=(b.useCount||0)+1;
+    n++;
+  });
+  bankPicked.clear();
+  persistBank();
+  setMode('test');
+  flash(`Added ${n} question${n===1?'':'s'} to the test`);
+}
+
+/* ── Quick build straight from filters ── */
+function bankQuickBuild(btn){
+  const f=bankFilters();
+  const want=+document.getElementById('bkGenCount').value||15;
+  const pref=document.getElementById('bkGenPref').value;
+  let pool=bank.filter(b=>bankMatches(b,f));
+  if(!pool.length){bankOut('Nothing matches those filters.');return;}
+
+  if(pref==='unused'){
+    pool.sort((a,b)=>(a.useCount||0)-(b.useCount||0) ||
+      String(a.lastUsed||'').localeCompare(String(b.lastUsed||'')));
+  }else{
+    pool=pool.sort(()=>Math.random()-0.5);
+  }
+  if(pref==='mixed'){
+    const byDiff={easy:[],medium:[],hard:[],'':[]};
+    pool.forEach(b=>(byDiff[b.difficulty||'']||byDiff['']).push(b));
+    const out=[];
+    const order=['easy','medium','hard',''];
+    let i=0;
+    while(out.length<want && order.some(d=>byDiff[d].length)){
+      const d=order[i++%order.length];
+      if(byDiff[d].length)out.push(byDiff[d].shift());
+    }
+    pool=out;
+  }
+
+  const chosen=pool.slice(0,want);
+  bankPicked=new Set(chosen.map(b=>b.id));
+  bankInsert();
+}
+
+/* ── AI-balanced build ── */
+async function aiBankBuild(btn){
+  const f=bankFilters();
+  const pool=bank.filter(b=>bankMatches(b,f));
+  if(pool.length<3){bankOut('Need at least a few matching questions in the bank first.');return;}
+  const want=+document.getElementById('bkGenCount').value||15;
+
+  const list=pool.slice(0,140).map(b=>
+    `${b.id} | ${b.type} | ${b.lvl||'both'} | ${b.difficulty||'?'} | used ${b.useCount||0}x | ${b.topic||'untagged'} | ${(b.text||'').slice(0,110)}`
+  ).join('\n');
+
+  const res=await callAI(
+`You assemble balanced high school chemistry tests from a teacher's question bank.
+Return ONLY a JSON array of question ids. No commentary, no markdown.`,
+`Choose ${want} questions for a test from this bank.
+
+${list}
+
+Selection rules:
+- Cover as many distinct topics as possible; do not stack several questions on one topic.
+- Mix question types and difficulty — build a ramp from easier to harder.
+- Prefer questions with a low use count so this test differs from previous years.
+- If levels are tagged, keep a sensible mix of "both" and level-specific questions.
+
+Return exactly: ["id1","id2",...]`, btn, 1500);
+
+  if(!res)return;
+  let ids=null;
+  try{ids=JSON.parse(res.replace(/```json|```/g,'').trim());}
+  catch(e){bankOut('Could not parse the response:\n\n'+res.slice(0,300));return;}
+  if(!Array.isArray(ids)||!ids.length){bankOut('No ids returned.');return;}
+
+  const valid=ids.filter(id=>bank.some(b=>b.id===id));
+  if(!valid.length){bankOut('None of the returned ids matched the bank.');return;}
+  bankPicked=new Set(valid);
+  bankInsert();
+}
+
+/* ── AI tagging pass ── */
+async function aiBankTag(btn){
+  const untagged=bank.filter(b=>!b.topic||!b.difficulty).slice(0,40);
+  if(!untagged.length){bankOut('Everything in the bank is already tagged.');return;}
+
+  const list=untagged.map(b=>`${b.id} | ${b.type} | ${(b.text||'').slice(0,160)}`).join('\n');
+  const res=await callAI(
+`You tag high school chemistry questions by topic and difficulty.
+Return ONLY valid JSON. No commentary.`,
+`Tag each question with a topic and a difficulty.
+
+${list}
+
+Topic should be a short chemistry topic name a teacher would use for filtering
+(e.g. "Stoichiometry", "Gas Laws", "Atomic Structure", "Bonding", "Thermochemistry").
+Difficulty must be exactly one of: easy, medium, hard.
+
+Return: [{"id":"...","topic":"...","difficulty":"easy"}]`, btn, 2500);
+
+  if(!res)return;
+  let tags=null;
+  try{tags=JSON.parse(res.replace(/```json|```/g,'').trim());}
+  catch(e){bankOut('Could not parse:\n\n'+res.slice(0,300));return;}
+
+  let n=0;
+  (tags||[]).forEach(t=>{
+    const b=bank.find(x=>x.id===t.id);
+    if(!b)return;
+    if(t.topic)b.topic=t.topic;
+    if(['easy','medium','hard'].includes(t.difficulty))b.difficulty=t.difficulty;
+    n++;
+  });
+  persistBank();refreshBankDropdowns();renderBank();
+  bankOut(`✓ Tagged ${n} question${n===1?'':'s'}.`);
+}
+
+function bankExport(){
+  if(!bank.length)return;
+  const txt=bank.map(b=>
+`[${b.type}] ${b.topic||'untagged'} · ${b.difficulty||'?'} · ${b.lvl||'both'} · used ${b.useCount||0}x
+${b.text}
+${b.type==='mc'&&b.options?b.options.filter(o=>o.trim()).map((o,i)=>'   '+String.fromCharCode(97+i)+') '+o).join('\n'):''}
+`).join('\n');
+  const blob=new Blob([txt],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='question-bank-'+new Date().toISOString().slice(0,10)+'.txt';
+  a.click();
 }
 
 /* ═══════════ LAB MODE ═══════════ */
@@ -1820,12 +2433,17 @@ function render(){
     stage.innerHTML=lvls.map(l=>buildLabPaper(l)).join('');
     return;
   }
-  if(mode==='worksheet'){stage.innerHTML=buildPaper('A');return;}
+  if(mode==='worksheet'){stage.innerHTML=buildPaper('A',null);return;}
   const wantKey=document.getElementById('optKey')?.checked;
+  const lvls = testLevel==='both' ? ['regular','honors'] : [testLevel];
+  const anyTagged = questions.some(q=>q.type!=='section'&&qLevelOf(q)!=='both');
+  const useLvls = anyTagged ? lvls : [null];
   let h='';
-  LETTERS.slice(0,versionCount).forEach(L=>{
-    h+=buildPaper(L);
-    if(wantKey)h+=buildKey(L);
+  useLvls.forEach(lv=>{
+    LETTERS.slice(0,versionCount).forEach(L=>{
+      h+=buildPaper(L,lv);
+      if(wantKey)h+=buildKey(L,lv);
+    });
   });
   stage.innerHTML=h;
 }
@@ -1846,7 +2464,10 @@ function saveSheet(){
   let all=[];try{all=JSON.parse(localStorage.getItem(SAVE_KEY))||[];}catch{}
   const i=all.findIndex(x=>x.title===s.title&&x.mode===s.mode);
   if(i>=0)all[i]=s;else all.push(s);
-  localStorage.setItem(SAVE_KEY,JSON.stringify(all));flash('Saved');
+  localStorage.setItem(SAVE_KEY,JSON.stringify(all));
+  let banked={added:0};
+  if(mode==='test'||mode==='worksheet')banked=bankDeposit(true);
+  flash('Saved'+(banked.added?` · ${banked.added} banked`:''));
 }
 function openLoad(){
   let all=[];try{all=JSON.parse(localStorage.getItem(SAVE_KEY))||[];}catch{}
@@ -1901,7 +2522,7 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveSheet();}
 });
 
-loadApiKey();
+loadApiKey();loadBank();
 if(localStorage.getItem('dc_chembar_open')==='0')document.getElementById('chemBar').style.display='none';
 renderVerStrip();renderEditor();render();
 </script>
