@@ -253,6 +253,20 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .ws-order-row{display:flex;align-items:baseline;gap:9px;font-size:10.5pt;line-height:1.35}
 .ws-order-blank{border-bottom:1px solid var(--ink);width:.42in;flex-shrink:0;height:14px}
 
+/* Per-version quotas */
+.quota-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--edge)}
+.quota-row:last-child{border-bottom:none}
+.quota-name{font-size:11.5px;color:var(--chalk2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quota-n{width:44px;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 6px;background:var(--slate);
+  border:1px solid var(--edge);border-radius:3px;color:var(--chalk);outline:none;text-align:center;flex-shrink:0}
+.quota-n:focus{border-color:var(--flask)}
+.quota-of{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);flex-shrink:0}
+.quota-flag{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 6px;border-radius:3px;flex-shrink:0;cursor:help}
+.quota-flag.ok{background:var(--flask-dim);color:var(--flask)}
+.quota-flag.warn{background:var(--amber-dim);color:var(--amber)}
+.quota-flag.same{background:var(--slate);color:var(--chalk3)}
+
 /* Question bank */
 .bank-wrap{width:100%;max-width:920px}
 .bank-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--slate2);
@@ -445,6 +459,18 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
         <input type="checkbox" id="optShuffleC" checked onchange="reshuffle()">
         <label for="optShuffleC">Scramble multiple-choice answers</label>
       </div>
+      <div style="margin:.75rem 0 .5rem;padding-top:.75rem;border-top:1px solid var(--edge)">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk3);margin-bottom:5px;display:flex;align-items:center;justify-content:space-between">
+          <span>Questions per version</span>
+          <button onclick="resetQuotas()" style="font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;background:none;border:none;color:var(--chalk3);cursor:pointer;text-transform:uppercase">Use all</button>
+        </div>
+        <div id="quotaList"></div>
+        <div class="opt-hint" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.04em;line-height:1.7;margin-top:6px">
+          Write a pool larger than you need, then set how many each version draws. Versions pull
+          non-overlapping sets, so no two students see the same test.
+        </div>
+      </div>
+
       <div style="margin:.7rem 0 .5rem">
         <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk3);margin-bottom:5px">Printing for</div>
         <div class="lvl-pick">
@@ -754,11 +780,12 @@ function setMode(m){
 }
 
 function renderVerStrip(){
+  if(mode==='test')setTimeout(renderQuotas,0);
   document.getElementById('verStrip').innerHTML=LETTERS.map((L,i)=>
     `<button class="ver-chip ${i<versionCount?'on':''}" onclick="setVersions(${i+1})" title="${i+1} version${i?'s':''}">${L}</button>`).join('');
 }
 
-function setVersions(n){versionCount=n;reshuffle();renderVerStrip();}
+function setVersions(n){versionCount=n;reshuffle();renderVerStrip();renderQuotas();}
 
 function reshuffle(){
   seeds={};
@@ -770,9 +797,10 @@ function reshuffle(){
 function addQ(type){
   questions.push({id:uid(),type,text:'',pts:type==='section'?0:1,locked:false,lvl:'both',...structuredClone(DEFAULTS[type])});
   renderEditor();render();
+  if(mode==='test')renderQuotas();
   setTimeout(()=>{const e=document.querySelectorAll('.qcard textarea, .sec-input');e[e.length-1]?.focus();},30);
 }
-function delQ(id){questions=questions.filter(q=>q.id!==id);renderEditor();render();}
+function delQ(id){questions=questions.filter(q=>q.id!==id);renderEditor();render();if(mode==='test')renderQuotas();}
 function moveQ(id,d){const i=questions.findIndex(q=>q.id===id),j=i+d;if(i<0||j<0||j>=questions.length)return;[questions[i],questions[j]]=[questions[j],questions[i]];renderEditor();render();}
 function dupQ(id){const i=questions.findIndex(q=>q.id===id);if(i<0)return;const c=structuredClone(questions[i]);c.id=uid();questions.splice(i+1,0,c);renderEditor();render();}
 function updQ(id,f,v){const q=questions.find(x=>x.id===id);if(q){q[f]=v;render();}}
@@ -902,9 +930,15 @@ function renderEditor(){
 
 /* ── ORDER FOR A VERSION ── */
 function orderFor(letter,lvl){
-  const pool = (mode==='test'&&lvl&&lvl!=='both')
+  let pool = (mode==='test'&&lvl&&lvl!=='both')
     ? questions.filter(q=>q.type==='section'||qVisible(q,lvl))
     : questions;
+
+  // Apply per-version quotas
+  if(mode==='test'&&Object.keys(quotas).length){
+    const keep=drawForVersion(letter,lvl);
+    pool=pool.filter(q=>q.type==='section'||keep.has(q.id));
+  }
   if(mode!=='test'||letter==='A'&&!seeds[letter])return pool;
   const shuffleQ=document.getElementById('optShuffleQ')?.checked;
   if(!shuffleQ)return pool;
@@ -1448,6 +1482,81 @@ function clearStudyGuide(){
   qAiShow('Study guide cleared.');
 }
 
+
+
+/* ═══ PER-VERSION QUOTAS — draw a different subset for each version ═══ */
+let quotas={};   // type -> how many each version should use
+
+function poolByType(lvl){
+  const out={};
+  questions.filter(q=>q.type!=='section').forEach(q=>{
+    if(lvl && lvl!=='both' && !qVisible(q,lvl))return;
+    (out[q.type]=out[q.type]||[]).push(q);
+  });
+  return out;
+}
+
+function renderQuotas(){
+  const el=document.getElementById('quotaList');
+  if(!el)return;
+  const pool=poolByType(null);
+  const types=Object.keys(pool);
+  if(!types.length){
+    el.innerHTML=`<div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.06em;padding:4px 0">Add questions first</div>`;
+    return;
+  }
+  el.innerHTML=types.map(t=>{
+    const have=pool[t].length;
+    const want=quotas[t]===undefined?have:Math.min(quotas[t],have);
+    const need=want*versionCount;
+    const overlap=need>have;
+    return `<div class="quota-row">
+      <span class="quota-name">${TYPE_LABEL[t]||t}</span>
+      <input class="quota-n" type="number" min="1" max="${have}" value="${want}"
+        oninput="setQuota('${t}',+this.value)">
+      <span class="quota-of">of ${have}</span>
+      ${want<have
+        ? `<span class="quota-flag ${overlap?'warn':'ok'}" title="${overlap
+            ? 'Pool too small for '+versionCount+' fully distinct versions — some questions will repeat across versions.'
+            : 'Every version gets a completely different set.'}">${overlap?'overlaps':'all unique'}</span>`
+        : `<span class="quota-flag same" title="Every version uses all of these — same questions, different order.">same set</span>`}
+    </div>`;
+  }).join('');
+}
+
+function setQuota(type,n){
+  const pool=poolByType(null)[type]||[];
+  quotas[type]=Math.max(1,Math.min(n||1,pool.length));
+  renderQuotas();render();
+}
+
+function resetQuotas(){
+  quotas={};
+  renderQuotas();render();
+}
+
+/* Pick this version's slice of each type's pool.
+   Offsetting by version index guarantees zero overlap while the pool allows it. */
+function drawForVersion(letter,lvl){
+  const vIdx=Math.max(0,LETTERS.indexOf(letter));
+  const pool=poolByType(lvl);
+  const keep=new Set();
+
+  Object.entries(pool).forEach(([type,list])=>{
+    const want=quotas[type]===undefined?list.length:Math.min(quotas[type],list.length);
+    if(want>=list.length){ list.forEach(q=>keep.add(q.id)); return; }
+
+    // Shuffle once with a stable seed so the pool order is consistent across versions,
+    // then hand each version its own window of that order.
+    const rand=rng(9973+type.length*131);
+    const ordered=shuffleSeeded(list,rand);
+    for(let i=0;i<want;i++){
+      keep.add(ordered[(vIdx*want+i)%ordered.length].id);
+    }
+  });
+
+  return keep;
+}
 
 /* ═══════════════ QUESTION BANK ═══════════════ */
 const BANK_KEY='dc_question_bank_v1';
@@ -2453,7 +2562,7 @@ function currentSheet(){
   return{mode,title:document.getElementById('wsTitle').value,course:document.getElementById('wsCourse').value,
     unit:document.getElementById('wsUnit').value,instr:document.getElementById('wsInstr').value,
     date:document.getElementById('wsDate').value,pts:document.getElementById('wsPts').value,
-    versionCount,questions,blocks,
+    versionCount,questions,blocks,quotas,
     labCap:document.getElementById('labCap').value,
     labOverhead:document.getElementById('labOverhead').value,
     savedAt:Date.now()};
@@ -2494,7 +2603,7 @@ function loadSheet(i){
   document.getElementById('wsInstr').value=s.instr||'';
   document.getElementById('wsDate').value=s.date||'yes';
   document.getElementById('wsPts').value=s.pts||'no';
-  questions=s.questions||[];versionCount=s.versionCount||2;blocks=s.blocks||[];migrateBlocks();
+  questions=s.questions||[];versionCount=s.versionCount||2;blocks=s.blocks||[];quotas=s.quotas||{};migrateBlocks();
   if(s.labCap)document.getElementById('labCap').value=s.labCap;
   if(s.labOverhead)document.getElementById('labOverhead').value=s.labOverhead;
   setMode(s.mode||'worksheet');closeLoad();
@@ -2508,7 +2617,7 @@ function newSheet(){
   if(questions.length&&!confirm('Clear the current sheet? Save it first if you want to keep it.'))return;
   ['wsTitle','wsCourse','wsUnit','wsInstr'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('wsDate').value='yes';document.getElementById('wsPts').value='no';
-  questions=[];blocks=[];
+  questions=[];blocks=[];quotas={};
   if(mode==='lab')renderLabEditor();else renderEditor();
   render();
 }
