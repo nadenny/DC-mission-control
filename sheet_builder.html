@@ -1230,6 +1230,14 @@ function sheetContext(){
   return out;
 }
 
+function sectionSummary(){
+  const secs=questions.filter(q=>q.type==='section'&&(q.text||'').trim());
+  if(!secs.length)return '';
+  return `\nThis sheet is organized into these sections:\n`+
+    secs.map(sc=>`- ${sc.text}`).join('\n')+
+    `\nChoose question types that fit these sections — new questions are filed under the matching heading automatically.\n`;
+}
+
 function qAiSys(){
   const course=document.getElementById('wsCourse').value.trim()||'high school science';
   return `You help a high school teacher at La Salle build ${mode==='test'?'tests':'worksheets'} for ${course}.
@@ -1237,6 +1245,64 @@ Match the difficulty, topic, and style of what is already on the sheet.
 Never invent content outside the topic shown. Be precise with scientific and mathematical language.
 Plain text only. No markdown, no asterisks, no preamble. Output exactly what is asked for.
 For chemistry, write formulas with underscore/caret notation: H_2O, SO_4^2-, Ca^2+, and use -> for yields, <-> for equilibrium.`;
+}
+
+
+/* Decide where a new question should land so it files under the right heading.
+   Strategy, in order:
+   1. If a section heading names this question type ("Part I — Multiple Choice"), use that section.
+   2. Otherwise, drop it after the last existing question of the same type.
+   3. Otherwise, append to the end. */
+const SECTION_HINTS={
+  mc:       ['multiple choice','multiple-choice','mc','select the best'],
+  tf:       ['true','false','true/false','true or false'],
+  short:    ['short answer','short response','brief'],
+  long:     ['long response','essay','extended','free response','frq'],
+  fill:     ['fill in','fill-in','blank','completion'],
+  matching: ['matching','match'],
+  ordering: ['ordering','sequence','order the','put in order'],
+  work:     ['show your work','problem','calculation','computation','free response'],
+  graph:    ['graph','plot','graphing']
+};
+
+function sectionIndexForType(type){
+  const hints=SECTION_HINTS[type]||[];
+  let best=-1;
+  questions.forEach((q,i)=>{
+    if(q.type!=='section')return;
+    const t=(q.text||'').toLowerCase();
+    if(hints.some(h=>t.includes(h)))best=i;
+  });
+  return best;
+}
+
+function insertIndexForType(type){
+  // 1. A section whose title names this type
+  const secIdx=sectionIndexForType(type);
+  if(secIdx>=0){
+    let end=questions.length;
+    for(let i=secIdx+1;i<questions.length;i++){
+      if(questions[i].type==='section'){end=i;break;}
+    }
+    return end;                       // just before the next heading
+  }
+  // 2. After the last question of the same type
+  let last=-1;
+  questions.forEach((q,i)=>{ if(q.type===type)last=i; });
+  if(last>=0){
+    let end=last+1;
+    // stay inside that question's section
+    while(end<questions.length && questions[end].type!=='section' && questions[end].type===type)end++;
+    return end;
+  }
+  // 3. End of the sheet
+  return questions.length;
+}
+
+function insertQuestion(q){
+  const at=insertIndexForType(q.type);
+  questions.splice(at,0,q);
+  return at;
 }
 
 /* ── 1. Clean up wording of existing questions ── */
@@ -1270,6 +1336,7 @@ async function aiMoreQs(btn){
 ${sheetContext()}
 
 Write 5 NEW questions that fit this same topic and difficulty. Do not repeat anything already there.
+${sectionSummary()}
 Vary the types — mix short answer, multiple choice, and true/false as appropriate to the content.
 
 Return ONLY the questions, one per line, each tagged with its type in square brackets, like:
@@ -1279,23 +1346,32 @@ Return ONLY the questions, one per line, each tagged with its type in square bra
   if(!res)return;
 
   const added=[];
+  const placed={};   // section title -> count, for the summary
   res.split('\n').map(l=>l.trim()).forEach(l=>{
-    const m=l.match(/^\[(short|mc|tf|long|fill)\]\s*(.+)$/i);
+    const m=l.match(/^\[(short|mc|tf|long|fill|matching|ordering)\]\s*(.+)$/i);
     if(!m)return;
     const type=m[1].toLowerCase();
+    let q;
     if(type==='mc'){
       const parts=m[2].split('|').map(x=>x.trim());
-      const q={id:uid(),type:'mc',text:parts[0],pts:1,locked:false,options:parts.slice(1,5)};
+      q={id:uid(),type:'mc',text:parts[0],pts:1,locked:false,lvl:'both',options:parts.slice(1,5)};
       while(q.options.length<4)q.options.push('');
-      questions.push(q);
     }else{
-      questions.push({id:uid(),type,text:m[2],pts:1,locked:false,...structuredClone(DEFAULTS[type])});
+      q={id:uid(),type,text:m[2],pts:1,locked:false,lvl:'both',...structuredClone(DEFAULTS[type])};
     }
+    const at=insertQuestion(q);
+    // which heading did it land under?
+    let head='(no section)';
+    for(let i=at-1;i>=0;i--){ if(questions[i].type==='section'){head=questions[i].text||'Section';break;} }
+    placed[head]=(placed[head]||0)+1;
     added.push(m[2]);
   });
   if(!added.length){qAiShow(res);return;}
   renderEditor();render();
-  qAiShow(`✓ Added ${added.length} questions to the end. Reorder or delete any that don't fit.`);
+  if(mode==='test')renderQuotas();
+  const where=Object.entries(placed)
+    .map(([h,n])=>`${n} under "${h}"`).join(', ');
+  qAiShow(`✓ Added ${added.length} questions — ${where}. Reorder or delete any that don't fit.`);
 }
 
 /* ── 3. Write the instructions line ── */
@@ -1754,14 +1830,14 @@ function bankInsert(){
     ['fp','course','unit','topic','difficulty','tags','addedAt','lastUsed','useCount'].forEach(k=>delete q[k]);
     q.id=uid();
     q.locked=false;
-    questions.push(q);
+    if(typeof insertQuestion==='function')insertQuestion(q); else questions.push(q);
     b.lastUsed=today;b.useCount=(b.useCount||0)+1;
     n++;
   });
   bankPicked.clear();
   persistBank();
   setMode('test');
-  flash(`Added ${n} question${n===1?'':'s'} to the test`);
+  flash(`Added ${n} question${n===1?'':'s'} — filed by type`);
 }
 
 /* ── Quick build straight from filters ── */
