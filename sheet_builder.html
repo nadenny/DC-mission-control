@@ -298,6 +298,12 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .bank-empty-t{font-family:'Newsreader',serif;font-style:italic;font-size:22px;color:var(--chalk2);margin-bottom:8px}
 .bank-empty-s{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.05em;color:var(--chalk3);line-height:1.9}
 
+/* Saved study guides */
+.sg-lib-row{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--edge)}
+.sg-lib-row:last-child{border-bottom:none}
+.sg-lib-name{font-size:11.5px;color:var(--chalk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-lib-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.03em;margin-top:1px}
+
 /* Study guide */
 .sg-paper{background:#FFFEFA}
 .sg-topic{margin-bottom:.2in;break-inside:avoid}
@@ -663,6 +669,17 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
         <button class="ai-btn" onclick="aiDistractors(this)">&#10024; Better MC choices</button>
         <button class="ai-btn" onclick="aiReview(this)">&#10024; Review this sheet</button>
         <button class="ai-btn" onclick="aiStudyGuide(this)" style="border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.12);color:var(--violet)">&#10024; Build study guide</button>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
+        <button class="ai-btn" onclick="saveStudyGuide()" style="border-color:var(--edge);background:var(--slate2);color:var(--chalk2)">Save guide</button>
+        <button class="ai-btn" onclick="printStudyGuide()" style="border-color:var(--edge);background:var(--slate2);color:var(--chalk2)">Print / PDF</button>
+        <button class="ai-btn" onclick="clearStudyGuide()" style="border-color:var(--edge);background:transparent;color:var(--chalk3)">Clear</button>
+      </div>
+      <div style="margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--edge)">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk3);margin-bottom:5px">
+          Saved guides <span id="sgCount" style="color:var(--violet)"></span>
+        </div>
+        <div id="sgLibList"></div>
       </div>
       <div id="qAiOut" style="display:none;margin-top:.7rem;font-size:11.5px;line-height:1.6;color:var(--chalk2);background:var(--slate2);border:1px solid var(--edge);border-radius:4px;padding:9px 11px;white-space:pre-wrap;max-height:240px;overflow-y:auto"></div>
     </div>
@@ -1445,6 +1462,61 @@ Be specific and reference question numbers. Be blunt. Plain text, no headers.`,b
 }
 
 
+
+/* Pull the first complete JSON object/array out of a model response.
+   Handles markdown fences, leading prose, and trailing commentary. */
+function extractJSON(txt){
+  if(!txt)return null;
+  let t=String(txt).trim();
+
+  // Strip markdown fences anywhere
+  t=t.replace(/```(?:json)?\s*/gi,'').replace(/```/g,'').trim();
+
+  // Fast path
+  try{ return JSON.parse(t); }catch(e){}
+
+  // Scan for a balanced object or array, respecting strings and escapes
+  const open=t.search(/[{[]/);
+  if(open<0)return null;
+  const startCh=t[open];
+  const endCh=startCh==='{'?'}':']';
+  let depth=0,inStr=false,esc=false;
+  for(let i=open;i<t.length;i++){
+    const c=t[i];
+    if(esc){esc=false;continue;}
+    if(c==='\\'){esc=true;continue;}
+    if(c==='"'){inStr=!inStr;continue;}
+    if(inStr)continue;
+    if(c===startCh)depth++;
+    else if(c===endCh){
+      depth--;
+      if(depth===0){
+        const slice=t.slice(open,i+1);
+        try{ return JSON.parse(slice); }catch(e){ break; }
+      }
+    }
+  }
+
+  // Last resort: repair a truncated response by walking the nesting stack
+  let frag=t.slice(open);
+  const stack=[];
+  let str=false,es=false;
+  for(let i=0;i<frag.length;i++){
+    const c=frag[i];
+    if(es){es=false;continue;}
+    if(c==='\\'){es=true;continue;}
+    if(c==='"'){str=!str;continue;}
+    if(str)continue;
+    if(c==='{'||c==='[')stack.push(c==='{'?'}':']');
+    else if(c==='}'||c===']')stack.pop();
+  }
+  if(str)frag+='"';                     // we ended mid-string
+  frag=frag.replace(/,\s*$/,'');        // drop a dangling comma
+  while(stack.length)frag+=stack.pop(); // close in the right order
+  try{ return JSON.parse(frag); }catch(e){}
+  return null;
+}
+
 /* ── STUDY GUIDE GENERATOR ── */
 let studyGuide=null;
 
@@ -1456,7 +1528,11 @@ async function aiStudyGuide(btn){
     ? `\nSome questions are tagged for one level only. Note which topics are Honors-only in the guide.`
     : '';
 
-  const res=await callAI(qAiSys(),
+  const res=await callAI(
+`${qAiSys()}
+CRITICAL: your entire reply must be one JSON object and nothing else.
+Do not write any sentence before or after it. Do not use markdown code fences.
+Keep every string short so the object completes within the token limit.`,
 `Build a student study guide for this ${mode==='test'?'test':'worksheet'}.
 
 ${sheetContext()}
@@ -1483,14 +1559,34 @@ Return JSON exactly:
 }
 
 Set "level" on each topic to "both", "honors", or "regular".
-Use underscore/caret chemistry notation. 4-8 topics. Be specific to the actual content, never generic.`,
-  btn, 3000);
+Use underscore/caret chemistry notation. 4-6 topics, each with at most 4 bullets.
+Keep every string under 200 characters. Be specific to the actual content, never generic.`,
+  btn, 8000);
 
   if(!res)return;
-  let g=null;
-  try{g=JSON.parse(res.replace(/```json|```/g,'').trim());}
-  catch(e){qAiShow('Could not parse the response:\n\n'+res.slice(0,500));return;}
-  if(!g.topics){qAiShow(res);return;}
+  let g=extractJSON(res);
+
+  if(!g||!g.topics){
+    // One automatic retry, asking for a leaner object
+    qAiShow('First attempt came back malformed — retrying with a shorter format…');
+    const res2=await callAI(
+`You output ONLY valid JSON. No prose, no fences, ever.`,
+`Build a concise student study guide as JSON for this ${mode==='test'?'test':'worksheet'}.
+
+${sheetContext()}
+
+Return EXACTLY this shape, nothing else:
+{"title":"Study Guide — ...","overview":"2 sentences",
+ "topics":[{"name":"...","whatToKnow":["...","..."],"commonMistake":"...","practice":"...","level":"both"}],
+ "vocabulary":["term — definition"],"formulas":["..."],"selfCheck":["..."],"timePlan":"..."}
+
+4 topics max. Every string under 150 characters.`, btn, 8000);
+    g=extractJSON(res2);
+    if(!g||!g.topics){
+      qAiShow('Still could not parse it. Here is the raw response — you can copy what is useful:\n\n'+String(res2||res).slice(0,1500));
+      return;
+    }
+  }
 
   studyGuide=g;
   renderStudyGuide();
@@ -1559,6 +1655,97 @@ function clearStudyGuide(){
 }
 
 
+
+
+/* ── STUDY GUIDE LIBRARY ── */
+const SG_KEY='dc_study_guides_v1';
+let sgLib=[];
+
+function loadSGLib(){
+  try{sgLib=JSON.parse(localStorage.getItem(SG_KEY))||[];}catch{sgLib=[];}
+  renderSGLib();
+}
+function persistSGLib(){
+  localStorage.setItem(SG_KEY,JSON.stringify(sgLib));
+  renderSGLib();
+  if(typeof syncPush==='function')syncPush();
+}
+
+function saveStudyGuide(){
+  if(!studyGuide){qAiShow('Build a study guide first.');return;}
+  const course=document.getElementById('wsCourse').value.trim();
+  const unit=document.getElementById('wsUnit').value.trim();
+  const name=(studyGuide.title||'Study Guide');
+  const entry={
+    id:'sg'+Date.now(),
+    name, course, unit,
+    date:new Date().toISOString().slice(0,10),
+    guide:structuredClone(studyGuide)
+  };
+  // Replace a same-named guide for the same course instead of duplicating
+  const i=sgLib.findIndex(x=>x.name===name&&x.course===course);
+  if(i>=0)sgLib[i]=entry; else sgLib.unshift(entry);
+  persistSGLib();
+  flash('Study guide saved');
+}
+
+function openStudyGuide(id){
+  const e=sgLib.find(x=>x.id===id);
+  if(!e)return;
+  studyGuide=structuredClone(e.guide);
+  if(e.course&&!document.getElementById('wsCourse').value)document.getElementById('wsCourse').value=e.course;
+  if(e.unit&&!document.getElementById('wsUnit').value)document.getElementById('wsUnit').value=e.unit;
+  renderStudyGuide();
+  flash('Loaded: '+e.name);
+}
+
+function deleteStudyGuide(id){
+  const e=sgLib.find(x=>x.id===id);
+  if(!e)return;
+  if(!confirm('Delete "'+e.name+'"?'))return;
+  sgLib=sgLib.filter(x=>x.id!==id);
+  persistSGLib();
+}
+
+function renderSGLib(){
+  const el=document.getElementById('sgLibList');
+  if(!el)return;
+  document.getElementById('sgCount').textContent=sgLib.length?'('+sgLib.length+')':'';
+  if(!sgLib.length){
+    el.innerHTML=`<div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.06em;padding:5px 0">None saved yet</div>`;
+    return;
+  }
+  el.innerHTML=sgLib.map(e=>`
+    <div class="sg-lib-row">
+      <div style="flex:1;min-width:0">
+        <div class="sg-lib-name">${esc(e.name)}</div>
+        <div class="sg-lib-meta">${esc([e.course,e.unit].filter(Boolean).join(' · '))}${e.course||e.unit?' · ':''}${e.date}</div>
+      </div>
+      <button class="mini-btn" style="width:auto;margin:0;padding:4px 9px" onclick="openStudyGuide('${e.id}')">Open</button>
+      <button class="icon-btn danger" onclick="deleteStudyGuide('${e.id}')" style="padding:2px 4px">×</button>
+    </div>`).join('');
+}
+
+/* Print just the study guide, cleanly, as its own document */
+function printStudyGuide(){
+  if(!studyGuide){qAiShow('Build a study guide first.');return;}
+  const styleEl=document.querySelector('style');
+  const css=styleEl?styleEl.textContent:'';
+  const w=window.open('','_blank');
+  if(!w){qAiShow('Your browser blocked the popup — allow popups for this site, or use Print and choose only the guide page.');return;}
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8">
+    <title>${esc(studyGuide.title||'Study Guide')}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>${css}
+      body{background:#fff;margin:0;padding:0}
+      .paper{box-shadow:none;width:auto;min-height:0;padding:0;margin:0}
+      @page{size:letter;margin:.55in}
+    </style></head><body>${studyGuideHTML()}</body></html>`);
+  w.document.close();
+  // Give the fonts a moment, then open the print dialog
+  setTimeout(()=>{ w.focus(); w.print(); }, 700);
+}
 
 /* ═══ PER-VERSION QUOTAS — draw a different subset for each version ═══ */
 let quotas={};   // type -> how many each version should use
@@ -2707,7 +2894,7 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveSheet();}
 });
 
-loadApiKey();loadBank();
+loadApiKey();loadBank();loadSGLib();
 if(localStorage.getItem('dc_chembar_open')==='0')document.getElementById('chemBar').style.display='none';
 renderVerStrip();renderEditor();render();
 </script>
