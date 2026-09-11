@@ -676,6 +676,40 @@ h1 em {
 .pe-del:hover{color:#C43C1A}
 .pe-summary-box{background:#FFFDF5;border:1px solid #E8DFC0;border-radius:4px;padding:12px 14px;margin-top:.875rem;font-size:13px;line-height:1.7;color:var(--ink2);white-space:pre-wrap}
 
+/* ── CLASS AGENDA ── */
+.ca-preset{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px 10px;border-radius:4px;cursor:pointer;transition:opacity .12s;user-select:none}
+.ca-preset:hover{opacity:.78}
+.ca-preset button{background:none;border:none;color:inherit;opacity:.45;cursor:pointer;font-size:14px;line-height:1;padding:0}
+.ca-preset button:hover{opacity:1}
+.ca-day{border:1px solid var(--rule);border-radius:6px;margin-bottom:9px;background:#fff;overflow:hidden}
+.ca-day-head{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper2);border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.ca-day-n{font-family:'Fraunces',serif;font-size:14px;color:var(--ink);flex-shrink:0}
+.ca-day-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);flex-shrink:0;min-width:82px}
+.ca-topic{flex:1;min-width:130px;font-family:'Karla',sans-serif;font-size:13px;padding:5px 9px;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink);outline:none}
+.ca-topic:focus{border-color:var(--rule2)}
+.ca-mini{background:none;border:1px solid var(--rule);border-radius:3px;color:var(--ink3);cursor:pointer;font-size:11px;padding:3px 7px;transition:all .12s;flex-shrink:0}
+.ca-mini:hover:not(:disabled){border-color:var(--rule2);color:var(--ink)}
+.ca-mini:disabled{opacity:.3;cursor:default}
+.ca-mini.danger:hover{color:#C43C1A;border-color:#E8AF9A}
+.ca-items{padding:9px 12px;display:flex;flex-direction:column;gap:5px}
+.ca-item{display:flex;align-items:center;gap:6px}
+.ca-item-k{font-family:'Karla',sans-serif;font-size:12px;padding:5px 7px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);outline:none;flex-shrink:0;width:118px}
+.ca-item-t{flex:1;min-width:0;font-family:'Karla',sans-serif;font-size:13px;padding:5px 9px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);outline:none}
+.ca-item-t:focus{border-color:var(--rule2);background:#fff}
+.ca-hw-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);width:118px;flex-shrink:0;padding-left:4px}
+.ca-lvl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;width:30px;height:27px;flex-shrink:0;border-radius:3px;border:1px solid var(--rule);background:var(--paper);color:var(--ink3);cursor:pointer;transition:all .12s;padding:0}
+.ca-lvl.both{background:var(--paper2)}
+.ca-lvl.honors{background:#EEEBFB;color:#4A3A9A;border-color:#C4B8F0}
+.ca-lvl.regular{background:#E1F5EE;color:#0F6E56;border-color:#9AD4C4}
+.ca-add{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:none;border:1px dashed var(--rule);border-radius:4px;padding:6px 10px;color:var(--ink3);cursor:pointer;transition:all .12s;align-self:flex-start}
+.ca-add:hover{border-color:var(--rule2);color:var(--ink2)}
+
+@media (max-width:640px){
+  .ca-item{flex-wrap:wrap}
+  .ca-item-k,.ca-hw-lbl{width:100%}
+  .ca-item-t{min-width:140px}
+}
+
 </style>
 </head>
 <body>
@@ -716,6 +750,10 @@ h1 em {
     <div class="tab" onclick="switchTab('archive', this)">
       <div class="tab-dot" style="background:#6EC99A"></div>
       Meeting archive <span id="archCount" style="font-size:9px;opacity:.6;margin-left:2px"></span>
+    </div>
+    <div class="tab" onclick="switchTab('class', this)">
+      <div class="tab-dot" style="background:#D4A96A"></div>
+      Class agenda
     </div>
     <div class="tab" onclick="switchTab('people', this)">
       <div class="tab-dot" style="background:#C8B89A"></div>
@@ -1000,6 +1038,113 @@ h1 em {
 </div>
 </div>
 
+<!-- ═══ CLASS AGENDA TAB ═══ -->
+<div id="tab-class" class="panel-tab">
+<div style="max-width:1100px;margin:0 auto;padding:2rem 2.5rem 5rem">
+
+  <div class="card" style="margin-bottom:1.25rem">
+    <div class="card-header">
+      <div class="card-icon" style="background:#F5EDD8">📅</div>
+      <div style="flex:1">
+        <div class="card-title">Chapter agenda</div>
+        <div class="card-sub">Map a chapter day by day, then post it for students</div>
+      </div>
+      <button class="out-btn" onclick="importHattieUnit(this)">↓ Import from Hattie</button>
+    </div>
+    <div class="card-body">
+      <div class="field-row three">
+        <div class="field"><label>Chapter / unit</label>
+          <input type="text" id="ca-title" placeholder="Chapter 6 — Stoichiometry" oninput="renderAgendaOut()"></div>
+        <div class="field"><label>Course</label>
+          <input type="text" id="ca-course" placeholder="Chemistry" oninput="renderAgendaOut()"></div>
+        <div class="field"><label>Start date</label>
+          <input type="date" id="ca-start" onchange="reflowDates()"></div>
+      </div>
+      <div class="field-row three">
+        <div class="field"><label>School days</label>
+          <input type="number" id="ca-days" value="8" min="1" max="30" onchange="setDayCount()"></div>
+        <div class="field"><label>Skip weekends</label>
+          <select id="ca-skipwk" onchange="reflowDates()"><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="field"><label>Show</label>
+          <select id="ca-level" onchange="renderAgendaOut()">
+            <option value="both">Both levels</option>
+            <option value="regular">College Prep only</option>
+            <option value="honors">Honors only</option>
+          </select></div>
+      </div>
+      <div class="field-row full">
+        <div class="field"><label>Note for students (optional)</label>
+          <textarea id="ca-note" style="min-height:52px" placeholder="Test is Friday. Bring your calculator every day." oninput="renderAgendaOut()"></textarea></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recurring items -->
+  <div class="card" style="margin-bottom:1.25rem">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E3F0ED">🔁</div>
+      <div style="flex:1">
+        <div class="card-title">Your usual items</div>
+        <div class="card-sub">Click to drop one into a day — edit the presets to match how you run class</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="ca-presets" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="ca-new-preset" placeholder="Add a preset (e.g. Lab safety video)"
+          style="flex:1;min-width:170px;font-family:'Karla',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);outline:none"
+          onkeydown="if(event.key==='Enter')addPreset()">
+        <select id="ca-new-kind" style="font-family:'Karla',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);outline:none">
+          <option value="lesson">Lesson</option><option value="video">Video</option>
+          <option value="quiz">Quiz</option><option value="lab">Lab</option>
+          <option value="practice">Practice</option><option value="review">Review</option>
+          <option value="test">Test</option><option value="hw">Homework</option>
+        </select>
+        <button class="out-btn" onclick="addPreset()">Add preset</button>
+        <button class="out-btn" onclick="applyToAllDays()">Apply one to every day…</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day editor -->
+  <div class="card" style="margin-bottom:1.25rem">
+    <div class="card-header">
+      <div class="card-icon" style="background:#E6F1FB">📝</div>
+      <div style="flex:1">
+        <div class="card-title">Days</div>
+        <div class="card-sub" id="ca-daystat">—</div>
+      </div>
+      <button class="out-btn" onclick="addDay()">+ Add day</button>
+    </div>
+    <div style="padding:1rem 1.25rem" id="ca-days-list"></div>
+  </div>
+
+  <!-- Output -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#FAEEDA">📤</div>
+      <div style="flex:1">
+        <div class="card-title">Post to Schoology</div>
+        <div class="card-sub">Copy or download — formatting survives the paste</div>
+      </div>
+    </div>
+    <div style="padding:.875rem 1.25rem;border-bottom:1px solid var(--rule);display:flex;gap:7px;flex-wrap:wrap;background:var(--paper)">
+      <button class="out-btn green" onclick="copyAgendaRich(this)">Copy for Schoology</button>
+      <button class="out-btn" onclick="copyAgendaText(this)">Copy as plain text</button>
+      <button class="out-btn" onclick="downloadAgendaHTML()">Download .html</button>
+      <button class="out-btn" onclick="printAgenda()">Print / PDF</button>
+      <div style="flex:1"></div>
+      <button class="out-btn" onclick="saveAgenda()">Save</button>
+      <button class="out-btn" onclick="openAgendaLib()">Open</button>
+    </div>
+    <div style="padding:1.25rem;background:var(--paper2)">
+      <div id="ca-preview"></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
 <!-- ═══ PEOPLE LOG TAB ═══ -->
 <div id="tab-people" class="panel-tab">
 <div style="max-width:1100px;margin:0 auto;padding:2rem 2.5rem 5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start">
@@ -1137,6 +1282,17 @@ let applyingRemote=false,pushTimer=null;
 
 const SYNC_MAP={
   archive: {get:()=>archive, set:v=>{archive=v||[]; updateArchCount(); renderArchive();}},
+  classAgendas:{get:()=>caLib, set:v=>{
+    if(!Array.isArray(v))return;
+    const seen=new Map();
+    v.forEach(a=>seen.set(a.id||(a.title+'|'+a.course),a));
+    caLib.forEach(a=>{const k=a.id||(a.title+'|'+a.course);if(!seen.has(k))seen.set(k,a);});
+    caLib=[...seen.values()];
+    localStorage.setItem(CA_KEY,JSON.stringify(caLib));
+  }},
+  caPresets:{get:()=>caPresets, set:v=>{
+    if(Array.isArray(v)&&v.length){caPresets=v;localStorage.setItem(CA_PRESET_KEY,JSON.stringify(caPresets));renderPresets();}
+  }},
   people:  {get:()=>people,  set:v=>{people=v||[];  updatePeepCount(); refreshNameList(); renderPeople();}},
 };
 
@@ -1311,6 +1467,7 @@ window.addEventListener('load', () => {
   openTabFromURL();
   loadArchive();
   renderArchive();
+  loadCA();
   loadPeople();
   renderCatPicker();
   refreshNameList();
@@ -1737,6 +1894,430 @@ function exportArchive() {
   link.href = URL.createObjectURL(blob);
   link.download = `dc-meeting-archive-${new Date().toISOString().slice(0,10)}.txt`;
   link.click();
+}
+
+
+/* ═══════════════ CLASS AGENDA ═══════════════ */
+const CA_KEY='dc_class_agendas_v1';
+const CA_PRESET_KEY='dc_ca_presets_v1';
+const CA_CUR_KEY='dc_ca_current_v1';
+
+let caDays=[];
+let caPresets=[];
+let caLib=[];
+
+const KIND_META={
+  lesson:{ico:'📖',label:'Lesson',  col:'#2A4A7A',bg:'#E8EEF6'},
+  video: {ico:'🎬',label:'Video',   col:'#7A2B5E',bg:'#FBEAF3'},
+  quiz:  {ico:'✏️',label:'Quiz',    col:'#8B6914',bg:'#F5EDD8'},
+  lab:   {ico:'🧪',label:'Lab',     col:'#0F6E56',bg:'#E1F5EE'},
+  practice:{ico:'📝',label:'Practice',col:'#3A4652',bg:'#EDF0F3'},
+  review:{ico:'🔁',label:'Review',  col:'#5A3A9A',bg:'#EEEBFB'},
+  test:  {ico:'📋',label:'Test',    col:'#A03020',bg:'#FBE9E5'},
+  hw:    {ico:'🏠',label:'Homework',col:'#4A4A4A',bg:'#F0F0F0'}
+};
+
+const DEFAULT_PRESETS=[
+  {t:'Warm-up / bell work', k:'practice'},
+  {t:'Daily quiz',          k:'quiz'},
+  {t:'Notes & discussion',  k:'lesson'},
+  {t:'Intro video',         k:'video'},
+  {t:'Practice problems',   k:'practice'},
+  {t:'Lab activity',        k:'lab'},
+  {t:'Review for test',     k:'review'},
+  {t:'Chapter test',        k:'test'},
+  {t:'Textbook problems',   k:'hw'}
+];
+
+function loadCA(){
+  try{caPresets=JSON.parse(localStorage.getItem(CA_PRESET_KEY))||[];}catch{caPresets=[];}
+  if(!caPresets.length){caPresets=structuredClone(DEFAULT_PRESETS);persistPresets();}
+  try{caLib=JSON.parse(localStorage.getItem(CA_KEY))||[];}catch{caLib=[];}
+  let cur=null;
+  try{cur=JSON.parse(localStorage.getItem(CA_CUR_KEY));}catch{}
+  if(cur){
+    caDays=cur.days||[];
+    ['title','course','start','days','skipwk','level','note'].forEach(f=>{
+      const el=document.getElementById('ca-'+f);
+      if(el&&cur[f]!==undefined)el.value=cur[f];
+    });
+  }
+  if(!caDays.length)setDayCount();
+  renderPresets();renderDays();renderAgendaOut();
+}
+
+function persistPresets(){localStorage.setItem(CA_PRESET_KEY,JSON.stringify(caPresets));}
+function persistCA(){
+  const cur={days:caDays};
+  ['title','course','start','days','skipwk','level','note'].forEach(f=>{
+    const el=document.getElementById('ca-'+f); if(el)cur[f]=el.value;
+  });
+  localStorage.setItem(CA_CUR_KEY,JSON.stringify(cur));
+  if(typeof syncPush==='function')syncPush();
+}
+
+/* ── Presets ── */
+function renderPresets(){
+  const el=document.getElementById('ca-presets');
+  if(!el)return;
+  el.innerHTML=caPresets.map((p,i)=>{
+    const m=KIND_META[p.k]||KIND_META.lesson;
+    return `<span class="ca-preset" style="background:${m.bg};color:${m.col}" onclick="usePreset(${i})" title="Click to add to a day">
+      ${m.ico} ${escapeHtml(p.t)}
+      <button onclick="event.stopPropagation();delPreset(${i})" title="Remove preset">×</button>
+    </span>`;
+  }).join('');
+}
+function addPreset(){
+  const t=document.getElementById('ca-new-preset').value.trim();
+  if(!t)return;
+  caPresets.push({t,k:document.getElementById('ca-new-kind').value});
+  document.getElementById('ca-new-preset').value='';
+  persistPresets();renderPresets();
+}
+function delPreset(i){caPresets.splice(i,1);persistPresets();renderPresets();}
+
+let presetTarget=null;
+function usePreset(i){
+  const p=caPresets[i];
+  if(presetTarget!==null&&caDays[presetTarget]){
+    caDays[presetTarget].items.push({t:p.t,k:p.k,lvl:'both'});
+    persistCA();renderDays();renderAgendaOut();
+  }else{
+    flashCA('Click "+ item" on a day first, then pick a preset');
+  }
+}
+function applyToAllDays(){
+  const names=caPresets.map((p,i)=>`${i+1}. ${p.t}`).join('\n');
+  const pick=prompt('Add which preset to EVERY day?\n\n'+names+'\n\nEnter a number:');
+  const i=parseInt(pick)-1;
+  if(isNaN(i)||!caPresets[i])return;
+  const p=caPresets[i];
+  caDays.forEach(d=>d.items.push({t:p.t,k:p.k,lvl:'both'}));
+  persistCA();renderDays();renderAgendaOut();
+}
+
+/* ── Days ── */
+function blankDay(n){return {n,date:'',topic:'',items:[],hw:''};}
+
+function setDayCount(){
+  const want=+document.getElementById('ca-days').value||8;
+  while(caDays.length<want)caDays.push(blankDay(caDays.length+1));
+  while(caDays.length>want)caDays.pop();
+  caDays.forEach((d,i)=>d.n=i+1);
+  reflowDates();
+}
+function addDay(){
+  caDays.push(blankDay(caDays.length+1));
+  document.getElementById('ca-days').value=caDays.length;
+  reflowDates();
+}
+function delDay(i){
+  caDays.splice(i,1);
+  caDays.forEach((d,j)=>d.n=j+1);
+  document.getElementById('ca-days').value=caDays.length;
+  reflowDates();
+}
+function moveDay(i,dir){
+  const j=i+dir; if(j<0||j>=caDays.length)return;
+  [caDays[i],caDays[j]]=[caDays[j],caDays[i]];
+  caDays.forEach((d,k)=>d.n=k+1);
+  reflowDates();
+}
+
+function reflowDates(){
+  const start=document.getElementById('ca-start').value;
+  const skip=document.getElementById('ca-skipwk').value==='yes';
+  if(start){
+    let d=new Date(start+'T12:00:00');
+    caDays.forEach(day=>{
+      if(skip)while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);
+      day.date=d.toISOString().slice(0,10);
+      d.setDate(d.getDate()+1);
+    });
+  }
+  persistCA();renderDays();renderAgendaOut();
+}
+
+function updDay(i,f,v){caDays[i][f]=v;persistCA();renderAgendaOut();}
+function updItem(i,j,f,v){caDays[i].items[j][f]=v;persistCA();renderAgendaOut();}
+function delItem(i,j){caDays[i].items.splice(j,1);persistCA();renderDays();renderAgendaOut();}
+function addItem(i){
+  presetTarget=i;
+  caDays[i].items.push({t:'',k:'lesson',lvl:'both'});
+  persistCA();renderDays();renderAgendaOut();
+  setTimeout(()=>{
+    const inputs=document.querySelectorAll(`#ca-day-${i} .ca-item-t`);
+    inputs[inputs.length-1]?.focus();
+  },30);
+}
+function cycleItemLvl(i,j){
+  const cur=caDays[i].items[j].lvl||'both';
+  caDays[i].items[j].lvl = cur==='both'?'honors':cur==='honors'?'regular':'both';
+  persistCA();renderDays();renderAgendaOut();
+}
+
+function fmtDate(d){
+  if(!d)return '';
+  const dt=new Date(d+'T12:00:00');
+  return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+
+function renderDays(){
+  const el=document.getElementById('ca-days-list');
+  if(!el)return;
+  document.getElementById('ca-daystat').textContent=
+    caDays.length+' day'+(caDays.length===1?'':'s')+
+    ' · '+caDays.reduce((s,d)=>s+d.items.length,0)+' items';
+
+  el.innerHTML=caDays.map((d,i)=>`
+    <div class="ca-day" id="ca-day-${i}">
+      <div class="ca-day-head">
+        <span class="ca-day-n">Day ${d.n}</span>
+        <span class="ca-day-date">${fmtDate(d.date)||'—'}</span>
+        <input class="ca-topic" value="${escapeHtml(d.topic)}" placeholder="Topic for this day"
+          oninput="updDay(${i},'topic',this.value)">
+        <button class="ca-mini" onclick="moveDay(${i},-1)" ${i===0?'disabled':''}>↑</button>
+        <button class="ca-mini" onclick="moveDay(${i},1)" ${i===caDays.length-1?'disabled':''}>↓</button>
+        <button class="ca-mini danger" onclick="delDay(${i})">×</button>
+      </div>
+      <div class="ca-items">
+        ${d.items.map((it,j)=>{
+          const m=KIND_META[it.k]||KIND_META.lesson;
+          const lv=it.lvl||'both';
+          return `<div class="ca-item">
+            <select class="ca-item-k" onchange="updItem(${i},${j},'k',this.value)" style="color:${m.col}">
+              ${Object.entries(KIND_META).map(([k,v])=>
+                `<option value="${k}" ${it.k===k?'selected':''}>${v.ico} ${v.label}</option>`).join('')}
+            </select>
+            <input class="ca-item-t" value="${escapeHtml(it.t)}" placeholder="What happens…"
+              oninput="updItem(${i},${j},'t',this.value)">
+            <button class="ca-lvl ${lv}" onclick="cycleItemLvl(${i},${j})"
+              title="Both / Honors only / College Prep only">${lv==='both'?'B':lv==='honors'?'H':'CP'}</button>
+            <button class="ca-mini danger" onclick="delItem(${i},${j})">×</button>
+          </div>`;
+        }).join('')}
+        <div class="ca-item">
+          <span class="ca-hw-lbl">🏠 HW</span>
+          <input class="ca-item-t" value="${escapeHtml(d.hw)}" placeholder="Homework for tonight…"
+            oninput="updDay(${i},'hw',this.value)">
+        </div>
+        <button class="ca-add" onclick="addItem(${i})">+ item</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ── Output ── */
+function agendaVisible(it,lvl){
+  const l=it.lvl||'both';
+  return lvl==='both'||l==='both'||l===lvl;
+}
+
+function agendaHTML(forLevel){
+  const title=document.getElementById('ca-title').value.trim()||'Chapter Agenda';
+  const course=document.getElementById('ca-course').value.trim();
+  const note=document.getElementById('ca-note').value.trim();
+  const lvl=forLevel||document.getElementById('ca-level').value;
+  const lvlName=lvl==='honors'?'Honors':lvl==='regular'?'College Prep':'';
+
+  let h=`<div style="font-family:Georgia,'Times New Roman',serif;max-width:760px;color:#1a1a1a">
+  <h2 style="margin:0 0 4px;font-size:20px">${escapeHtml(title)}</h2>
+  <div style="font-size:13px;color:#555;margin-bottom:14px">
+    ${escapeHtml([course,lvlName].filter(Boolean).join(' · '))}
+  </div>`;
+
+  if(note)h+=`<div style="background:#FFF8E6;border-left:3px solid #D9A93B;padding:9px 13px;margin-bottom:16px;font-size:14px;line-height:1.55">${escapeHtml(note)}</div>`;
+
+  caDays.forEach(d=>{
+    const items=d.items.filter(it=>agendaVisible(it,lvl)&&(it.t||'').trim());
+    if(!items.length&&!(d.topic||'').trim()&&!(d.hw||'').trim())return;
+    h+=`<div style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #ddd">
+      <div style="font-weight:bold;font-size:15px;margin-bottom:2px">
+        Day ${d.n}${d.date?' — '+fmtDate(d.date):''}
+      </div>
+      ${d.topic?`<div style="font-size:14px;color:#333;margin-bottom:7px">${escapeHtml(d.topic)}</div>`:''}
+      <ul style="margin:0 0 6px 20px;padding:0;font-size:14px;line-height:1.7">
+        ${items.map(it=>{
+          const m=KIND_META[it.k]||KIND_META.lesson;
+          const tag=(it.lvl&&it.lvl!=='both'&&lvl==='both')
+            ? ` <span style="font-size:11px;background:${it.lvl==='honors'?'#EEEBFB':'#E1F5EE'};color:${it.lvl==='honors'?'#4A3A9A':'#0F6E56'};padding:1px 6px;border-radius:3px">${it.lvl==='honors'?'Honors':'CP'}</span>`
+            : '';
+          return `<li>${m.ico} <strong>${m.label}:</strong> ${escapeHtml(it.t)}${tag}</li>`;
+        }).join('')}
+      </ul>
+      ${(d.hw||'').trim()?`<div style="font-size:14px;margin-left:20px;color:#444"><strong>🏠 Homework:</strong> ${escapeHtml(d.hw)}</div>`:''}
+    </div>`;
+  });
+
+  h+=`</div>`;
+  return h;
+}
+
+function agendaText(forLevel){
+  const title=document.getElementById('ca-title').value.trim()||'Chapter Agenda';
+  const course=document.getElementById('ca-course').value.trim();
+  const note=document.getElementById('ca-note').value.trim();
+  const lvl=forLevel||document.getElementById('ca-level').value;
+  const lvlName=lvl==='honors'?'Honors':lvl==='regular'?'College Prep':'';
+  const L=[title];
+  if(course||lvlName)L.push([course,lvlName].filter(Boolean).join(' · '));
+  L.push('='.repeat(46));
+  if(note)L.push('','** '+note+' **');
+  caDays.forEach(d=>{
+    const items=d.items.filter(it=>agendaVisible(it,lvl)&&(it.t||'').trim());
+    if(!items.length&&!(d.topic||'').trim()&&!(d.hw||'').trim())return;
+    L.push('','DAY '+d.n+(d.date?' — '+fmtDate(d.date):''));
+    if(d.topic)L.push(d.topic);
+    items.forEach(it=>{
+      const m=KIND_META[it.k]||KIND_META.lesson;
+      const tag=(it.lvl&&it.lvl!=='both'&&lvl==='both')?' ['+(it.lvl==='honors'?'Honors':'CP')+']':'';
+      L.push('  • '+m.label+': '+it.t+tag);
+    });
+    if((d.hw||'').trim())L.push('  HW: '+d.hw);
+  });
+  return L.join('\n');
+}
+
+function renderAgendaOut(){
+  const el=document.getElementById('ca-preview');
+  if(!el)return;
+  persistCA();
+  const lvl=document.getElementById('ca-level').value;
+  if(lvl==='both'){
+    el.innerHTML=agendaHTML('both');
+  }else{
+    el.innerHTML=agendaHTML(lvl);
+  }
+}
+
+async function copyAgendaRich(btn){
+  const html=agendaHTML();
+  const text=agendaText();
+  try{
+    await navigator.clipboard.write([new ClipboardItem({
+      'text/html':new Blob([html],{type:'text/html'}),
+      'text/plain':new Blob([text],{type:'text/plain'})
+    })]);
+    const o=btn.textContent;btn.textContent='✓ Copied — paste into Schoology';
+    setTimeout(()=>btn.textContent=o,2600);
+  }catch(e){
+    await navigator.clipboard.writeText(text);
+    const o=btn.textContent;btn.textContent='✓ Copied as text';
+    setTimeout(()=>btn.textContent=o,2200);
+  }
+}
+
+async function copyAgendaText(btn){
+  await navigator.clipboard.writeText(agendaText());
+  const o=btn.textContent;btn.textContent='✓ Copied';
+  setTimeout(()=>btn.textContent=o,1800);
+}
+
+function downloadAgendaHTML(){
+  const title=document.getElementById('ca-title').value.trim()||'Chapter Agenda';
+  const lvl=document.getElementById('ca-level').value;
+  const body = lvl==='both'
+    ? agendaHTML('regular')+'<div style="page-break-before:always;height:28px"></div>'+agendaHTML('honors')
+    : agendaHTML(lvl);
+  const doc=`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
+    <body style="margin:26px">${body}</body></html>`;
+  const blob=new Blob([doc],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.html';
+  a.click();
+}
+
+function printAgenda(){
+  const lvl=document.getElementById('ca-level').value;
+  const body = lvl==='both'
+    ? agendaHTML('regular')+'<div style="page-break-before:always"></div>'+agendaHTML('honors')
+    : agendaHTML(lvl);
+  const w=window.open('','_blank');
+  if(!w){flashCA('Popup blocked — allow popups for this site.');return;}
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8">
+    <title>${escapeHtml(document.getElementById('ca-title').value||'Agenda')}</title>
+    <style>@page{size:letter;margin:.6in}body{margin:0}</style></head>
+    <body>${body}</body></html>`);
+  w.document.close();
+  setTimeout(()=>{w.focus();w.print();},400);
+}
+
+/* ── Save / open ── */
+function saveAgenda(){
+  const title=document.getElementById('ca-title').value.trim();
+  if(!title){flashCA('Give the chapter a title first.');return;}
+  const entry={id:'ca'+Date.now(),title,
+    course:document.getElementById('ca-course').value.trim(),
+    date:new Date().toISOString().slice(0,10),
+    days:structuredClone(caDays),
+    note:document.getElementById('ca-note').value,
+    start:document.getElementById('ca-start').value};
+  const i=caLib.findIndex(x=>x.title===title&&x.course===entry.course);
+  if(i>=0)caLib[i]=entry; else caLib.unshift(entry);
+  localStorage.setItem(CA_KEY,JSON.stringify(caLib));
+  if(typeof syncPush==='function')syncPush();
+  flashCA('Saved: '+title);
+}
+
+function openAgendaLib(){
+  if(!caLib.length){flashCA('Nothing saved yet.');return;}
+  const list=caLib.map((e,i)=>`${i+1}. ${e.title}${e.course?' ('+e.course+')':''} — ${e.date}`).join('\n');
+  const pick=prompt('Open which agenda?\n\n'+list+'\n\nEnter a number (or "d3" to delete #3):');
+  if(!pick)return;
+  if(/^d\d+$/i.test(pick.trim())){
+    const di=parseInt(pick.trim().slice(1))-1;
+    if(caLib[di]&&confirm('Delete "'+caLib[di].title+'"?')){
+      caLib.splice(di,1);
+      localStorage.setItem(CA_KEY,JSON.stringify(caLib));
+      if(typeof syncPush==='function')syncPush();
+      flashCA('Deleted');
+    }
+    return;
+  }
+  const i=parseInt(pick)-1;
+  const e=caLib[i]; if(!e)return;
+  caDays=structuredClone(e.days||[]);
+  document.getElementById('ca-title').value=e.title||'';
+  document.getElementById('ca-course').value=e.course||'';
+  document.getElementById('ca-note').value=e.note||'';
+  document.getElementById('ca-start').value=e.start||'';
+  document.getElementById('ca-days').value=caDays.length||1;
+  persistCA();renderDays();renderAgendaOut();
+  flashCA('Loaded: '+e.title);
+}
+
+/* ── Import a unit plan from the Hattie planner ── */
+function importHattieUnit(btn){
+  let unit=null;
+  try{unit=JSON.parse(localStorage.getItem('dc_hattie_unit_v1'));}catch{}
+  if(!unit||!unit.days||!unit.days.length){
+    flashCA('No unit plan found. Build one in the Hattie Lesson Planner first.');
+    return;
+  }
+  if(caDays.some(d=>d.items.length)&&!confirm('Replace the current days with the '+unit.days.length+'-day unit plan?'))return;
+
+  caDays=unit.days.map((d,i)=>({
+    n:i+1, date:'', topic:d.focus||d.li||'',
+    items:[
+      ...(d.li?[{t:'Goal: '+d.li,k:'lesson',lvl:'both'}]:[]),
+      ...(d.hinge?[{t:'Check: '+d.hinge,k:'quiz',lvl:'both'}]:[])
+    ],
+    hw:''
+  }));
+  if(unit.unitTitle&&!document.getElementById('ca-title').value)
+    document.getElementById('ca-title').value=unit.unitTitle;
+  document.getElementById('ca-days').value=caDays.length;
+  reflowDates();
+  flashCA('Imported '+caDays.length+' days — now add your videos, quizzes, and homework');
+}
+
+function flashCA(msg){
+  const el=document.createElement('div');
+  el.textContent=msg;
+  el.style.cssText='position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1C1814;color:#F0EDE8;font-family:Karla,sans-serif;font-size:13px;padding:10px 18px;border-radius:5px;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:90vw;text-align:center';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2600);
 }
 
 // ══════════════ PEOPLE LOG ══════════════
