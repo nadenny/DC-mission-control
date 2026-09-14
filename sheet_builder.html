@@ -720,6 +720,15 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 </div>
 
 <script>
+
+/* structuredClone is missing in older Android WebViews — fall back to a JSON clone. */
+if(typeof structuredClone!=='function'){
+  window.structuredClone=function(o){
+    try{ return o===undefined?undefined:JSON.parse(JSON.stringify(o)); }
+    catch(e){ return o; }
+  };
+}
+
 const SAVE_KEY='dc_sheets_v2';
 let mode='worksheet';
 let questions=[];

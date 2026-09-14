@@ -1386,6 +1386,15 @@ function syncPush(){
   pushTimer=setTimeout(pushAll,400);
 }
 
+
+/* structuredClone is missing in older Android WebViews — fall back to a JSON clone. */
+if(typeof structuredClone!=='function'){
+  window.structuredClone=function(o){
+    try{ return o===undefined?undefined:JSON.parse(JSON.stringify(o)); }
+    catch(e){ return o; }
+  };
+}
+
 // ── Tab switching ──
 function switchTab(name, el) {
   document.querySelectorAll('.panel-tab').forEach(p => p.classList.remove('active'));
@@ -1463,25 +1472,33 @@ function openTabFromURL(){
 
 // Restore saved key on load
 window.addEventListener('load', () => {
-  initFirebase();
-  openTabFromURL();
-  loadArchive();
-  renderArchive();
-  loadCA();
-  loadPeople();
-  renderCatPicker();
-  refreshNameList();
-  renderPeople();
-  const pd = document.getElementById('pe-date');
-  if (pd) pd.value = new Date().toISOString().slice(0,10);
-  const saved = localStorage.getItem('dc_meeting_apikey');
-  if (saved) {
-    document.getElementById('apiKey').value = saved;
-    apiKey = saved;
-    const status = document.getElementById('apiStatus');
-    status.textContent = 'Key saved ✓ — stays in this browser';
-    status.className = 'api-status ok';
-  }
+  // Restore the API key FIRST so a later failure can never wipe it
+  try{
+    const saved = localStorage.getItem('dc_meeting_apikey');
+    if (saved) {
+      document.getElementById('apiKey').value = saved;
+      apiKey = saved;
+      const status = document.getElementById('apiStatus');
+      if(status){
+        status.textContent = 'Key saved \u2713 \u2014 stays in this browser';
+        status.className = 'api-status ok';
+      }
+    }
+  }catch(e){ console.warn('api key restore failed',e); }
+
+  // Each init runs independently — one failure cannot stop the others
+  const boot=[
+    ['firebase', initFirebase],
+    ['deeplink', openTabFromURL],
+    ['archive',  ()=>{ loadArchive(); renderArchive(); }],
+    ['people',   ()=>{ loadPeople(); renderCatPicker(); refreshNameList(); renderPeople();
+                       const pd=document.getElementById('pe-date');
+                       if(pd) pd.value=new Date().toISOString().slice(0,10); }],
+    ['class',    loadCA]
+  ];
+  boot.forEach(([name,fn])=>{
+    try{ fn(); }catch(e){ console.warn('init failed:',name,e); }
+  });
 });
 
 function onLengthChange(){
