@@ -701,6 +701,11 @@ h1 em {
 .ca-lvl.both{background:var(--paper2)}
 .ca-lvl.honors{background:#EEEBFB;color:#4A3A9A;border-color:#C4B8F0}
 .ca-lvl.regular{background:#E1F5EE;color:#0F6E56;border-color:#9AD4C4}
+.ca-ord{display:flex;flex-direction:column;gap:1px;flex-shrink:0}
+.ca-arrow{background:none;border:1px solid var(--rule);border-radius:2px;color:var(--ink3);cursor:pointer;
+  font-size:7px;line-height:1;padding:2px 4px;width:20px;transition:all .12s}
+.ca-arrow:hover:not(:disabled){border-color:var(--rule2);color:var(--ink);background:var(--paper2)}
+.ca-arrow:disabled{opacity:.25;cursor:default}
 .ca-add{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:none;border:1px dashed var(--rule);border-radius:4px;padding:6px 10px;color:var(--ink3);cursor:pointer;transition:all .12s;align-self:flex-start}
 .ca-add:hover{border-color:var(--rule2);color:var(--ink2)}
 
@@ -719,7 +724,7 @@ h1 em {
     <div class="header-left">
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:8px;flex-wrap:wrap">
         <a href="dc_mission_control.html" style="display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);text-decoration:none;padding:4px 9px;border:1px solid rgba(255,255,255,.14);border-radius:4px">← Mission Control</a>
-        <span id="buildStamp" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-27</span>
+        <span id="buildStamp" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-28</span>
         <button id="syncChip" onclick="openSync()" style="display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:4px;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.45);cursor:pointer">
           <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3)"></span>
           <span id="syncLabel">Offline</span>
@@ -1064,14 +1069,24 @@ h1 em {
       <div class="field-row three">
         <div class="field"><label>School days</label>
           <input type="number" id="ca-days" value="8" min="1" max="30" onchange="setDayCount()"></div>
-        <div class="field"><label>Skip weekends</label>
-          <select id="ca-skipwk" onchange="reflowDates()"><option value="yes">Yes</option><option value="no">No</option></select></div>
+        <div class="field"><label>Meeting pattern</label>
+          <select id="ca-pattern" onchange="reflowDates()">
+            <option value="daily">Every school day</option>
+            <option value="ab">A/B block — every other day</option>
+            <option value="mwf">Mon / Wed / Fri</option>
+            <option value="tth">Tue / Thu</option>
+          </select></div>
         <div class="field"><label>Show</label>
           <select id="ca-level" onchange="renderAgendaOut()">
             <option value="both">Both levels</option>
             <option value="regular">College Prep only</option>
             <option value="honors">Honors only</option>
           </select></div>
+      </div>
+      <div class="field-row full">
+        <div class="field"><label>Days off to skip (optional)</label>
+          <input type="text" id="ca-skipdates" placeholder="2026-09-07, 2026-11-26  — holidays, no-school days"
+            oninput="reflowDates()"></div>
       </div>
       <div class="field-row full">
         <div class="field"><label>Note for students (optional)</label>
@@ -2066,37 +2081,75 @@ function moveDay(i,dir){
   reflowDates();
 }
 
-function reflowDatesQuiet(){
-  const el=document.getElementById('ca-start');
-  const start=el?el.value:'';
-  const skipEl=document.getElementById('ca-skipwk');
-  const skip=skipEl?skipEl.value==='yes':true;
-  if(!start)return;
+function skipDateSet(){
+  const raw=(document.getElementById('ca-skipdates')||{}).value||'';
+  return new Set(raw.split(/[,\s]+/).map(x=>x.trim()).filter(Boolean));
+}
+
+function isSchoolDay(d,skips){
+  const wd=d.getDay();
+  if(wd===0||wd===6)return false;
+  return !skips.has(d.toISOString().slice(0,10));
+}
+
+/* Walk forward from the start date, handing out class meeting dates
+   according to the chosen pattern. */
+function computeDates(){
+  const startEl=document.getElementById('ca-start');
+  const start=startEl?startEl.value:'';
+  if(!start)return [];
+  const pattern=(document.getElementById('ca-pattern')||{}).value||'daily';
+  const skips=skipDateSet();
+  const out=[];
   let d=new Date(start+'T12:00:00');
-  caDays.forEach(day=>{
-    if(skip)while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);
-    day.date=d.toISOString().slice(0,10);
+  let schoolDayIdx=0;
+  let guard=0;
+
+  while(out.length<caDays.length && guard++<400){
+    if(isSchoolDay(d,skips)){
+      const wd=d.getDay();
+      let take=false;
+      if(pattern==='daily')     take=true;
+      else if(pattern==='ab')   take=(schoolDayIdx%2===0);
+      else if(pattern==='mwf')  take=(wd===1||wd===3||wd===5);
+      else if(pattern==='tth')  take=(wd===2||wd===4);
+      if(take)out.push(d.toISOString().slice(0,10));
+      schoolDayIdx++;
+    }
     d.setDate(d.getDate()+1);
-  });
+  }
+  return out;
+}
+
+function reflowDatesQuiet(){
+  const dates=computeDates();
+  caDays.forEach((day,i)=>{ day.date=dates[i]||''; });
 }
 
 function reflowDates(){
-  const start=document.getElementById('ca-start').value;
-  const skip=document.getElementById('ca-skipwk').value==='yes';
-  if(start){
-    let d=new Date(start+'T12:00:00');
-    caDays.forEach(day=>{
-      if(skip)while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);
-      day.date=d.toISOString().slice(0,10);
-      d.setDate(d.getDate()+1);
-    });
-  }
+  reflowDatesQuiet();
   persistCA();renderDays();renderAgendaOut();
 }
 
 function updDay(i,f,v){caDays[i][f]=v;persistCA();renderAgendaOut();}
 function updItem(i,j,f,v){caDays[i].items[j][f]=v;persistCA();renderAgendaOut();}
 function delItem(i,j){caDays[i].items.splice(j,1);persistCA();renderDays();renderAgendaOut();}
+function moveItem(i,j,dir){
+  const items=caDays[i].items;
+  const k=j+dir;
+  if(k<0||k>=items.length)return;
+  [items[j],items[k]]=[items[k],items[j]];
+  persistCA();renderDays();renderAgendaOut();
+}
+/* Move an item to a different day, keeping its position sensible */
+function bumpItemDay(i,j,dir){
+  const target=i+dir;
+  if(target<0||target>=caDays.length)return;
+  const it=caDays[i].items.splice(j,1)[0];
+  if(!it)return;
+  if(dir<0)caDays[target].items.push(it); else caDays[target].items.unshift(it);
+  persistCA();renderDays();renderAgendaOut();
+}
 function addItem(i){
   presetTarget=i;
   caDays[i].items.push({t:'',k:'lesson',lvl:'both'});
@@ -2149,6 +2202,10 @@ function renderDays(){
           const m=KIND_META[it.k]||KIND_META.lesson;
           const lv=it.lvl||'both';
           return `<div class="ca-item">
+            <span class="ca-ord">
+              <button class="ca-arrow" onclick="moveItem(${i},${j},-1)" ${j===0?'disabled':''} title="Move up">▲</button>
+              <button class="ca-arrow" onclick="moveItem(${i},${j},1)" ${j===d.items.length-1?'disabled':''} title="Move down">▼</button>
+            </span>
             <select class="ca-item-k" onchange="updItem(${i},${j},'k',this.value)" style="color:${m.col}">
               ${Object.entries(KIND_META).map(([k,v])=>
                 `<option value="${k}" ${it.k===k?'selected':''}>${v.ico} ${v.label}</option>`).join('')}
@@ -2157,10 +2214,13 @@ function renderDays(){
               oninput="updItem(${i},${j},'t',this.value)">
             <button class="ca-lvl ${lv}" onclick="cycleItemLvl(${i},${j})"
               title="Both / Honors only / College Prep only">${lv==='both'?'B':lv==='honors'?'H':'CP'}</button>
+            <button class="ca-mini" onclick="bumpItemDay(${i},${j},-1)" ${i===0?'disabled':''} title="Move to previous day">«</button>
+            <button class="ca-mini" onclick="bumpItemDay(${i},${j},1)" ${i===caDays.length-1?'disabled':''} title="Move to next day">»</button>
             <button class="ca-mini danger" onclick="delItem(${i},${j})">×</button>
           </div>`;
         }).join('')}
         <div class="ca-item">
+          <span class="ca-ord" style="visibility:hidden"><button class="ca-arrow">▲</button><button class="ca-arrow">▼</button></span>
           <span class="ca-hw-lbl">🏠 HW</span>
           <input class="ca-item-t" value="${escapeHtml(d.hw)}" placeholder="Homework for tonight…"
             oninput="updDay(${i},'hw',this.value)">
