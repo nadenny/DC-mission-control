@@ -684,7 +684,7 @@ h1 em {
 .ca-day{border:1px solid var(--rule);border-radius:6px;margin-bottom:9px;background:#fff;overflow:hidden}
 .ca-day-head{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper2);border-bottom:1px solid var(--rule);flex-wrap:wrap}
 .ca-day-n{font-family:'Fraunces',serif;font-size:14px;color:var(--ink);flex-shrink:0}
-.ca-day-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);flex-shrink:0;min-width:82px}
+.ca-day-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);flex-shrink:0;min-width:150px;line-height:1.35}
 .ca-topic{flex:1;min-width:130px;font-family:'Karla',sans-serif;font-size:13px;padding:5px 9px;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink);outline:none}
 .ca-topic:focus{border-color:var(--rule2)}
 .ca-mini{background:none;border:1px solid var(--rule);border-radius:3px;color:var(--ink3);cursor:pointer;font-size:11px;padding:3px 7px;transition:all .12s;flex-shrink:0}
@@ -724,7 +724,7 @@ h1 em {
     <div class="header-left">
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:8px;flex-wrap:wrap">
         <a href="dc_mission_control.html" style="display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);text-decoration:none;padding:4px 9px;border:1px solid rgba(255,255,255,.14);border-radius:4px">← Mission Control</a>
-        <span id="buildStamp" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-28</span>
+        <span id="buildStamp" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-29</span>
         <button id="syncChip" onclick="openSync()" style="display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:4px;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.45);cursor:pointer">
           <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3)"></span>
           <span id="syncLabel">Offline</span>
@@ -1071,8 +1071,9 @@ h1 em {
           <input type="number" id="ca-days" value="8" min="1" max="30" onchange="setDayCount()"></div>
         <div class="field"><label>Meeting pattern</label>
           <select id="ca-pattern" onchange="reflowDates()">
+            <option value="abboth" selected>A/B block — same lesson on both days</option>
             <option value="daily">Every school day</option>
-            <option value="ab">A/B block — every other day</option>
+            <option value="ab">A/B block — one section only</option>
             <option value="mwf">Mon / Wed / Fri</option>
             <option value="tth">Tue / Thu</option>
           </select></div>
@@ -1988,6 +1989,7 @@ function loadCA(){
   caDays=caDays.filter(d=>d&&typeof d==='object').map((d,i)=>({
     n:i+1,
     date:d.date||'',
+    date2:d.date2||'',
     topic:d.topic||'',
     hw:d.hw||'',
     items:Array.isArray(d.items)?d.items.filter(x=>x&&typeof x==='object'):[]
@@ -2054,7 +2056,7 @@ function applyToAllDays(){
 }
 
 /* ── Days ── */
-function blankDay(n){return {n,date:'',topic:'',items:[],hw:''};}
+function blankDay(n){return {n,date:'',date2:'',topic:'',items:[],hw:''};}
 
 function setDayCount(){
   const want=+document.getElementById('ca-days').value||8;
@@ -2105,6 +2107,20 @@ function computeDates(){
   let schoolDayIdx=0;
   let guard=0;
 
+  // "Same lesson on both days" consumes school days in consecutive pairs
+  if(pattern==='abboth'){
+    let pair=[];
+    while(out.length<caDays.length && guard++<600){
+      if(isSchoolDay(d,skips)){
+        pair.push(d.toISOString().slice(0,10));
+        if(pair.length===2){ out.push(pair); pair=[]; }
+      }
+      d.setDate(d.getDate()+1);
+    }
+    if(pair.length&&out.length<caDays.length)out.push(pair);
+    return out;
+  }
+
   while(out.length<caDays.length && guard++<400){
     if(isSchoolDay(d,skips)){
       const wd=d.getDay();
@@ -2113,7 +2129,7 @@ function computeDates(){
       else if(pattern==='ab')   take=(schoolDayIdx%2===0);
       else if(pattern==='mwf')  take=(wd===1||wd===3||wd===5);
       else if(pattern==='tth')  take=(wd===2||wd===4);
-      if(take)out.push(d.toISOString().slice(0,10));
+      if(take)out.push([d.toISOString().slice(0,10)]);
       schoolDayIdx++;
     }
     d.setDate(d.getDate()+1);
@@ -2123,7 +2139,11 @@ function computeDates(){
 
 function reflowDatesQuiet(){
   const dates=computeDates();
-  caDays.forEach((day,i)=>{ day.date=dates[i]||''; });
+  caDays.forEach((day,i)=>{
+    const slot=dates[i]||[];
+    day.date  = slot[0]||'';
+    day.date2 = slot[1]||'';
+  });
 }
 
 function reflowDates(){
@@ -2171,6 +2191,21 @@ function fmtDate(d){
   return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 }
 
+/* Long form for the printed agenda: "Monday, September 14" */
+function fmtDateLong(d){
+  if(!d)return '';
+  const dt=new Date(d+'T12:00:00');
+  return dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+}
+
+/* Both dates for a day, joined */
+function dayDateLabel(day,long){
+  const f=long?fmtDateLong:fmtDate;
+  const a=f(day.date), b=f(day.date2);
+  if(a&&b)return a+' & '+b;
+  return a||b||'';
+}
+
 function renderDays(){
   const el=document.getElementById('ca-days-list');
   if(!el){console.warn('ca-days-list not in the DOM');return;}
@@ -2190,7 +2225,7 @@ function renderDays(){
     <div class="ca-day" id="ca-day-${i}">
       <div class="ca-day-head">
         <span class="ca-day-n">Day ${d.n}</span>
-        <span class="ca-day-date">${fmtDate(d.date)||'—'}</span>
+        <span class="ca-day-date">${dayDateLabel(d)||'—'}</span>
         <input class="ca-topic" value="${escapeHtml(d.topic)}" placeholder="Topic for this day"
           oninput="updDay(${i},'topic',this.value)">
         <button class="ca-mini" onclick="moveDay(${i},-1)" ${i===0?'disabled':''}>↑</button>
@@ -2256,7 +2291,7 @@ function agendaHTML(forLevel){
     if(!items.length&&!(d.topic||'').trim()&&!(d.hw||'').trim())return;
     h+=`<div style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #ddd">
       <div style="font-weight:bold;font-size:15px;margin-bottom:2px">
-        Day ${d.n}${d.date?' — '+fmtDate(d.date):''}
+        Day ${d.n}${dayDateLabel(d,true)?' — '+dayDateLabel(d,true):''}
       </div>
       ${d.topic?`<div style="font-size:14px;color:#333;margin-bottom:7px">${escapeHtml(d.topic)}</div>`:''}
       <ul style="margin:0 0 6px 20px;padding:0;font-size:14px;line-height:1.7">
@@ -2289,7 +2324,7 @@ function agendaText(forLevel){
   caDays.forEach(d=>{
     const items=d.items.filter(it=>agendaVisible(it,lvl)&&(it.t||'').trim());
     if(!items.length&&!(d.topic||'').trim()&&!(d.hw||'').trim())return;
-    L.push('','DAY '+d.n+(d.date?' — '+fmtDate(d.date):''));
+    L.push('','DAY '+d.n+(dayDateLabel(d,true)?' — '+dayDateLabel(d,true):''));
     if(d.topic)L.push(d.topic);
     items.forEach(it=>{
       const m=KIND_META[it.k]||KIND_META.lesson;
