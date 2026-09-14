@@ -719,6 +719,7 @@ h1 em {
     <div class="header-left">
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:8px;flex-wrap:wrap">
         <a href="dc_mission_control.html" style="display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);text-decoration:none;padding:4px 9px;border:1px solid rgba(255,255,255,.14);border-radius:4px">← Mission Control</a>
+        <span id="buildStamp" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-27</span>
         <button id="syncChip" onclick="openSync()" style="display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:4px;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.45);cursor:pointer">
           <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3)"></span>
           <span id="syncLabel">Offline</span>
@@ -1947,19 +1948,42 @@ const DEFAULT_PRESETS=[
 ];
 
 function loadCA(){
-  try{caPresets=JSON.parse(localStorage.getItem(CA_PRESET_KEY))||[];}catch{caPresets=[];}
-  if(!caPresets.length){caPresets=structuredClone(DEFAULT_PRESETS);persistPresets();}
-  try{caLib=JSON.parse(localStorage.getItem(CA_KEY))||[];}catch{caLib=[];}
+  try{ caPresets=JSON.parse(localStorage.getItem(CA_PRESET_KEY))||[]; }
+  catch(e){ caPresets=[]; }
+  if(!Array.isArray(caPresets)||!caPresets.length){
+    caPresets=structuredClone(DEFAULT_PRESETS);
+    try{ persistPresets(); }catch(e){}
+  }
+
+  try{ caLib=JSON.parse(localStorage.getItem(CA_KEY))||[]; }
+  catch(e){ caLib=[]; }
+  if(!Array.isArray(caLib))caLib=[];
+
   let cur=null;
-  try{cur=JSON.parse(localStorage.getItem(CA_CUR_KEY));}catch{}
-  if(cur){
-    caDays=cur.days||[];
+  try{ cur=JSON.parse(localStorage.getItem(CA_CUR_KEY)); }catch(e){}
+  if(cur&&typeof cur==='object'){
+    caDays=Array.isArray(cur.days)?cur.days:[];
     ['title','course','start','days','skipwk','level','note'].forEach(f=>{
       const el=document.getElementById('ca-'+f);
-      if(el&&cur[f]!==undefined)el.value=cur[f];
+      if(el&&cur[f]!==undefined&&cur[f]!==null)el.value=cur[f];
     });
   }
-  if(!caDays.length)setDayCount();
+
+  // Normalize anything malformed
+  caDays=caDays.filter(d=>d&&typeof d==='object').map((d,i)=>({
+    n:i+1,
+    date:d.date||'',
+    topic:d.topic||'',
+    hw:d.hw||'',
+    items:Array.isArray(d.items)?d.items.filter(x=>x&&typeof x==='object'):[]
+  }));
+
+  if(!caDays.length){
+    const want=Math.max(1,+((document.getElementById('ca-days')||{}).value)||8);
+    for(let i=0;i<want;i++)caDays.push(blankDay(i+1));
+    try{ reflowDatesQuiet(); }catch(e){}
+  }
+
   renderPresets();renderDays();renderAgendaOut();
 }
 
@@ -2042,6 +2066,20 @@ function moveDay(i,dir){
   reflowDates();
 }
 
+function reflowDatesQuiet(){
+  const el=document.getElementById('ca-start');
+  const start=el?el.value:'';
+  const skipEl=document.getElementById('ca-skipwk');
+  const skip=skipEl?skipEl.value==='yes':true;
+  if(!start)return;
+  let d=new Date(start+'T12:00:00');
+  caDays.forEach(day=>{
+    if(skip)while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);
+    day.date=d.toISOString().slice(0,10);
+    d.setDate(d.getDate()+1);
+  });
+}
+
 function reflowDates(){
   const start=document.getElementById('ca-start').value;
   const skip=document.getElementById('ca-skipwk').value==='yes';
@@ -2082,7 +2120,15 @@ function fmtDate(d){
 
 function renderDays(){
   const el=document.getElementById('ca-days-list');
-  if(!el)return;
+  if(!el){console.warn('ca-days-list not in the DOM');return;}
+
+  // Self-heal: if there are no days, create them rather than showing nothing
+  if(!Array.isArray(caDays)||!caDays.length){
+    const want=Math.max(1,+((document.getElementById('ca-days')||{}).value)||8);
+    caDays=[];
+    for(let i=0;i<want;i++)caDays.push(blankDay(i+1));
+    try{ reflowDatesQuiet(); }catch(e){}
+  }
   document.getElementById('ca-daystat').textContent=
     caDays.length+' day'+(caDays.length===1?'':'s')+
     ' · '+caDays.reduce((s,d)=>s+d.items.length,0)+' items';
@@ -2327,6 +2373,20 @@ function importHattieUnit(btn){
   document.getElementById('ca-days').value=caDays.length;
   reflowDates();
   flashCA('Imported '+caDays.length+' days — now add your videos, quizzes, and homework');
+}
+
+function resetClassAgenda(){
+  try{
+    localStorage.removeItem(CA_CUR_KEY);
+    localStorage.removeItem(CA_PRESET_KEY);
+  }catch(e){}
+  caPresets=structuredClone(DEFAULT_PRESETS);
+  caDays=[];
+  const dEl=document.getElementById('ca-days');
+  if(dEl)dEl.value=8;
+  persistPresets();
+  renderPresets();renderDays();renderAgendaOut();
+  flashCA('Agenda reset — 8 blank days ready');
 }
 
 function flashCA(msg){
