@@ -724,7 +724,7 @@ h1 em {
     <div class="header-left">
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:8px;flex-wrap:wrap">
         <a href="dc_mission_control.html" style="display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);text-decoration:none;padding:4px 9px;border:1px solid rgba(255,255,255,.14);border-radius:4px">← Mission Control</a>
-        <span id="buildStamp" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-29</span>
+        <span id="buildStamp" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-30</span>
         <button id="syncChip" onclick="openSync()" style="display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:4px;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.45);cursor:pointer">
           <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3)"></span>
           <span id="syncLabel">Offline</span>
@@ -1077,9 +1077,9 @@ h1 em {
             <option value="mwf">Mon / Wed / Fri</option>
             <option value="tth">Tue / Thu</option>
           </select></div>
-        <div class="field"><label>Show</label>
+        <div class="field"><label>Level handling</label>
           <select id="ca-level" onchange="renderAgendaOut()">
-            <option value="both">Both levels</option>
+            <option value="both">One agenda, mark what differs</option>
             <option value="regular">College Prep only</option>
             <option value="honors">Honors only</option>
           </select></div>
@@ -2286,6 +2286,32 @@ function agendaHTML(forLevel){
 
   if(note)h+=`<div style="background:#FFF8E6;border-left:3px solid #D9A93B;padding:9px 13px;margin-bottom:16px;font-size:14px;line-height:1.55">${escapeHtml(note)}</div>`;
 
+  // Legend — only if some items are level-specific and we're showing the combined view
+  if(lvl==='both'){
+    const hasHon=caDays.some(d=>d.items.some(it=>it.lvl==='honors'));
+    const hasCp =caDays.some(d=>d.items.some(it=>it.lvl==='regular'));
+    if(hasHon||hasCp){
+      h+=`<div style="font-size:12.5px;color:#555;margin-bottom:16px;padding:7px 11px;background:#F6F6F4;border-radius:4px">
+        Items without a label are for <strong>everyone</strong>. `+
+        (hasHon?`<span style="font-size:11px;font-weight:bold;background:#EEEBFB;color:#4A3A9A;border:1px solid #C4B8F0;padding:1px 7px;border-radius:3px">HONORS ONLY</span> applies to Honors sections. `:'')+
+        (hasCp?`<span style="font-size:11px;font-weight:bold;background:#E1F5EE;color:#0F6E56;border:1px solid #9AD4C4;padding:1px 7px;border-radius:3px">CP ONLY</span> applies to College Prep sections.`:'')+
+      `</div>`;
+    }
+  }
+
+  // Only explain the badges if any exist
+  if(lvl==='both'){
+    const hasH=caDays.some(d=>(d.items||[]).some(it=>it.lvl==='honors'&&(it.t||'').trim()));
+    const hasCP=caDays.some(d=>(d.items||[]).some(it=>it.lvl==='regular'&&(it.t||'').trim()));
+    if(hasH||hasCP){
+      const bits=[];
+      if(hasH)bits.push('<span style="background:#4A3A9A;color:#fff;font-size:10px;font-weight:bold;padding:2px 7px;border-radius:3px">HONORS ONLY</span> applies to Honors sections');
+      if(hasCP)bits.push('<span style="background:#0F6E56;color:#fff;font-size:10px;font-weight:bold;padding:2px 7px;border-radius:3px">CP ONLY</span> applies to College Prep sections');
+      h+=`<div style="font-size:13px;color:#444;margin-bottom:16px;line-height:1.9">${bits.join('<br>')}<br>
+        <span style="color:#666">Everything else applies to every section.</span></div>`;
+    }
+  }
+
   caDays.forEach(d=>{
     const items=d.items.filter(it=>agendaVisible(it,lvl)&&(it.t||'').trim());
     if(!items.length&&!(d.topic||'').trim()&&!(d.hw||'').trim())return;
@@ -2297,10 +2323,13 @@ function agendaHTML(forLevel){
       <ul style="margin:0 0 6px 20px;padding:0;font-size:14px;line-height:1.7">
         ${items.map(it=>{
           const m=KIND_META[it.k]||KIND_META.lesson;
-          const tag=(it.lvl&&it.lvl!=='both'&&lvl==='both')
-            ? ` <span style="font-size:11px;background:${it.lvl==='honors'?'#EEEBFB':'#E1F5EE'};color:${it.lvl==='honors'?'#4A3A9A':'#0F6E56'};padding:1px 6px;border-radius:3px">${it.lvl==='honors'?'Honors':'CP'}</span>`
+          const isH=it.lvl==='honors', isCP=it.lvl==='regular';
+          const showTag=(isH||isCP)&&lvl==='both';
+          const tag=showTag
+            ? `<span style="display:inline-block;font-size:10px;font-weight:bold;letter-spacing:.04em;background:${isH?'#4A3A9A':'#0F6E56'};color:#fff;padding:2px 7px;border-radius:3px;margin-right:7px;vertical-align:1px">${isH?'HONORS ONLY':'CP ONLY'}</span>`
             : '';
-          return `<li>${m.ico} <strong>${m.label}:</strong> ${escapeHtml(it.t)}${tag}</li>`;
+          return `<li style="${showTag?'background:'+(isH?'#F6F4FE':'#F0FAF6')+';padding:4px 8px;border-radius:4px;margin:3px 0;list-style-position:inside;margin-left:-20px':''}">`+
+                 `${tag}${m.ico} <strong>${m.label}:</strong> ${escapeHtml(it.t)}</li>`;
         }).join('')}
       </ul>
       ${(d.hw||'').trim()?`<div style="font-size:14px;margin-left:20px;color:#444"><strong>🏠 Homework:</strong> ${escapeHtml(d.hw)}</div>`:''}
@@ -2328,8 +2357,9 @@ function agendaText(forLevel){
     if(d.topic)L.push(d.topic);
     items.forEach(it=>{
       const m=KIND_META[it.k]||KIND_META.lesson;
-      const tag=(it.lvl&&it.lvl!=='both'&&lvl==='both')?' ['+(it.lvl==='honors'?'Honors':'CP')+']':'';
-      L.push('  • '+m.label+': '+it.t+tag);
+      const pre=(it.lvl&&it.lvl!=='both'&&lvl==='both')
+        ? '['+(it.lvl==='honors'?'HONORS ONLY':'CP ONLY')+'] ' : '';
+      L.push('  • '+pre+m.label+': '+it.t);
     });
     if((d.hw||'').trim())L.push('  HW: '+d.hw);
   });
@@ -2373,10 +2403,7 @@ async function copyAgendaText(btn){
 
 function downloadAgendaHTML(){
   const title=document.getElementById('ca-title').value.trim()||'Chapter Agenda';
-  const lvl=document.getElementById('ca-level').value;
-  const body = lvl==='both'
-    ? agendaHTML('regular')+'<div style="page-break-before:always;height:28px"></div>'+agendaHTML('honors')
-    : agendaHTML(lvl);
+  const body=agendaHTML();
   const doc=`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
     <body style="margin:26px">${body}</body></html>`;
   const blob=new Blob([doc],{type:'text/html'});
@@ -2387,10 +2414,7 @@ function downloadAgendaHTML(){
 }
 
 function printAgenda(){
-  const lvl=document.getElementById('ca-level').value;
-  const body = lvl==='both'
-    ? agendaHTML('regular')+'<div style="page-break-before:always"></div>'+agendaHTML('honors')
-    : agendaHTML(lvl);
+  const body=agendaHTML();
   const w=window.open('','_blank');
   if(!w){flashCA('Popup blocked — allow popups for this site.');return;}
   w.document.write(`<!doctype html><html><head><meta charset="utf-8">
