@@ -137,7 +137,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .ws-line{border-bottom:1px solid var(--rule);height:.28in}
 .ws-workbox{margin:9px 0 0 .34in;border:1px solid var(--rule);border-radius:2px}
 .ws-workbox-label{font-family:'IBM Plex Mono',monospace;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:#8A96A4;padding:4px 8px 0}
-.ws-grid-box{margin:9px 0 0 .34in;border:1px solid var(--rule);background-image:linear-gradient(var(--rule) .5px,transparent .5px),linear-gradient(90deg,var(--rule) .5px,transparent .5px);background-size:.2in .2in;opacity:.85}
+.ws-grid-box{margin:9px 0 0 .34in;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
 .ws-answer-blank{display:inline-block;border-bottom:1px solid var(--ink);min-width:1.1in;margin:0 4px}
 .ws-footer{margin-top:.28in;padding-top:.13in;border-top:1px solid var(--rule);display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:7.5pt;color:#8A96A4;letter-spacing:.05em}
 
@@ -346,23 +346,10 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .g-body{flex:1;min-width:0}
 .g-xlab{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:9pt;font-weight:500;margin-top:4px;letter-spacing:.02em}
 
-.g-plot{width:100%;border-left:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
-.g-plot-grid{
-  background-image:linear-gradient(var(--rule) .5px,transparent .5px),
-                   linear-gradient(90deg,var(--rule) .5px,transparent .5px);
-  background-position:left bottom;
-}
-.g-plot-dots{
-  background-image:radial-gradient(circle, var(--rule) .6px, transparent .7px);
-  background-position:left bottom;
-}
-.g-plot-axes{
-  background-image:linear-gradient(var(--rule) .4px,transparent .4px),
-                   linear-gradient(90deg,var(--rule) .4px,transparent .4px);
-  background-size:.4in .4in;
-  background-position:left bottom;
-}
-.g-bars{display:flex;border-left:1.5px solid transparent}
+.g-svg{display:block;width:100%}
+.ws-grid-wrap{margin:9px 0 0 .34in;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+.ws-grid-wrap .g-svg{display:block}
+.g-bars{display:flex;border-left:1.5px solid transparent;margin-top:0}
 .g-bar-slot{flex:1;text-align:center;padding-top:4px;border-right:.5px dashed var(--rule)}
 .g-bar-slot:last-child{border-right:none}
 .g-bar-slot span{font-family:'Space Grotesk',sans-serif;font-size:8.5pt;line-height:1.2;display:inline-block;word-break:break-word}
@@ -1104,7 +1091,7 @@ function buildPaper(letter,lvl){
     if(q.type==='work')
       body=`<div class="ws-workbox" style="height:${q.height}in"><div class="ws-workbox-label">Work</div></div>`;
     if(q.type==='graph')
-      body=`<div class="ws-grid-box" style="height:${q.height}in"></div>`;
+      body=`<div class="ws-grid-wrap">${gridSVG({heightIn:q.height,stepIn:0.2,kind:'grid',axes:false})}</div>`;
 
     let txt=escC(q.text)||'<span style="color:#B0BAC6">…</span>';
     if(q.type==='fill')txt=txt.replace(/_{2,}/g,'<span class="ws-answer-blank"></span>');
@@ -2597,6 +2584,42 @@ function buildLabPaper(lvl){
   return h;
 }
 
+
+/* ── SVG grid drawing ──
+   CSS background-image grids are stripped by browsers when printing unless the
+   user ticks "Background graphics". Drawing them as SVG content makes them
+   print every time, with no dialog fiddling. */
+let _gridSeq=0;
+const PX_PER_IN=96;
+
+function gridSVG(opts){
+  const {heightIn, stepIn=0.2, kind='grid', axes=true} = opts||{};
+  const id='gp'+(++_gridSeq);
+  const step=(stepIn*PX_PER_IN).toFixed(2);
+  const rule='#C8D0D8', ink='#16202B';
+
+  let pattern='';
+  if(kind==='dots'){
+    pattern=`<pattern id="${id}" width="${step}" height="${step}" patternUnits="userSpaceOnUse">
+      <circle cx="0" cy="${step}" r="0.7" fill="${rule}"/>
+    </pattern>`;
+  }else{
+    const sw = kind==='coarse' ? 0.5 : 0.6;
+    pattern=`<pattern id="${id}" width="${step}" height="${step}" patternUnits="userSpaceOnUse">
+      <path d="M ${step} 0 L 0 0 0 ${step}" fill="none" stroke="${rule}" stroke-width="${sw}"/>
+    </pattern>`;
+  }
+
+  return `<svg class="g-svg" style="height:${heightIn}in" preserveAspectRatio="none"
+      xmlns="http://www.w3.org/2000/svg">
+    <defs>${pattern}</defs>
+    <rect x="0" y="0" width="100%" height="100%" fill="url(#${id})"/>
+    ${axes?`<line x1="0.75" y1="0" x2="0.75" y2="100%" stroke="${ink}" stroke-width="1.5"/>
+    <line x1="0" y1="100%" x2="100%" y2="100%" stroke="${ink}" stroke-width="1.5"
+      transform="translate(0,-0.75)"/>`:''}
+  </svg>`;
+}
+
 /* ── GRAPH RENDERING ── */
 function buildGraph(b){
   const H=b.height||3.2;
@@ -2609,7 +2632,7 @@ function buildGraph(b){
     const cats=bars.length?bars:['','',''];
     return `<div class="g-wrap">${yLab}
       <div class="g-body">
-        <div class="g-plot g-plot-grid" style="height:${H}in;background-size:${grid}in ${grid}in"></div>
+        ${gridSVG({heightIn:H,stepIn:grid,kind:'grid'})}
         <div class="g-bars">${cats.map(c=>`<div class="g-bar-slot"><span>${escC(c)}</span></div>`).join('')}</div>
         ${xLab}
       </div></div>`;
@@ -2618,7 +2641,7 @@ function buildGraph(b){
   if(b.gtype==='line'){
     return `<div class="g-wrap">${yLab}
       <div class="g-body">
-        <div class="g-plot g-plot-axes" style="height:${H}in"></div>
+        ${gridSVG({heightIn:H,stepIn:0.4,kind:'coarse'})}
         ${xLab}
       </div></div>`;
   }
@@ -2626,7 +2649,7 @@ function buildGraph(b){
   if(b.gtype==='dots'){
     return `<div class="g-wrap">${yLab}
       <div class="g-body">
-        <div class="g-plot g-plot-dots" style="height:${H}in;background-size:${grid}in ${grid}in"></div>
+        ${gridSVG({heightIn:H,stepIn:grid,kind:'dots'})}
         ${xLab}
       </div></div>`;
   }
@@ -2634,7 +2657,7 @@ function buildGraph(b){
   // default: full grid for plotting
   return `<div class="g-wrap">${yLab}
     <div class="g-body">
-      <div class="g-plot g-plot-grid" style="height:${H}in;background-size:${grid}in ${grid}in"></div>
+      ${gridSVG({heightIn:H,stepIn:grid,kind:'grid'})}
       ${xLab}
     </div></div>`;
 }
