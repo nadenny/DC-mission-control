@@ -327,6 +327,37 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .sg-time{font-size:10pt;line-height:1.55;background:#F4F6F8;border-left:2px solid var(--ink);
   padding:7px 11px;margin-top:.2in;border-radius:0 2px 2px 0}
 
+/* Study guide editor drawer */
+.sg-drawer{position:fixed;top:0;right:0;width:min(470px,100%);height:100%;background:var(--slate);
+  border-left:1px solid var(--edge);z-index:900;display:none;flex-direction:column;
+  box-shadow:-14px 0 40px rgba(0,0,0,.45)}
+.sg-drawer.on{display:flex}
+.sg-dr-hd{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--edge);
+  background:var(--slate2);flex-shrink:0}
+.sg-dr-ttl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--violet);flex:1}
+.sg-dr-body{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+.sg-dr-ft{padding:10px 14px;border-top:1px solid var(--edge);background:var(--slate2);
+  display:flex;gap:6px;flex-shrink:0}
+.sg-ed-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--chalk3);margin:0 0 4px}
+.sg-ed-hint{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--chalk3);
+  letter-spacing:.03em;margin:3px 0 0;line-height:1.6}
+.sg-in,.sg-ta{width:100%;background:var(--slate2);border:1px solid var(--edge);border-radius:3px;
+  color:var(--chalk);font-family:inherit;font-size:12px;line-height:1.55;padding:7px 9px;
+  box-sizing:border-box;resize:vertical}
+.sg-in:focus,.sg-ta:focus{outline:none;border-color:var(--violet)}
+.sg-ta{min-height:56px}
+.sg-ed-grp{margin-bottom:14px}
+.sg-ed-card{border:1px solid var(--edge);border-radius:4px;background:rgba(0,0,0,.14);
+  padding:10px;margin-bottom:9px}
+.sg-ed-card-hd{display:flex;align-items:center;gap:4px;margin-bottom:7px}
+.sg-ed-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--violet);
+  letter-spacing:.1em;flex:1}
+.sg-ed-sub{margin-top:7px}
+.sg-ed-sub .sg-ed-lbl{margin-bottom:3px}
+.sg-lvl-row{display:flex;gap:4px;margin-top:7px}
+
 /* Column width controls */
 .col-w{width:52px;height:16px;accent-color:var(--flask);cursor:pointer;flex-shrink:0;margin-top:5px}
 .col-w-n{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);width:28px;text-align:right;flex-shrink:0;padding-top:7px}
@@ -664,6 +695,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
         <button class="ai-btn" onclick="aiStudyGuide(this)" style="border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.12);color:var(--violet)">&#10024; Build study guide</button>
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
+        <button class="ai-btn" onclick="openSGEditor()" style="border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.12);color:var(--violet)">&#9998; Edit guide</button>
         <button class="ai-btn" onclick="saveStudyGuide()" style="border-color:var(--edge);background:var(--slate2);color:var(--chalk2)">Save guide</button>
         <button class="ai-btn" onclick="printStudyGuide()" style="border-color:var(--edge);background:var(--slate2);color:var(--chalk2)">Print / PDF</button>
         <button class="ai-btn" onclick="clearStudyGuide()" style="border-color:var(--edge);background:transparent;color:var(--chalk3)">Clear</button>
@@ -1648,16 +1680,172 @@ function studyGuideHTML(){
   </div>`;
 }
 
-function renderStudyGuide(){
+function renderStudyGuide(keepScroll){
+  // Rebuild the sheet first so repeat calls replace the guide instead of
+  // stacking another copy on top of it.
+  render();
   const stage=document.getElementById('stage');
+  const y=stage.scrollTop;
   stage.innerHTML = studyGuideHTML() + stage.innerHTML;
-  stage.scrollTop = 0;
+  stage.scrollTop = keepScroll ? y : 0;
+  if(document.getElementById('sgDrawer').classList.contains('on'))renderSGEditor();
 }
 
 function clearStudyGuide(){
   studyGuide=null;
+  closeSGEditor();
   render();
   qAiShow('Study guide cleared.');
+}
+
+
+/* ── STUDY GUIDE EDITOR ──
+   Hand-editing after the AI pass. Text fields write straight into the
+   studyGuide object and refresh the paper behind the drawer; only
+   structural changes (add / delete / reorder a topic) redraw the drawer,
+   so typing never loses the cursor. */
+const SG_LEVELS=[['both','Both'],['honors','Honors only'],['regular','CP only']];
+let _sgTimer=null;
+
+function sgEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function sgLines(a){ return (Array.isArray(a)?a:[]).join('\n'); }
+function sgSplit(v){ return String(v||'').split('\n').map(s=>s.trim()).filter(Boolean); }
+
+function openSGEditor(){
+  if(!studyGuide){qAiShow('Build or open a study guide first, then edit it here.');return;}
+  renderSGEditor();
+  document.getElementById('sgDrawer').classList.add('on');
+}
+function closeSGEditor(){
+  const d=document.getElementById('sgDrawer');
+  if(d)d.classList.remove('on');
+}
+
+/* Repaint the paper without touching the drawer. */
+function sgPreview(){
+  clearTimeout(_sgTimer);
+  _sgTimer=setTimeout(()=>{
+    render();
+    const stage=document.getElementById('stage');
+    const y=stage.scrollTop;
+    stage.innerHTML = studyGuideHTML() + stage.innerHTML;
+    stage.scrollTop = y;
+  },260);
+}
+
+function sgField(key,val){ studyGuide[key]=val; sgPreview(); }
+function sgListField(key,val){ studyGuide[key]=sgSplit(val); sgPreview(); }
+
+function sgTopic(i,key,val){
+  const t=(studyGuide.topics||[])[i]; if(!t)return;
+  t[key]=val; sgPreview();
+}
+function sgTopicList(i,val){
+  const t=(studyGuide.topics||[])[i]; if(!t)return;
+  t.whatToKnow=sgSplit(val); sgPreview();
+}
+function sgTopicLevel(i,lv){
+  const t=(studyGuide.topics||[])[i]; if(!t)return;
+  t.level=lv; renderSGEditor(); sgPreview();
+}
+function sgTopicMove(i,d){
+  const a=studyGuide.topics||[]; const j=i+d;
+  if(j<0||j>=a.length)return;
+  [a[i],a[j]]=[a[j],a[i]];
+  renderSGEditor(); sgPreview();
+}
+function sgTopicDel(i){
+  const a=studyGuide.topics||[];
+  if(!confirm('Remove "'+(a[i]&&a[i].name||'this topic')+'" from the guide?'))return;
+  a.splice(i,1); renderSGEditor(); sgPreview();
+}
+function sgTopicAdd(){
+  if(!studyGuide.topics)studyGuide.topics=[];
+  studyGuide.topics.push({name:'New topic',whatToKnow:[],commonMistake:'',practice:'',level:'both'});
+  renderSGEditor(); sgPreview();
+  const b=document.getElementById('sgEdBody'); if(b)b.scrollTop=b.scrollHeight;
+}
+
+function renderSGEditor(){
+  const body=document.getElementById('sgEdBody');
+  if(!body||!studyGuide)return;
+  const g=studyGuide;
+  const scroll=body.scrollTop;
+
+  const topics=(g.topics||[]).map((t,i)=>`
+    <div class="sg-ed-card">
+      <div class="sg-ed-card-hd">
+        <span class="sg-ed-num">Topic ${i+1}</span>
+        <button class="icon-btn" onclick="sgTopicMove(${i},-1)" title="Move up" style="padding:2px 6px">↑</button>
+        <button class="icon-btn" onclick="sgTopicMove(${i},1)" title="Move down" style="padding:2px 6px">↓</button>
+        <button class="icon-btn danger" onclick="sgTopicDel(${i})" title="Remove topic" style="padding:2px 6px">×</button>
+      </div>
+      <input class="sg-in" value="${sgEsc(t.name)}" placeholder="Topic name"
+        oninput="sgTopic(${i},'name',this.value)">
+      <div class="sg-lvl-row">
+        ${SG_LEVELS.map(([v,lab])=>`<button class="gtype-btn ${(t.level||'both')===v?'on':''}" onclick="sgTopicLevel(${i},'${v}')">${lab}</button>`).join('')}
+      </div>
+      <div class="sg-ed-sub">
+        <p class="sg-ed-lbl">What to know — one per line</p>
+        <textarea class="sg-ta" placeholder="One bullet per line"
+          oninput="sgTopicList(${i},this.value)">${sgEsc(sgLines(t.whatToKnow))}</textarea>
+      </div>
+      <div class="sg-ed-sub">
+        <p class="sg-ed-lbl">Watch out</p>
+        <textarea class="sg-ta" style="min-height:44px" placeholder="The mistake students make here"
+          oninput="sgTopic(${i},'commonMistake',this.value)">${sgEsc(t.commonMistake)}</textarea>
+      </div>
+      <div class="sg-ed-sub">
+        <p class="sg-ed-lbl">Practice</p>
+        <textarea class="sg-ta" style="min-height:44px" placeholder="What to practice"
+          oninput="sgTopic(${i},'practice',this.value)">${sgEsc(t.practice)}</textarea>
+      </div>
+    </div>`).join('');
+
+  body.innerHTML=`
+    <div class="sg-ed-grp">
+      <p class="sg-ed-lbl">Title</p>
+      <input class="sg-in" value="${sgEsc(g.title)}" oninput="sgField('title',this.value)">
+    </div>
+    <div class="sg-ed-grp">
+      <p class="sg-ed-lbl">Overview</p>
+      <textarea class="sg-ta" oninput="sgField('overview',this.value)">${sgEsc(g.overview)}</textarea>
+    </div>
+
+    <div class="sg-ed-grp">
+      <p class="sg-ed-lbl">Topics</p>
+      ${topics||'<p class="sg-ed-hint">No topics yet.</p>'}
+      <button class="mini-btn" onclick="sgTopicAdd()" style="border-color:rgba(167,139,250,.4);color:var(--violet)">+ Add topic</button>
+    </div>
+
+    <div class="sg-ed-grp">
+      <p class="sg-ed-lbl">Formulas &amp; relationships — one per line</p>
+      <textarea class="sg-ta" oninput="sgListField('formulas',this.value)">${sgEsc(sgLines(g.formulas))}</textarea>
+    </div>
+
+    <div class="sg-ed-grp">
+      <p class="sg-ed-lbl">Vocabulary — one per line</p>
+      <textarea class="sg-ta" style="min-height:110px" placeholder="term &mdash; short definition"
+        oninput="sgListField('vocabulary',this.value)">${sgEsc(sgLines(g.vocabulary))}</textarea>
+      <p class="sg-ed-hint">Add a word on its own line. Em dash or hyphen between term and definition.</p>
+    </div>
+
+    <div class="sg-ed-grp">
+      <p class="sg-ed-lbl">Check yourself — one per line</p>
+      <textarea class="sg-ta" style="min-height:90px"
+        oninput="sgListField('selfCheck',this.value)">${sgEsc(sgLines(g.selfCheck))}</textarea>
+    </div>
+
+    <div class="sg-ed-grp">
+      <p class="sg-ed-lbl">How to spend study time</p>
+      <textarea class="sg-ta" style="min-height:44px" oninput="sgField('timePlan',this.value)">${sgEsc(g.timePlan)}</textarea>
+    </div>
+
+    <p class="sg-ed-hint" style="border-top:1px solid var(--edge);padding-top:9px">
+      Chemistry notation works here: H_2O &rarr; H₂O, Ca^2+ &rarr; Ca²⁺, -&gt; &rarr; &rarr;.<br>
+      Edits show on the paper as you type. Save when you want to keep this version.
+    </p>`;
+  body.scrollTop=scroll;
 }
 
 
@@ -3001,5 +3189,18 @@ loadGridWeight();loadApiKey();loadBank();loadSGLib();
 if(localStorage.getItem('dc_chembar_open')==='0')document.getElementById('chemBar').style.display='none';
 renderVerStrip();renderEditor();render();
 </script>
+
+<div class="sg-drawer" id="sgDrawer">
+  <div class="sg-dr-hd">
+    <span class="sg-dr-ttl">Edit study guide</span>
+    <button class="icon-btn" onclick="closeSGEditor()" title="Close" style="padding:3px 7px">✕</button>
+  </div>
+  <div class="sg-dr-body" id="sgEdBody"></div>
+  <div class="sg-dr-ft">
+    <button class="ai-btn" onclick="closeSGEditor()" style="flex:1;border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.12);color:var(--violet)">Done</button>
+    <button class="ai-btn" onclick="saveStudyGuide()" style="border-color:var(--edge);background:var(--slate3);color:var(--chalk2)">Save</button>
+    <button class="ai-btn" onclick="printStudyGuide()" style="border-color:var(--edge);background:var(--slate3);color:var(--chalk2)">Print</button>
+  </div>
+</div>
 </body>
 </html>
