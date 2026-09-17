@@ -1101,7 +1101,7 @@ function buildPaper(letter,lvl){
     if(q.type==='work')
       body=`<div class="ws-workbox" style="height:${q.height}in"><div class="ws-workbox-label">Work</div></div>`;
     if(q.type==='graph')
-      body=`<div class="ws-grid-wrap">${gridSVG({heightIn:q.height,widthIn:q.gwidth||6.0,stepIn:0.2,kind:'grid',axes:false})}</div>`;
+      body=`<div class="ws-grid-wrap">${gridSVG({heightIn:q.height,widthIn:q.gwidth||6.0,stepIn:0.2,kind:'grid',axes:false,weight:q.gweight})}</div>`;
 
     let txt=escC(q.text)||'<span style="color:#B0BAC6">…</span>';
     if(q.type==='fill')txt=txt.replace(/_{2,}/g,'<span class="ws-answer-blank"></span>');
@@ -2627,10 +2627,17 @@ const GRID_WEIGHTS={
   dark:   {stroke:'#6B7783', w:1.2, major:'#3D4852', majorW:1.7}
 };
 
+/* Resolve which darkness this particular graph should use:
+   the block's own setting first, then the global toolbar select. */
+function gridWeightFor(w){
+  if(w&&GRID_WEIGHTS[w])return GRID_WEIGHTS[w];
+  const sel=(document.getElementById('gridWeight')||{}).value;
+  return GRID_WEIGHTS[sel]||GRID_WEIGHTS.medium;
+}
+
 function gridSVG(opts){
-  const {heightIn, widthIn=6.2, stepIn=0.2, kind='grid', axes=true, major=true} = opts||{};
-  const id='gp'+(++_gridSeq);
-  const mid='gm'+_gridSeq;
+  const {heightIn, widthIn=6.2, stepIn=0.2, kind='grid', axes=true, major=true, weight} = opts||{};
+  _gridSeq++;
 
   // Absolute geometry. A viewBox in 96-units-per-inch plus real inch dimensions
   // means the printed grid is identical to the on-screen grid — no percentage
@@ -2639,35 +2646,45 @@ function gridSVG(opts){
   const VH=+(heightIn*PX_PER_IN).toFixed(2);
   const step=+(stepIn*PX_PER_IN).toFixed(2);
 
-  const wsel=(document.getElementById('gridWeight')||{}).value||'medium';
-  const W=GRID_WEIGHTS[wsel]||GRID_WEIGHTS.medium;
+  const W=gridWeightFor(weight);
   const ink='#16202B';
 
-  let defs='', fills='';
+  // Every line is an explicit element. Pattern fills are the compact way to do
+  // this, but PDF/print engines rasterize and de-duplicate tiled patterns
+  // unpredictably — two stacked pattern rects (minor + major) reliably lost one
+  // of the two layers on paper. A few hundred <line> elements always survive.
+  const nx=Math.round(VW/step), ny=Math.round(VH/step);
+  const MAX=4000;            // safety valve against an absurd step value
+  let body='';
+
   if(kind==='dots'){
-    defs=`<pattern id="${id}" width="${step}" height="${step}" patternUnits="userSpaceOnUse">
-      <circle cx="0" cy="${step}" r="1.1" fill="${W.stroke}"/></pattern>`;
-    fills=`<rect x="0" y="0" width="${VW}" height="${VH}" fill="url(#${id})"/>`;
-  }else{
-    defs=`<pattern id="${id}" width="${step}" height="${step}" patternUnits="userSpaceOnUse">
-      <path d="M ${step} 0 L 0 0 0 ${step}" fill="none" stroke="${W.stroke}" stroke-width="${W.w}"/>
-    </pattern>`;
-    fills=`<rect x="0" y="0" width="${VW}" height="${VH}" fill="url(#${id})"/>`;
-    if(major){
-      const big=+(step*5).toFixed(2);
-      defs+=`<pattern id="${mid}" width="${big}" height="${big}" patternUnits="userSpaceOnUse">
-        <path d="M ${big} 0 L 0 0 0 ${big}" fill="none" stroke="${W.major}" stroke-width="${W.majorW}"/>
-      </pattern>`;
-      fills+=`<rect x="0" y="0" width="${VW}" height="${VH}" fill="url(#${mid})"/>`;
+    let d=[];
+    for(let i=0;i<=nx&&d.length<MAX;i++)for(let j=0;j<=ny&&d.length<MAX;j++){
+      d.push(`M${+(i*step).toFixed(2)} ${+(j*step).toFixed(2)}m-1.1 0a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0`);
     }
+    body=`<path d="${d.join('')}" fill="${W.stroke}" stroke="none"/>`;
+  }else{
+    const minor=[], heavy=[];
+    for(let i=0;i<=nx&&i<=MAX;i++){
+      const x=+(i*step).toFixed(2);
+      (major&&i%5===0?heavy:minor).push(`M${x} 0V${VH}`);
+    }
+    for(let j=0;j<=ny&&j<=MAX;j++){
+      const y=+(j*step).toFixed(2);
+      (major&&j%5===0?heavy:minor).push(`M0 ${y}H${VW}`);
+    }
+    // Two paths, not two tiled patterns: the minor mesh, then the every-fifth
+    // emphasis lines drawn over it.
+    body=`<path d="${minor.join('')}" fill="none" stroke="${W.stroke}" stroke-width="${W.w}" stroke-linecap="square"/>`;
+    if(heavy.length)
+      body+=`<path d="${heavy.join('')}" fill="none" stroke="${W.major}" stroke-width="${W.majorW}" stroke-linecap="square"/>`;
   }
 
   return `<svg class="g-svg" width="${widthIn}in" height="${heightIn}in"
       viewBox="0 0 ${VW} ${VH}" preserveAspectRatio="xMidYMid meet"
       xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
-    <defs>${defs}</defs>
-    ${fills}
-    <rect x="0" y="0" width="${VW}" height="${VH}" fill="none" stroke="${W.major}" stroke-width="1"/>
+    ${body}
+    <rect x="0" y="0" width="${VW}" height="${VH}" fill="none" stroke="${W.major}" stroke-width="${W.majorW}"/>
     ${axes?`<line x1="1" y1="0" x2="1" y2="${VH}" stroke="${ink}" stroke-width="2"/>
     <line x1="0" y1="${VH-1}" x2="${VW}" y2="${VH-1}" stroke="${ink}" stroke-width="2"/>`:''}
   </svg>`;
@@ -2686,7 +2703,7 @@ function buildGraph(b){
     const cats=bars.length?bars:['','',''];
     return `<div class="g-wrap">${yLab}
       <div class="g-body">
-        ${gridSVG({heightIn:H,widthIn:W,stepIn:grid,kind:'grid'})}
+        ${gridSVG({heightIn:H,widthIn:W,stepIn:grid,kind:'grid',weight:b.gweight})}
         <div class="g-bars">${cats.map(c=>`<div class="g-bar-slot"><span>${escC(c)}</span></div>`).join('')}</div>
         ${xLab}
       </div></div>`;
@@ -2695,7 +2712,7 @@ function buildGraph(b){
   if(b.gtype==='line'){
     return `<div class="g-wrap">${yLab}
       <div class="g-body">
-        ${gridSVG({heightIn:H,widthIn:W,stepIn:0.4,kind:'grid',major:false})}
+        ${gridSVG({heightIn:H,widthIn:W,stepIn:0.4,kind:'grid',major:false,weight:b.gweight})}
         ${xLab}
       </div></div>`;
   }
@@ -2703,7 +2720,7 @@ function buildGraph(b){
   if(b.gtype==='dots'){
     return `<div class="g-wrap">${yLab}
       <div class="g-body">
-        ${gridSVG({heightIn:H,widthIn:W,stepIn:grid,kind:'dots'})}
+        ${gridSVG({heightIn:H,widthIn:W,stepIn:grid,kind:'dots',weight:b.gweight})}
         ${xLab}
       </div></div>`;
   }
@@ -2711,7 +2728,7 @@ function buildGraph(b){
   // default: full grid for plotting
   return `<div class="g-wrap">${yLab}
     <div class="g-body">
-      ${gridSVG({heightIn:H,widthIn:W,stepIn:grid,kind:'grid'})}
+      ${gridSVG({heightIn:H,widthIn:W,stepIn:grid,kind:'grid',weight:b.gweight})}
       ${xLab}
     </div></div>`;
 }
