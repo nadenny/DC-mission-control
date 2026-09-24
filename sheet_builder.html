@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Worksheet &amp; Test Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -86,6 +87,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .qnum{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--flask);min-width:18px}
 .qbadge{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--slate3);color:var(--chalk3)}
 .qbadge.sec{background:rgba(167,139,250,.15);color:var(--violet)}
+.qbadge.src{background:rgba(79,209,197,.13);color:var(--flask);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .qcard-actions{margin-left:auto;display:flex;gap:2px}
 .icon-btn{background:none;border:none;color:var(--chalk3);cursor:pointer;font-size:12px;padding:1px 4px;border-radius:3px;transition:all .12s;line-height:1}
 .icon-btn:hover{color:var(--chalk);background:var(--slate3)}
@@ -326,6 +328,34 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .sg-box{width:11px;height:11px;border:1.2px solid var(--ink);border-radius:2px;flex-shrink:0;margin-top:3px}
 .sg-time{font-size:10pt;line-height:1.55;background:#F4F6F8;border-left:2px solid var(--ink);
   padding:7px 11px;margin-top:.2in;border-radius:0 2px 2px 0}
+
+/* Build-from-slides pane */
+.deck-drop{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 10px;
+  border:1px dashed var(--edge2);border-radius:5px;background:rgba(79,209,197,.05);
+  cursor:pointer;transition:all .12s;text-align:center}
+.deck-drop:hover{border-color:var(--flask);background:rgba(79,209,197,.1)}
+.deck-drop-icon{font-size:17px;line-height:1}
+.deck-drop-main{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500;color:var(--chalk)}
+.deck-drop-sub{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.04em;color:var(--chalk3)}
+.deck-row{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--edge)}
+.deck-row:last-child{border-bottom:none}
+.deck-name{flex:1;min-width:0;background:var(--slate2);border:1px solid var(--edge);border-radius:3px;
+  color:var(--chalk);font-family:inherit;font-size:11.5px;padding:5px 7px;outline:none;box-sizing:border-box}
+.deck-name:focus{border-color:var(--flask)}
+.deck-meta{font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--chalk3);
+  letter-spacing:.04em;white-space:nowrap;flex-shrink:0}
+.deck-sec{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--chalk3);margin:.9rem 0 .45rem;padding-top:.7rem;border-top:1px solid var(--edge)}
+.bp-grid{display:grid;grid-template-columns:1fr auto 1fr auto;gap:5px 7px;align-items:center}
+.bp-lbl{font-size:11px;color:var(--chalk2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bp-num{width:42px;background:var(--slate2);border:1px solid var(--edge);border-radius:3px;
+  color:var(--chalk);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 5px;
+  text-align:center;outline:none;box-sizing:border-box}
+.bp-num:focus{border-color:var(--flask)}
+.bp-num.has{border-color:rgba(79,209,197,.4);color:var(--flask)}
+.deck-opt{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--chalk2);
+  padding:3px 0;cursor:pointer}
+.deck-opt input{accent-color:var(--flask);cursor:pointer}
 
 /* Study guide editor drawer */
 .sg-drawer{position:fixed;top:0;right:0;width:min(470px,100%);height:100%;background:var(--slate);
@@ -684,6 +714,41 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
       </div>
     </div>
 
+    <div class="pane" id="deckPane">
+      <div class="pane-label">Build from slides<span id="deckCount" style="color:var(--flask)"></span></div>
+
+      <label class="deck-drop" for="deckFile">
+        <span class="deck-drop-icon">📊</span>
+        <span class="deck-drop-main">Add PowerPoints</span>
+        <span class="deck-drop-sub">.pptx — one per chapter, as many as you need</span>
+      </label>
+      <input id="deckFile" type="file" accept=".pptx" multiple style="display:none" onchange="addDecks(event)">
+
+      <div id="deckList"></div>
+
+      <div id="deckBody" style="display:none">
+        <div class="deck-sec">Blueprint — how many of each</div>
+        <div id="deckBlueprint" class="bp-grid"></div>
+
+        <div class="deck-sec">Options</div>
+        <label class="deck-opt"><input type="checkbox" id="bpHeadings" checked> Add section headings</label>
+        <label class="deck-opt"><input type="checkbox" id="bpHonors"> Tag the hardest ones Honors-only</label>
+        <label class="deck-opt"><input type="checkbox" id="bpBank" checked> Bank the questions when I save</label>
+
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:.7rem">
+          <button class="ai-btn" onclick="genFromDecks(this,'replace')"
+            style="border-color:rgba(79,209,197,.45);background:var(--flask-dim);color:var(--flask)">&#10024; Build the test</button>
+          <button class="ai-btn" onclick="genFromDecks(this,'topup')"
+            style="border-color:var(--edge);background:var(--slate2);color:var(--chalk2)">Top up to blueprint</button>
+          <button class="ai-btn" onclick="genFromDecks(this,'add')"
+            style="border-color:var(--edge);background:var(--slate2);color:var(--chalk2)">+10 more</button>
+        </div>
+        <div id="bpGap" class="opt-hint" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.03em;line-height:1.7;margin-top:.6rem"></div>
+      </div>
+
+      <div id="deckOut" style="display:none;margin-top:.7rem;font-size:11.5px;line-height:1.6;color:var(--chalk2);background:var(--slate2);border:1px solid var(--edge);border-radius:4px;padding:9px 11px;white-space:pre-wrap;max-height:220px;overflow-y:auto"></div>
+    </div>
+
     <div class="pane" id="qAIPane">
       <div class="pane-label">AI assist</div>
       <div class="ai-bar" style="border:none;padding:0;margin:0">
@@ -810,6 +875,7 @@ function setMode(m){
   document.getElementById('labAIPane').style.display=isLab?'':'none';
   document.getElementById('qAddPane').style.display=(isLab||isBank)?'none':'';
   document.getElementById('qAIPane').style.display=(isLab||isBank)?'none':'';
+  document.getElementById('deckPane').style.display=(isLab||isBank)?'none':'';
   document.getElementById('qList').style.display=(isLab||isBank)?'none':'';
   document.getElementById('labList').style.display=isLab?'':'none';
   document.getElementById('apiKey').style.display='';
@@ -848,10 +914,10 @@ function reshuffle(){
 function addQ(type){
   questions.push({id:uid(),type,text:'',pts:type==='section'?0:1,locked:false,lvl:'both',...structuredClone(DEFAULTS[type])});
   renderEditor();render();
-  if(mode==='test')renderQuotas();
+  if(mode==='test')renderQuotas();renderBPGap();
   setTimeout(()=>{const e=document.querySelectorAll('.qcard textarea, .sec-input');e[e.length-1]?.focus();},30);
 }
-function delQ(id){questions=questions.filter(q=>q.id!==id);renderEditor();render();if(mode==='test')renderQuotas();}
+function delQ(id){questions=questions.filter(q=>q.id!==id);renderEditor();render();if(mode==='test')renderQuotas();renderBPGap();}
 function moveQ(id,d){const i=questions.findIndex(q=>q.id===id),j=i+d;if(i<0||j<0||j>=questions.length)return;[questions[i],questions[j]]=[questions[j],questions[i]];renderEditor();render();}
 function dupQ(id){const i=questions.findIndex(q=>q.id===id);if(i<0)return;const c=structuredClone(questions[i]);c.id=uid();questions.splice(i+1,0,c);renderEditor();render();}
 function updQ(id,f,v){const q=questions.find(x=>x.id===id);if(q){q[f]=v;render();}}
@@ -967,6 +1033,7 @@ function renderEditor(){
       <div class="qcard-head">
         <span class="qnum">${n}.</span>
         <span class="qbadge">${TYPE_LABEL[q.type]}</span>
+        ${q.src?`<span class="qbadge src" title="From ${esc(q.src)}">${esc(q.src)}</span>`:''}
         <div class="qcard-actions">
           ${mode==='test'?`<button class="lab-lvl-tag ${qLevelOf(q)}" onclick="cycleQLevel('${q.id}')" title="Both / Honors only / College Prep only">${qLevelOf(q)==='both'?'BOTH':qLevelOf(q)==='honors'?'HON':'CP'}</button>`:''}
           ${mode==='test'?`<button class="icon-btn ${q.locked?'on':''}" onclick="toggleLock('${q.id}')" title="${q.locked?'Unlock position':'Lock in place across versions'}">${q.locked?'🔒':'🔓'}</button>`:''}
@@ -1359,6 +1426,363 @@ function insertQuestion(q){
   questions.splice(at,0,q);
   return at;
 }
+
+/* ══ BUILD FROM SLIDES ══════════════════════════════════════════
+   Upload the decks you actually taught from, set a blueprint of how
+   many of each question type you want, and get the whole test in one
+   pass. The slide text stays loaded so you can delete the questions
+   you don't like and top the test back up without re-uploading. */
+
+const DECK_KEY='dc_decks_v1';
+const BP_KEY='dc_blueprint_v1';
+const DECK_CHAR_CAP=45000;        // per deck, keeps the request sane
+
+const BP_TYPES=[
+  ['mc','Multiple choice',12],
+  ['tf','True / False',6],
+  ['fill','Fill in blank',4],
+  ['short','Short answer',5],
+  ['work','Show your work',4],
+  ['matching','Matching',1],
+  ['ordering','Ordering',0],
+  ['long','Long response',1],
+  ['graph','Graph / grid',0]
+];
+const SECTION_NAMES={
+  mc:'Multiple Choice', tf:'True or False', fill:'Fill in the Blank',
+  short:'Short Answer', work:'Show Your Work', matching:'Matching',
+  ordering:'Put in Order', long:'Extended Response', graph:'Graphing'
+};
+const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+
+let decks=[];          // [{id,name,slides,chars,text}]
+let blueprint={};
+
+function deckOut(t){const el=document.getElementById('deckOut');el.style.display='block';el.textContent=t;}
+
+function loadDecks(){
+  try{decks=JSON.parse(localStorage.getItem(DECK_KEY))||[];}catch{decks=[];}
+  try{blueprint=JSON.parse(localStorage.getItem(BP_KEY))||{};}catch{blueprint={};}
+  BP_TYPES.forEach(([k,,d])=>{ if(blueprint[k]==null)blueprint[k]=d; });
+  renderDecks();
+}
+function persistDecks(){
+  try{localStorage.setItem(DECK_KEY,JSON.stringify(decks));}
+  catch{ deckOut('Slides are loaded for this session, but were too large to keep after a refresh.'); }
+}
+function persistBP(){ try{localStorage.setItem(BP_KEY,JSON.stringify(blueprint));}catch{} }
+
+/* ── PPTX text extraction (a .pptx is a zip of XML) ── */
+async function extractPptx(file){
+  const zip=await JSZip.loadAsync(await file.arrayBuffer());
+  const names=Object.keys(zip.files)
+    .filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n))
+    .sort((a,b)=>parseInt(a.match(/\d+/)[0])-parseInt(b.match(/\d+/)[0]));
+  const notesOf=async n=>{
+    const nf='ppt/notesSlides/notesSlide'+n+'.xml';
+    if(!zip.files[nf])return '';
+    return xmlText(await zip.files[nf].async('string'));
+  };
+  const out=[];
+  for(let i=0;i<names.length;i++){
+    const body=xmlText(await zip.files[names[i]].async('string'));
+    const notes=await notesOf(i+1);
+    if(body||notes)out.push({n:out.length+1,text:body,notes:notes.slice(0,400)});
+  }
+  return out;
+}
+function xmlText(xml){
+  const parts=[];
+  for(const m of xml.matchAll(/<a:t[^>]*>([\s\S]*?)<\/a:t>/g)){
+    parts.push(m[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+      .replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&apos;/g,"'"));
+  }
+  return parts.join(' ').replace(/\s+/g,' ').trim();
+}
+
+/* Strip the extension and tidy a filename into a usable chapter label. */
+function deckLabel(fn){
+  return fn.replace(/\.pptx$/i,'').replace(/[_]+/g,' ').replace(/\s+/g,' ').trim().slice(0,60)||'Deck';
+}
+
+async function addDecks(ev){
+  const files=[...(ev.target.files||[])];
+  ev.target.value='';
+  if(!files.length)return;
+  if(typeof JSZip==='undefined'){
+    deckOut('The PowerPoint reader did not load. Check your connection and refresh the page.');
+    return;
+  }
+  deckOut('Reading '+files.length+' file'+(files.length>1?'s':'')+'…');
+  for(const f of files){
+    if(!/\.pptx$/i.test(f.name)){
+      deckOut(`"${f.name}" isn't a .pptx. If it's an older .ppt, open it in PowerPoint and Save As .pptx.`);
+      continue;
+    }
+    try{
+      const slides=await extractPptx(f);
+      if(!slides.length){
+        deckOut(`No text found in "${f.name}" — if the slides are pictures of text I can't read them.`);
+        continue;
+      }
+      let text=slides.map(s=>`[slide ${s.n}] ${s.text}${s.notes?`  (notes: ${s.notes})`:''}`).join('\n');
+      const truncated=text.length>DECK_CHAR_CAP;
+      if(truncated)text=text.slice(0,DECK_CHAR_CAP);
+      decks.push({id:'dk'+Date.now()+Math.random().toString(36).slice(2,5),
+        name:deckLabel(f.name), slides:slides.length, chars:text.length, truncated, text});
+    }catch(e){
+      deckOut(`Could not open "${f.name}": ${e.message}`);
+    }
+  }
+  persistDecks();renderDecks();
+  if(decks.length)deckOut(`✓ ${decks.length} deck${decks.length>1?'s':''} loaded, ${decks.reduce((a,d)=>a+d.slides,0)} slides total. Rename them to the chapter if you like — the names show up on each question so you know where it came from.`);
+}
+
+function renameDeck(id,v){const d=decks.find(x=>x.id===id);if(d){d.name=v;persistDecks();}}
+function delDeck(id){decks=decks.filter(d=>d.id!==id);persistDecks();renderDecks();}
+function clearDecks(){
+  if(!confirm('Remove all loaded slides? Questions already on the test stay put.'))return;
+  decks=[];persistDecks();renderDecks();
+}
+
+function renderDecks(){
+  const list=document.getElementById('deckList');
+  const body=document.getElementById('deckBody');
+  if(!list)return;
+  document.getElementById('deckCount').textContent=decks.length?' '+decks.length:'';
+  body.style.display=decks.length?'':'none';
+  if(!decks.length){ list.innerHTML=''; return; }
+  list.innerHTML=`<div style="margin-top:.6rem">`+decks.map(d=>`
+    <div class="deck-row">
+      <input class="deck-name" value="${esc(d.name)}" oninput="renameDeck('${d.id}',this.value)" title="Name this chapter">
+      <span class="deck-meta">${d.slides} sl${d.truncated?' ✂':''}</span>
+      <button class="icon-btn danger" onclick="delDeck('${d.id}')" title="Remove">×</button>
+    </div>`).join('')+
+    `<button class="mini-btn" onclick="clearDecks()" style="border-color:var(--edge);color:var(--chalk3);margin-top:6px">Remove all slides</button></div>`;
+  renderBlueprint();
+}
+
+function setBP(k,v){
+  blueprint[k]=Math.max(0,Math.min(60,+v||0));
+  persistBP();renderBPGap();
+  const el=document.getElementById('bp_'+k);
+  if(el)el.classList.toggle('has',blueprint[k]>0);
+}
+
+function renderBlueprint(){
+  const el=document.getElementById('deckBlueprint');
+  if(!el)return;
+  el.innerHTML=BP_TYPES.map(([k,lab])=>`
+    <span class="bp-lbl" title="${lab}">${lab}</span>
+    <input class="bp-num ${blueprint[k]>0?'has':''}" id="bp_${k}" type="number" min="0" max="60"
+      value="${blueprint[k]||0}" oninput="setBP('${k}',this.value)">`).join('');
+  renderBPGap();
+}
+
+/* How far the sheet currently is from the blueprint. */
+function bpCounts(){
+  const have={};
+  questions.forEach(q=>{ if(q.type!=='section')have[q.type]=(have[q.type]||0)+1; });
+  return have;
+}
+function bpGaps(){
+  const have=bpCounts(),gaps={};
+  BP_TYPES.forEach(([k])=>{ const g=(blueprint[k]||0)-(have[k]||0); if(g>0)gaps[k]=g; });
+  return gaps;
+}
+function renderBPGap(){
+  const el=document.getElementById('bpGap');
+  if(!el)return;
+  const have=bpCounts();
+  const total=BP_TYPES.reduce((a,[k])=>a+(blueprint[k]||0),0);
+  const on=questions.filter(q=>q.type!=='section').length;
+  const gaps=bpGaps();
+  const gapTxt=Object.entries(gaps).map(([k,n])=>`${n} ${TYPE_LABEL[k]||k}`).join(', ');
+  el.textContent=`Blueprint: ${total} questions · on the sheet now: ${on}`+
+    (gapTxt?`\nTop up would add: ${gapTxt}`:`\nSheet meets the blueprint.`);
+}
+
+/* ── Slide context sent to the model ── */
+function deckContext(){
+  return decks.map(d=>`=== ${d.name} (${d.slides} slides) ===\n${d.text}`).join('\n\n');
+}
+function existingQsBrief(){
+  const real=questions.filter(q=>q.type!=='section'&&(q.text||'').trim());
+  if(!real.length)return '';
+  return `\nAlready on the test — do NOT repeat these or ask the same thing in different words:\n`+
+    real.map((q,i)=>`${i+1}. ${q.text}`).join('\n')+'\n';
+}
+
+const GEN_FORMAT=
+`Return ONLY question lines, one per line, nothing else — no preamble, no numbering, no blank-line commentary.
+Each line starts with the type in square brackets, then the chapter in curly braces, then the question:
+
+[mc] {chapter} Question text? | choice a | choice b | choice c | choice d
+[tf] {chapter} A statement that is clearly true or clearly false.
+[fill] {chapter} A sentence where the missing term is written as ___ (three underscores).
+[short] {chapter} A question answerable in two or three sentences.
+[work] {chapter} A calculation problem. State all given values and the units wanted.
+[long] {chapter} A question needing a paragraph.
+[matching] {chapter} Match each term to its definition. | term1 :: definition1 | term2 :: definition2 | term3 :: definition3
+[ordering] {chapter} Put these steps in order. | first step | second step | third step
+[graph] {chapter} A prompt telling students what to plot.
+
+Rules:
+- For [mc], put the CORRECT answer first — the tool shuffles choices per version.
+- For [ordering], list items in the CORRECT order — the tool shuffles them.
+- Use the exact chapter names given. Never invent a chapter.
+- Chemistry notation: H_2O, SO_4^2-, Ca^2+, -> for yields, <-> for equilibrium.
+- One question per line. Never wrap a question onto a second line.`;
+
+function honorsRule(){
+  return document.getElementById('bpHonors')?.checked
+    ? `\nMark the hardest roughly one question in five by putting (honors) right after the type, like "[work] (honors) {Ch 7} ...". Everything else is for both sections.\n`
+    : '';
+}
+
+function bpRequest(counts){
+  return Object.entries(counts).filter(([,n])=>n>0)
+    .map(([k,n])=>`${n} ${TYPE_LABEL[k]||k}`).join('\n- ');
+}
+
+async function genFromDecks(btn,mode_){
+  if(!decks.length){deckOut('Add at least one PowerPoint first.');return;}
+
+  let counts, verb;
+  if(mode_==='replace'){
+    counts={}; BP_TYPES.forEach(([k])=>{ if(blueprint[k]>0)counts[k]=blueprint[k]; });
+    verb='Building the test';
+  }else if(mode_==='topup'){
+    counts=bpGaps();
+    if(!Object.keys(counts).length){deckOut('The sheet already meets the blueprint. Raise a number above, or use "+10 more".');return;}
+    verb='Topping up';
+  }else{
+    // +10 more: weight toward whatever the blueprint leans on
+    const tot=BP_TYPES.reduce((a,[k])=>a+(blueprint[k]||0),0)||1;
+    counts={};let left=10;
+    BP_TYPES.forEach(([k])=>{
+      const n=Math.round(10*(blueprint[k]||0)/tot);
+      if(n>0&&left>0){counts[k]=Math.min(n,left);left-=counts[k];}
+    });
+    if(left>0)counts.mc=(counts.mc||0)+left;
+    verb='Writing 10 more';
+  }
+
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  if(!total){deckOut('Set at least one number in the blueprint above.');return;}
+
+  if(mode_==='replace'){
+    const existing=questions.filter(q=>q.type!=='section').length;
+    if(existing&&!confirm(`Replace the ${existing} questions already on this test with a fresh set?\n\nUse "Top up to blueprint" instead if you want to keep them.`))return;
+    questions=[];
+  }
+
+  const names=decks.map(d=>d.name).join(', ');
+  const course=document.getElementById('wsCourse').value.trim()||'high school chemistry';
+  const unit=document.getElementById('wsUnit').value.trim();
+
+  deckOut(`${verb} — ${total} questions from ${decks.length} deck${decks.length>1?'s':''}. This takes a bit; leave the tab open.`);
+
+  const res=await callAI(
+`You write assessments for a La Salle High School teacher's ${course} class.
+Every question must be answerable from the slide content below — that is what the students were actually taught.
+Spread the questions across ALL chapters given, roughly in proportion to how many slides each one has.
+Range across recall, application and analysis. Be precise with units, significant figures, and chemical language.
+Plain text only. No markdown, no asterisks, no commentary.`,
+`Write test questions from these lecture slides.
+
+Chapters: ${names}${unit?`\nUnit: ${unit}`:''}
+
+Write exactly:
+- ${bpRequest(counts)}
+${honorsRule()}${mode_!=='replace'?existingQsBrief():''}
+SLIDE CONTENT
+${deckContext()}
+
+${GEN_FORMAT}`,
+    btn, Math.min(16000, 1200+total*220), verb);
+
+  if(!res)return;
+
+  const added=parseGenLines(res,mode_==='replace');
+  if(!added.count){
+    deckOut('Nothing parsed out of that reply. Here is the raw text:\n\n'+res.slice(0,1800));
+    return;
+  }
+
+  renderEditor();render();
+  if(mode==='test')renderQuotas();
+  renderBPGap();
+  const bits=Object.entries(added.byType).map(([k,n])=>`${n} ${TYPE_LABEL[k]||k}`).join(', ');
+  deckOut(`✓ ${added.count} questions added — ${bits}.\n\nGo through them, delete what you don't want, then hit "Top up to blueprint" to refill.`
+    +(added.skipped?`\n\n${added.skipped} line${added.skipped>1?'s':''} came back malformed and were skipped.`:''));
+}
+
+/* Turn the model's lines into question objects, filed under the right heading. */
+function parseGenLines(res,makeHeadings){
+  const wantHeadings=document.getElementById('bpHeadings')?.checked;
+  const rows=[];let skipped=0;
+
+  res.split('\n').map(l=>l.trim()).filter(Boolean).forEach(l=>{
+    const m=l.match(/^\[(mc|tf|short|long|fill|matching|ordering|work|graph)\]\s*(?:\((honors|cp|regular|both)\)\s*)?(?:\{([^}]*)\}\s*)?(.+)$/i);
+    if(!m){ if(/^\[/.test(l))skipped++; return; }
+    rows.push({type:m[1].toLowerCase(),
+      lvl:(m[2]||'both').toLowerCase().replace('cp','regular'),
+      src:(m[3]||'').trim(), rest:m[4].trim()});
+  });
+  if(!rows.length)return {count:0,byType:{},skipped};
+
+  // Create any missing section headings first, in blueprint order, so each
+  // question has somewhere to land.
+  if(makeHeadings&&wantHeadings){
+    const present=new Set(rows.map(r=>r.type));
+    // Number the parts in blueprint order, carrying on past any heading
+    // that is already on the sheet.
+    let part=questions.filter(q=>q.type==='section').length;
+    BP_TYPES.forEach(([k])=>{
+      if(!present.has(k))return;
+      if(sectionIndexForType(k)>=0)return;
+      const label=`Part ${ROMAN[part]||part+1} — ${SECTION_NAMES[k]||''}`;
+      part++;
+      questions.push({id:uid(),type:'section',text:label,pts:0,locked:false,lvl:'both'});
+    });
+  }
+
+  const byType={};
+  rows.forEach(r=>{
+    const parts=r.rest.split('|').map(x=>x.trim());
+    const base={id:uid(),type:r.type,text:parts[0],pts:r.type==='long'?5:r.type==='work'?4:1,
+      locked:false,lvl:r.lvl,src:r.src||undefined,
+      ...structuredClone(DEFAULTS[r.type]||{})};
+
+    if(r.type==='mc'){
+      base.options=parts.slice(1,7).filter(Boolean);
+      while(base.options.length<4)base.options.push('');
+    }else if(r.type==='matching'){
+      const pairs=parts.slice(1).map(p=>p.split('::').map(x=>x.trim())).filter(p=>p[0]);
+      if(pairs.length>=2){ base.left=pairs.map(p=>p[0]); base.right=pairs.map(p=>p[1]||''); }
+    }else if(r.type==='ordering'){
+      const items=parts.slice(1).filter(Boolean);
+      if(items.length>=2)base.items=items;
+    }
+    if(!base.text){skipped++;return;}
+    insertQuestion(base);
+    byType[r.type]=(byType[r.type]||0)+1;
+  });
+
+  // Drop any heading that ended up with nothing under it
+  questions=questions.filter((q,i)=>{
+    if(q.type!=='section')return true;
+    for(let j=i+1;j<questions.length;j++){
+      if(questions[j].type==='section')break;
+      return true;
+    }
+    return false;
+  });
+
+  return {count:Object.values(byType).reduce((a,b)=>a+b,0),byType,skipped};
+}
+
 
 /* ── 1. Clean up wording of existing questions ── */
 async function aiPolishQs(btn){
@@ -2936,16 +3360,16 @@ function labContext(lvl){
   }).join('\n\n');
 }
 
-async function callAI(system,user,btn){
+async function callAI(system,user,btn,maxTokens,label){
   if(!apiKey){aiShow('Paste your Anthropic API key in the top bar first (sk-ant-…).');return null;}
-  const orig=btn.textContent;btn.disabled=true;btn.textContent='Thinking…';
-  aiShow('Working…');
+  const orig=btn.textContent;btn.disabled=true;btn.textContent=label||'Thinking…';
+  aiShow(label?label+'…':'Working…');
   try{
     const r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,
         'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-5-20250929',max_tokens:2000,system,
+      body:JSON.stringify({model:'claude-sonnet-4-5-20250929',max_tokens:Math.max(1000,Math.min(16000,+maxTokens||2000)),system,
         messages:[{role:'user',content:user}]})
     });
     const d=await r.json();
@@ -3185,7 +3609,7 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveSheet();}
 });
 
-loadGridWeight();loadApiKey();loadBank();loadSGLib();
+loadGridWeight();loadApiKey();loadBank();loadSGLib();loadDecks();
 if(localStorage.getItem('dc_chembar_open')==='0')document.getElementById('chemBar').style.display='none';
 renderVerStrip();renderEditor();render();
 </script>
