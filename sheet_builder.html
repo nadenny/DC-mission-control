@@ -169,6 +169,8 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
   .lab-step,.ws-q,.lab-safety{page-break-inside:avoid;break-inside:avoid}
   .lab-table{page-break-inside:avoid;break-inside:avoid}
   .ws-head{page-break-after:avoid;break-after:avoid}
+  .eq-box,.eq-item{page-break-inside:avoid;break-inside:avoid}
+  .eq-box-ttl{page-break-after:avoid;break-after:avoid}
 }
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -328,6 +330,43 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .sg-box{width:11px;height:11px;border:1.2px solid var(--ink);border-radius:2px;flex-shrink:0;margin-top:3px}
 .sg-time{font-size:10pt;line-height:1.55;background:#F4F6F8;border-left:2px solid var(--ink);
   padding:7px 11px;margin-top:.2in;border-radius:0 2px 2px 0}
+
+/* Equation sheet — editor side */
+.eq-card{border:1px solid var(--edge);border-radius:4px;background:rgba(0,0,0,.14);padding:8px;margin-bottom:6px}
+.eq-row1{display:flex;align-items:center;gap:4px;margin-bottom:5px}
+.eq-lbl-in{flex:1;min-width:0;background:var(--slate2);border:1px solid var(--edge);border-radius:3px;
+  color:var(--chalk2);font-family:inherit;font-size:10.5px;padding:4px 6px;outline:none;box-sizing:border-box}
+.eq-body-in{width:100%;background:var(--slate2);border:1px solid var(--edge);border-radius:3px;
+  color:var(--chalk);font-family:'Space Grotesk',sans-serif;font-size:12.5px;padding:5px 7px;
+  outline:none;box-sizing:border-box}
+.eq-lbl-in:focus,.eq-body-in:focus{border-color:var(--amber)}
+.eq-prev{font-family:'Space Grotesk',sans-serif;font-size:12px;color:var(--amber);
+  padding:4px 7px 0;min-height:14px;word-break:break-word}
+.eq-kind{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.07em;text-transform:uppercase;
+  padding:3px 6px;border-radius:3px;border:1px solid var(--edge);background:var(--slate2);
+  color:var(--chalk3);cursor:pointer;flex-shrink:0}
+.eq-kind.k-const{background:rgba(167,139,250,.14);color:var(--violet);border-color:rgba(167,139,250,.4)}
+.eq-pack-row{display:flex;gap:5px;align-items:center;margin-top:.5rem}
+.eq-pack-row select{flex:1;min-width:0}
+
+/* Equation sheet — printed */
+.eq-box{border:1.2px solid var(--ink);border-radius:3px;padding:9px 12px 10px;margin-bottom:.26in;
+  break-inside:avoid;background:#FBFBF7}
+.eq-box-ttl{font-family:'Space Grotesk',sans-serif;font-size:10.5pt;font-weight:600;letter-spacing:.02em;
+  text-transform:uppercase;color:var(--ink);border-bottom:1px solid #C3CBD4;padding-bottom:4px;margin-bottom:7px}
+.eq-sub{font-family:'IBM Plex Mono',monospace;font-size:8pt;letter-spacing:.1em;text-transform:uppercase;
+  color:#5E6A77;margin:8px 0 5px;padding-top:6px;border-top:1px solid #DDE3E9}
+.eq-grid{display:grid;gap:4px 16px}
+.eq-grid.c1{grid-template-columns:1fr}
+.eq-grid.c2{grid-template-columns:1fr 1fr}
+.eq-grid.c3{grid-template-columns:1fr 1fr 1fr}
+.eq-item{display:flex;align-items:baseline;gap:6px;font-size:10pt;line-height:1.45;break-inside:avoid}
+.eq-item .eq-name{color:#5E6A77;font-family:'Space Grotesk',sans-serif;font-size:8.5pt;
+  white-space:nowrap;flex-shrink:0}
+.eq-item .eq-eqn{font-family:'Space Grotesk',sans-serif;font-weight:500;color:var(--ink)}
+.eq-paper .eq-box{margin-bottom:0}
+.eq-page-note{font-family:'IBM Plex Mono',monospace;font-size:8pt;letter-spacing:.06em;
+  color:#8A95A1;text-align:center;margin-top:.3in}
 
 /* Build-from-slides pane */
 .deck-drop{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 10px;
@@ -714,6 +753,60 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
       </div>
     </div>
 
+    <div class="pane" id="eqPane">
+      <div class="pane-label">Equation sheet<span id="eqCount" style="color:var(--amber)"></span></div>
+
+      <label class="deck-opt" style="margin-bottom:.5rem"><input type="checkbox" id="eqOn" checked onchange="render()"> Print it with this test</label>
+
+      <div class="fgrid two">
+        <div class="f"><label>Where</label>
+          <select id="eqPlace" onchange="render()">
+            <option value="top">Top of page 1</option>
+            <option value="first">Its own page, in front</option>
+            <option value="last">Its own page, at the back</option>
+          </select>
+        </div>
+        <div class="f"><label>Columns</label>
+          <select id="eqCols" onchange="render()">
+            <option value="1">One</option>
+            <option value="2" selected>Two</option>
+            <option value="3">Three</option>
+          </select>
+        </div>
+      </div>
+      <div class="f" style="margin-top:6px"><label>Heading</label>
+        <input type="text" id="eqTitle" value="Equations &amp; Constants" oninput="render()">
+      </div>
+
+      <div class="deck-sec">Equations on this test</div>
+      <div id="eqList"></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
+        <button class="mini-btn" onclick="addEq('eq')" style="width:auto;margin:0;border-color:rgba(245,166,35,.4);color:var(--amber)">+ Equation</button>
+        <button class="mini-btn" onclick="addEq('const')" style="width:auto;margin:0;border-color:rgba(167,139,250,.4);color:var(--violet)">+ Constant</button>
+        <button class="mini-btn" onclick="sortEqs()" style="width:auto;margin:0;border-color:var(--edge);color:var(--chalk3)">Group by kind</button>
+      </div>
+
+      <div class="deck-sec">Starter packs &amp; my packs</div>
+      <div class="eq-pack-row">
+        <select id="eqPackSel"></select>
+        <button class="mini-btn" onclick="addPack()" style="width:auto;margin:0;border-color:var(--edge);color:var(--chalk2)">Add</button>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
+        <button class="mini-btn" onclick="savePack()" style="width:auto;margin:0;border-color:var(--edge);color:var(--chalk3)">Save mine as a pack</button>
+        <button class="mini-btn" onclick="delPack()" style="width:auto;margin:0;border-color:var(--edge);color:var(--chalk3)">Delete pack</button>
+        <button class="mini-btn" onclick="clearEqs()" style="width:auto;margin:0;border-color:var(--edge);color:var(--chalk3)">Clear list</button>
+      </div>
+
+      <div class="deck-sec">AI</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="ai-btn" onclick="aiEquations(this)" style="border-color:rgba(245,166,35,.4);background:var(--amber-dim);color:var(--amber)">&#10024; What does this test need?</button>
+      </div>
+      <div class="opt-hint" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.03em;line-height:1.7;margin-top:.6rem">
+        Reads your slides if any are loaded, otherwise the questions on the sheet. Honors-tagged equations only print on the Honors version.
+      </div>
+      <div id="eqOut" style="display:none;margin-top:.7rem;font-size:11.5px;line-height:1.6;color:var(--chalk2);background:var(--slate2);border:1px solid var(--edge);border-radius:4px;padding:9px 11px;white-space:pre-wrap;max-height:200px;overflow-y:auto"></div>
+    </div>
+
     <div class="pane" id="deckPane">
       <div class="pane-label">Build from slides<span id="deckCount" style="color:var(--flask)"></span></div>
 
@@ -876,6 +969,7 @@ function setMode(m){
   document.getElementById('qAddPane').style.display=(isLab||isBank)?'none':'';
   document.getElementById('qAIPane').style.display=(isLab||isBank)?'none':'';
   document.getElementById('deckPane').style.display=(isLab||isBank)?'none':'';
+  document.getElementById('eqPane').style.display=(isLab||isBank)?'none':'';
   document.getElementById('qList').style.display=(isLab||isBank)?'none':'';
   document.getElementById('labList').style.display=isLab?'':'none';
   document.getElementById('apiKey').style.display='';
@@ -914,10 +1008,10 @@ function reshuffle(){
 function addQ(type){
   questions.push({id:uid(),type,text:'',pts:type==='section'?0:1,locked:false,lvl:'both',...structuredClone(DEFAULTS[type])});
   renderEditor();render();
-  if(mode==='test')renderQuotas();renderBPGap();
+  if(mode==='test')renderQuotas();
   setTimeout(()=>{const e=document.querySelectorAll('.qcard textarea, .sec-input');e[e.length-1]?.focus();},30);
 }
-function delQ(id){questions=questions.filter(q=>q.id!==id);renderEditor();render();if(mode==='test')renderQuotas();renderBPGap();}
+function delQ(id){questions=questions.filter(q=>q.id!==id);renderEditor();render();if(mode==='test')renderQuotas();}
 function moveQ(id,d){const i=questions.findIndex(q=>q.id===id),j=i+d;if(i<0||j<0||j>=questions.length)return;[questions[i],questions[j]]=[questions[j],questions[i]];renderEditor();render();}
 function dupQ(id){const i=questions.findIndex(q=>q.id===id);if(i<0)return;const c=structuredClone(questions[i]);c.id=uid();questions.splice(i+1,0,c);renderEditor();render();}
 function updQ(id,f,v){const q=questions.find(x=>x.id===id);if(q){q[f]=v;render();}}
@@ -1125,6 +1219,8 @@ function buildPaper(letter,lvl){
   </div>`;
 
   if(instr)h+=`<div class="ws-instructions">${escC(instr).replace(/\n/g,'<br>')}</div>`;
+
+  if(eqPlace()==='top')h+=eqBoxHTML(lvl);
 
   if(!list.length){
     h+=`<div style="text-align:center;padding:1.5in 0;color:#B0BAC6;font-family:'Space Grotesk',sans-serif;font-size:10pt">Questions appear here as you add them</div>`;
@@ -1427,6 +1523,309 @@ function insertQuestion(q){
   return at;
 }
 
+/* ══ EQUATION SHEET ═════════════════════════════════════════════════
+   The equations and constants students get handed with the test, so
+   nothing rides on memorization or a smuggled cheat sheet. Honors-only
+   entries print on the Honors version and nowhere else. */
+
+const EQPACK_KEY='dc_eq_packs_v1';
+let eqItems=[];
+let eqPacks=[];          // the teacher's own saved packs
+
+/* Built-in starter packs — high school chemistry, in this tool's notation. */
+const EQ_BUILTIN={
+  'Measurement & density':[
+    ['Density','D = m/V'],
+    ['Mass from density','m = D x V'],
+    ['Volume from density','V = m/D'],
+    ['Percent error','% error = (|accepted - experimental| / accepted) x 100'],
+    ['Kelvin','K = deg C + 273.15'],
+    ['Celsius','deg C = K - 273.15']
+  ],
+  'Moles & stoichiometry':[
+    ['Moles from mass','n = m / M'],
+    ['Mass from moles','m = n x M'],
+    ['Particle count','N = n x N_A'],
+    ['Percent composition','% element = (mass of element / molar mass) x 100'],
+    ['Percent yield','% yield = (actual / theoretical) x 100'],
+    ['Mole ratio','use the coefficients of the balanced equation']
+  ],
+  'Gas laws':[
+    ["Boyle's law",'P_1V_1 = P_2V_2'],
+    ["Charles's law",'V_1/T_1 = V_2/T_2'],
+    ["Gay-Lussac's law",'P_1/T_1 = P_2/T_2'],
+    ['Combined gas law','P_1V_1/T_1 = P_2V_2/T_2'],
+    ['Ideal gas law','PV = nRT'],
+    ["Dalton's law",'P_{total} = P_1 + P_2 + P_3 + ...'],
+    ['Molar volume at STP','V = n x 22.4 L/mol']
+  ],
+  'Gas laws — honors extras':[
+    ["Graham's law",'rate_1 / rate_2 = sqrt(M_2 / M_1)'],
+    ['Density of a gas','D = PM / RT'],
+    ['Mole fraction','X_a = n_a / n_{total}'],
+    ['Partial pressure','P_a = X_a x P_{total}']
+  ],
+  'Solutions':[
+    ['Molarity','M = mol solute / L solution'],
+    ['Moles from molarity','mol = M x L'],
+    ['Dilution','M_1V_1 = M_2V_2'],
+    ['Percent by mass','% mass = (mass solute / mass solution) x 100'],
+    ['Parts per million','ppm = (mass solute / mass solution) x 10^6']
+  ],
+  'Solutions — honors extras':[
+    ['Molality','m = mol solute / kg solvent'],
+    ['Freezing point depression','ΔT_f = i x K_f x m'],
+    ['Boiling point elevation','ΔT_b = i x K_b x m']
+  ],
+  'Thermochemistry':[
+    ['Heat transferred','q = m x c x ΔT'],
+    ['Heat of a phase change','q = n x ΔH'],
+    ['Enthalpy of reaction','ΔH_{rxn} = ΣΔH_f (products) - ΣΔH_f (reactants)'],
+    ['Specific heat','c = q / (m x ΔT)']
+  ],
+  'Acids & bases':[
+    ['pH','pH = -log[H^+]'],
+    ['pOH','pOH = -log[OH^-]'],
+    ['pH and pOH','pH + pOH = 14'],
+    ['Hydrogen ion from pH','[H^+] = 10^-pH'],
+    ['Water ion product','[H^+][OH^-] = 1.0x10^-14'],
+    ['Titration (monoprotic)','M_aV_a = M_bV_b']
+  ],
+  'Atomic structure & light':[
+    ['Wave equation','c = λν'],
+    ['Energy of a photon','E = hν'],
+    ['Energy from wavelength','E = hc / λ']
+  ],
+  'Constants':[
+    ["Avogadro's number",'N_A = 6.022x10^23 /mol','const'],
+    ['Gas constant','R = 0.0821 L·atm/(mol·K)','const'],
+    ['Gas constant','R = 8.314 J/(mol·K)','const'],
+    ['Molar volume at STP','22.4 L/mol','const'],
+    ['Specific heat of water','c = 4.18 J/(g·deg C)','const'],
+    ['Heat of fusion, water','ΔH_f = 334 J/g','const'],
+    ['Heat of vaporization, water','ΔH_v = 2260 J/g','const'],
+    ['Pressure equivalents','1 atm = 760 mmHg = 760 torr = 101.3 kPa','const'],
+    ['Standard temperature','0 deg C = 273.15 K','const'],
+    ["Planck's constant",'h = 6.626x10^-34 J·s','const'],
+    ['Speed of light','c = 3.00x10^8 m/s','const']
+  ]
+};
+
+const eqUid=()=>'e'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+function eqShow(t){const el=document.getElementById('eqOut');el.style.display='block';el.textContent=t;}
+function eqOnFlag(){return !!document.getElementById('eqOn')?.checked;}
+function eqPlace(){return document.getElementById('eqPlace')?.value||'top';}
+
+function loadEqPacks(){
+  try{eqPacks=JSON.parse(localStorage.getItem(EQPACK_KEY))||[];}catch{eqPacks=[];}
+  renderPackSel();renderEqs();
+}
+function persistEqPacks(){try{localStorage.setItem(EQPACK_KEY,JSON.stringify(eqPacks));}catch{}}
+
+function renderPackSel(){
+  const el=document.getElementById('eqPackSel');
+  if(!el)return;
+  const mine=eqPacks.map(p=>`<option value="mine:${p.id}">${esc(p.name)} (mine)</option>`).join('');
+  el.innerHTML=Object.keys(EQ_BUILTIN).map(k=>`<option value="built:${esc(k)}">${esc(k)}</option>`).join('')+mine;
+}
+
+function addEq(kind,label,body,lvl){
+  eqItems.push({id:eqUid(),kind:kind||'eq',label:label||'',body:body||'',lvl:lvl||'both'});
+  renderEqs();render();
+  if(!label){
+    setTimeout(()=>{const e=document.querySelectorAll('#eqList .eq-lbl-in');e[e.length-1]?.focus();},30);
+  }
+}
+function updEq(id,f,v){const it=eqItems.find(x=>x.id===id);if(!it)return;it[f]=v;
+  const pv=document.getElementById('eqpv_'+id);
+  if(pv&&f==='body')pv.textContent=chemFormat(v);
+  render();}
+function delEq(id){eqItems=eqItems.filter(x=>x.id!==id);renderEqs();render();}
+function moveEq(id,d){const i=eqItems.findIndex(x=>x.id===id),j=i+d;
+  if(i<0||j<0||j>=eqItems.length)return;[eqItems[i],eqItems[j]]=[eqItems[j],eqItems[i]];renderEqs();render();}
+function cycleEqKind(id){const it=eqItems.find(x=>x.id===id);if(!it)return;
+  it.kind=it.kind==='const'?'eq':'const';renderEqs();render();}
+function cycleEqLvl(id){const it=eqItems.find(x=>x.id===id);if(!it)return;
+  const c=it.lvl||'both';
+  it.lvl=c==='both'?'honors':c==='honors'?'regular':'both';renderEqs();render();}
+function sortEqs(){
+  const rank=i=>i.kind==='const'?1:0;
+  eqItems=eqItems.slice().sort((a,b)=>rank(a)-rank(b));
+  renderEqs();render();
+}
+function clearEqs(){
+  if(!eqItems.length)return;
+  if(!confirm('Clear all '+eqItems.length+' entries from the equation sheet?'))return;
+  eqItems=[];renderEqs();render();
+}
+
+function renderEqs(){
+  const el=document.getElementById('eqList');
+  if(!el)return;
+  const cnt=document.getElementById('eqCount');
+  if(cnt)cnt.textContent=eqItems.length?' '+eqItems.length:'';
+  if(!eqItems.length){
+    el.innerHTML=`<div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.06em;padding:6px 0;line-height:1.7">Nothing yet — add one below, or drop in a starter pack.</div>`;
+    return;
+  }
+  el.innerHTML=eqItems.map(it=>`
+    <div class="eq-card">
+      <div class="eq-row1">
+        <input class="eq-lbl-in" value="${esc(it.label)}" placeholder="What it's called (optional)"
+          oninput="updEq('${it.id}','label',this.value)">
+        <button class="eq-kind ${it.kind==='const'?'k-const':''}" onclick="cycleEqKind('${it.id}')"
+          title="Equation or constant">${it.kind==='const'?'const':'eqn'}</button>
+        <button class="lab-lvl-tag ${it.lvl||'both'}" onclick="cycleEqLvl('${it.id}')"
+          title="Both / Honors only / College Prep only">${(it.lvl||'both')==='both'?'BOTH':it.lvl==='honors'?'HON':'CP'}</button>
+        <button class="icon-btn" onclick="moveEq('${it.id}',-1)">↑</button>
+        <button class="icon-btn" onclick="moveEq('${it.id}',1)">↓</button>
+        <button class="icon-btn danger" onclick="delEq('${it.id}')">×</button>
+      </div>
+      <input class="eq-body-in" value="${esc(it.body)}" placeholder="D = m/V"
+        oninput="updEq('${it.id}','body',this.value)">
+      <div class="eq-prev" id="eqpv_${it.id}">${esc(chemFormat(it.body))}</div>
+    </div>`).join('');
+}
+
+/* ── Packs ── */
+function addPack(){
+  const v=document.getElementById('eqPackSel').value||'';
+  if(v.startsWith('built:')){
+    const name=v.slice(6);
+    const rows=EQ_BUILTIN[name];
+    if(!rows){eqShow('That pack is no longer available.');return;}
+    let added=0;
+    rows.forEach(([label,body,kind])=>{
+      if(eqItems.some(x=>(x.body||'').trim()===body.trim()))return;   // no duplicates
+      eqItems.push({id:eqUid(),kind:kind||'eq',label,body,lvl:/honors/i.test(name)?'honors':'both'});
+      added++;
+    });
+    renderEqs();render();
+    eqShow(added?`✓ Added ${added} from "${name}".`+(added<rows.length?` ${rows.length-added} were already on the list.`:'')
+                :`Everything in "${name}" is already on the list.`);
+    return;
+  }
+  if(v.startsWith('mine:')){
+    const pk=eqPacks.find(p=>p.id===v.slice(5));
+    if(!pk)return;
+    let added=0;
+    pk.items.forEach(it=>{
+      if(eqItems.some(x=>(x.body||'').trim()===(it.body||'').trim()))return;
+      eqItems.push({...structuredClone(it),id:eqUid()});added++;
+    });
+    renderEqs();render();
+    eqShow(added?`✓ Added ${added} from "${pk.name}".`:`Everything in "${pk.name}" is already on the list.`);
+  }
+}
+function savePack(){
+  if(!eqItems.length){eqShow('Add some equations first.');return;}
+  const unit=document.getElementById('wsUnit').value.trim();
+  const name=(prompt('Name this pack so you can reuse it:',unit||'My equations')||'').trim();
+  if(!name)return;
+  const i=eqPacks.findIndex(p=>p.name===name);
+  const pk={id:i>=0?eqPacks[i].id:'pk'+Date.now(),name,items:structuredClone(eqItems)};
+  if(i>=0)eqPacks[i]=pk;else eqPacks.push(pk);
+  persistEqPacks();renderPackSel();
+  document.getElementById('eqPackSel').value='mine:'+pk.id;
+  eqShow(`✓ Saved "${name}" with ${eqItems.length} entries. It shows up in the dropdown on every test from now on.`);
+}
+function delPack(){
+  const v=document.getElementById('eqPackSel').value||'';
+  if(!v.startsWith('mine:')){eqShow('Only your own packs can be deleted — the starter packs stay put.');return;}
+  const pk=eqPacks.find(p=>p.id===v.slice(5));
+  if(!pk||!confirm('Delete your pack "'+pk.name+'"? The equations stay on this test.'))return;
+  eqPacks=eqPacks.filter(p=>p.id!==pk.id);
+  persistEqPacks();renderPackSel();
+  eqShow('Pack deleted.');
+}
+
+/* ── Printed output ── */
+function eqFor(lvl){
+  if(!eqOnFlag())return [];
+  return eqItems.filter(it=>{
+    if(!(it.body||'').trim())return false;
+    const l=it.lvl||'both';
+    if(!lvl||lvl==='both'||l==='both')return true;
+    return l===lvl;
+  });
+}
+function eqBoxHTML(lvl){
+  const items=eqFor(lvl);
+  if(!items.length)return '';
+  const cols=document.getElementById('eqCols')?.value||'2';
+  const head=document.getElementById('eqTitle')?.value.trim()||'Equations & Constants';
+  const eqs=items.filter(i=>i.kind!=='const');
+  const cs=items.filter(i=>i.kind==='const');
+  const cell=i=>`<div class="eq-item">${i.label?`<span class="eq-name">${escC(i.label)}</span>`:''}<span class="eq-eqn">${escC(i.body)}</span></div>`;
+  return `<div class="eq-box">
+    <div class="eq-box-ttl">${escC(head)}</div>
+    ${eqs.length?`<div class="eq-grid c${cols}">${eqs.map(cell).join('')}</div>`:''}
+    ${cs.length?`<div class="eq-sub">Constants</div><div class="eq-grid c${cols}">${cs.map(cell).join('')}</div>`:''}
+  </div>`;
+}
+/* The same box on a sheet of its own. */
+function eqPageHTML(lvl){
+  const box=eqBoxHTML(lvl);
+  if(!box)return '';
+  const title=document.getElementById('wsTitle').value.trim();
+  return `<div class="paper eq-paper">${box}
+    <div class="eq-page-note">${escC(title||'')}${title?' · ':''}Reference sheet — you may use this during the test</div>
+  </div>`;
+}
+
+/* ── AI: which equations does this test actually need? ── */
+async function aiEquations(btn){
+  const haveDecks=typeof decks!=='undefined'&&decks.length;
+  const real=questions.filter(q=>q.type!=='section'&&(q.text||'').trim());
+  if(!haveDecks&&!real.length){
+    eqShow('Load some slides or write some questions first, so I know what the test covers.');return;
+  }
+  const source=haveDecks
+    ? `LECTURE SLIDES\n${deckContext()}`
+    : `THE TEST\n${sheetContext()}`;
+  const already=eqItems.filter(i=>(i.body||'').trim()).map(i=>i.body).join('\n');
+
+  const res=await callAI(
+`You help a La Salle High School chemistry teacher assemble the reference sheet handed out with a test.
+Students are given every equation and constant they need — nothing is memorized.
+List only what this material actually requires. Do not pad the list.
+Write equations in plain text with this notation: subscripts as _1 or _{total}, superscripts as ^2 or ^-,
+x for multiplication, / for division, sqrt() for roots, and Greek letters spelled as the character (Δ, λ, ν, Σ).
+No markdown, no commentary.`,
+`Work out which equations and constants belong on the reference sheet for this test.
+
+${source}
+${already?`\nAlready on the sheet — do not repeat these:\n${already}\n`:''}
+Return ONLY lines in this exact form, nothing else:
+
+EQ | what it's called | the equation
+CONST | what it is | the value with units
+
+Put an H in front of a line if it is only needed for the Honors section, like:
+H EQ | Graham's law | rate_1 / rate_2 = sqrt(M_2 / M_1)
+
+At most 18 lines. Order them the way a student would meet them.`,
+    btn, 2500, 'Reading');
+
+  if(!res)return;
+  let added=0,skipped=0;
+  res.split('\n').map(l=>l.trim()).filter(Boolean).forEach(l=>{
+    const m=l.match(/^(H\s+)?(EQ|CONST)\s*\|\s*([^|]*)\|\s*(.+)$/i);
+    if(!m){ if(/\|/.test(l))skipped++; return; }
+    const body=m[4].trim();
+    if(!body)return;
+    if(eqItems.some(x=>(x.body||'').trim()===body))return;
+    eqItems.push({id:eqUid(),kind:m[2].toUpperCase()==='CONST'?'const':'eq',
+      label:m[3].trim(),body,lvl:m[1]?'honors':'both'});
+    added++;
+  });
+  renderEqs();render();
+  if(!added){eqShow('Nothing new came back. Raw reply:\n\n'+res.slice(0,1200));return;}
+  eqShow(`✓ Added ${added} entr${added===1?'y':'ies'}. Check them over — anything tagged HON only prints on the Honors version.`
+    +(skipped?`\n\n${skipped} line${skipped>1?'s':''} came back malformed and were skipped.`:''));
+}
+
+
 /* ══ BUILD FROM SLIDES ══════════════════════════════════════════
    Upload the decks you actually taught from, set a blueprint of how
    many of each question type you want, and get the whole test in one
@@ -1448,12 +1847,13 @@ const BP_TYPES=[
   ['long','Long response',1],
   ['graph','Graph / grid',0]
 ];
-const SECTION_NAMES={
-  mc:'Multiple Choice', tf:'True or False', fill:'Fill in the Blank',
-  short:'Short Answer', work:'Show Your Work', matching:'Matching',
-  ordering:'Put in Order', long:'Extended Response', graph:'Graphing'
+const SECTION_TITLES={
+  mc:'Part I — Multiple Choice', tf:'Part II — True or False',
+  fill:'Part III — Fill in the Blank', matching:'Part IV — Matching',
+  ordering:'Part V — Put in Order', short:'Part VI — Short Answer',
+  work:'Part VII — Show Your Work', graph:'Part VIII — Graphing',
+  long:'Part IX — Extended Response'
 };
-const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
 
 let decks=[];          // [{id,name,slides,chars,text}]
 let blueprint={};
@@ -1736,15 +2136,10 @@ function parseGenLines(res,makeHeadings){
   // question has somewhere to land.
   if(makeHeadings&&wantHeadings){
     const present=new Set(rows.map(r=>r.type));
-    // Number the parts in blueprint order, carrying on past any heading
-    // that is already on the sheet.
-    let part=questions.filter(q=>q.type==='section').length;
     BP_TYPES.forEach(([k])=>{
       if(!present.has(k))return;
       if(sectionIndexForType(k)>=0)return;
-      const label=`Part ${ROMAN[part]||part+1} — ${SECTION_NAMES[k]||''}`;
-      part++;
-      questions.push({id:uid(),type:'section',text:label,pts:0,locked:false,lvl:'both'});
+      questions.push({id:uid(),type:'section',text:SECTION_TITLES[k]||'',pts:0,locked:false,lvl:'both'});
     });
   }
 
@@ -1770,14 +2165,11 @@ function parseGenLines(res,makeHeadings){
     byType[r.type]=(byType[r.type]||0)+1;
   });
 
-  // Drop any heading that ended up with nothing under it
+  // Drop headings nothing landed under
   questions=questions.filter((q,i)=>{
     if(q.type!=='section')return true;
-    for(let j=i+1;j<questions.length;j++){
-      if(questions[j].type==='section')break;
-      return true;
-    }
-    return false;
+    return questions.slice(i+1).some((x,j)=>
+      x.type!=='section' && !questions.slice(i+1,i+1+j).some(y=>y.type==='section'));
   });
 
   return {count:Object.values(byType).reduce((a,b)=>a+b,0),byType,skipped};
@@ -3520,15 +3912,24 @@ function render(){
     stage.innerHTML=lvls.map(l=>buildLabPaper(l)).join('');
     return;
   }
-  if(mode==='worksheet'){stage.innerHTML=buildPaper('A',null);return;}
+  if(mode==='worksheet'){
+    const pl=eqPlace(),rp=(pl==='top')?'':eqPageHTML(null);
+    stage.innerHTML=(pl==='first'?rp:'')+buildPaper('A',null)+(pl==='last'?rp:'');
+    return;
+  }
   const wantKey=document.getElementById('optKey')?.checked;
   const lvls = testLevel==='both' ? ['regular','honors'] : [testLevel];
   const anyTagged = questions.some(q=>q.type!=='section'&&qLevelOf(q)!=='both');
   const useLvls = anyTagged ? lvls : [null];
   let h='';
+  const pl=eqPlace();
   useLvls.forEach(lv=>{
+    // One reference page per version — each student gets a whole packet.
+    const rp=(pl==='top')?'':eqPageHTML(lv);
     LETTERS.slice(0,versionCount).forEach(L=>{
+      if(pl==='first')h+=rp;
       h+=buildPaper(L,lv);
+      if(pl==='last')h+=rp;
       if(wantKey)h+=buildKey(L,lv);
     });
   });
@@ -3539,6 +3940,10 @@ function render(){
 function currentSheet(){
   return{mode,title:document.getElementById('wsTitle').value,course:document.getElementById('wsCourse').value,
     unit:document.getElementById('wsUnit').value,instr:document.getElementById('wsInstr').value,
+    eqItems,eqOn:document.getElementById('eqOn').checked,
+    eqPlace:document.getElementById('eqPlace').value,
+    eqCols:document.getElementById('eqCols').value,
+    eqTitle:document.getElementById('eqTitle').value,
     date:document.getElementById('wsDate').value,pts:document.getElementById('wsPts').value,
     versionCount,questions,blocks,quotas,
     labCap:document.getElementById('labCap').value,
@@ -3579,6 +3984,12 @@ function loadSheet(i){
   document.getElementById('wsCourse').value=s.course||'';
   document.getElementById('wsUnit').value=s.unit||'';
   document.getElementById('wsInstr').value=s.instr||'';
+  eqItems=s.eqItems||[];
+  document.getElementById('eqOn').checked=s.eqOn!==false;
+  document.getElementById('eqPlace').value=s.eqPlace||'top';
+  document.getElementById('eqCols').value=s.eqCols||'2';
+  document.getElementById('eqTitle').value=s.eqTitle||'Equations & Constants';
+  renderEqs();
   document.getElementById('wsDate').value=s.date||'yes';
   document.getElementById('wsPts').value=s.pts||'no';
   questions=s.questions||[];versionCount=s.versionCount||2;blocks=s.blocks||[];quotas=s.quotas||{};migrateBlocks();
@@ -3594,6 +4005,7 @@ function delSheet(i){
 function newSheet(){
   if(questions.length&&!confirm('Clear the current sheet? Save it first if you want to keep it.'))return;
   ['wsTitle','wsCourse','wsUnit','wsInstr'].forEach(id=>document.getElementById(id).value='');
+  eqItems=[];renderEqs();
   document.getElementById('wsDate').value='yes';document.getElementById('wsPts').value='no';
   questions=[];blocks=[];quotas={};
   if(mode==='lab')renderLabEditor();else renderEditor();
@@ -3609,7 +4021,7 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveSheet();}
 });
 
-loadGridWeight();loadApiKey();loadBank();loadSGLib();loadDecks();
+loadGridWeight();loadApiKey();loadBank();loadSGLib();loadDecks();loadEqPacks();
 if(localStorage.getItem('dc_chembar_open')==='0')document.getElementById('chemBar').style.display='none';
 renderVerStrip();renderEditor();render();
 </script>
