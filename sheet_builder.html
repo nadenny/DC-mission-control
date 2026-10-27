@@ -947,8 +947,32 @@ const uid=()=>'q'+Date.now()+Math.random().toString(36).slice(2,6);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 /* seeded RNG so versions stay stable until reshuffled */
-function rng(seed){let s=seed;return()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296;};}
+function rng(seed){
+  let s=(seed>>>0);
+  /* Avalanche the seed, then discard a few draws. A bare LCG's first output
+     tracks its seed, so nearby seeds shuffle alike and the correct answer
+     clusters on one letter. */
+  s^=s>>>16; s=Math.imul(s,2246822507); s^=s>>>13; s=Math.imul(s,3266489909); s^=s>>>16;
+  s=s>>>0;
+  const step=()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296;};
+  step();step();step();
+  return step;
+}
 function shuffleSeeded(arr,rand){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* Per-question shuffle seed, built from the CHARACTERS of the question's id.
+   This was previously based on the id's length — but every id is exactly 18
+   characters, so every question on a version got the same seed and therefore
+   the same shuffle, which is why one letter came out correct for a whole page. */
+function qSeed(q,salt){
+  const str=String(q&&q.id||'');
+  let h=2166136261;
+  for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}
+  h^=Math.imul(salt|0,2654435761);
+  return h>>>0;
+}
+/* Kept under 2^32 so the generator above stays in exact integer range. */
+function mixSeed(base,q,salt){return ((base>>>0)+qSeed(q,salt))%4294967296;}
 
 /* ── MODE ── */
 function setMode(m){
@@ -1187,7 +1211,7 @@ function orderFor(letter,lvl){
 
 function choicesFor(q,letter){
   if(mode!=='test'||!document.getElementById('optShuffleC')?.checked)return q.options;
-  const rand=rng((seeds[letter]||1)+q.id.length*31);
+  const rand=rng(mixSeed(seeds[letter]||1,q,31));
   return shuffleSeeded(q.options,rand);
 }
 
@@ -1260,7 +1284,7 @@ function buildPaper(letter,lvl){
         if((q.right[i]||'').trim())rights.push(q.right[i]);
       }
       // Right column shuffles — seeded per version so it's stable
-      const rand=rng((seeds[letter]||7)+q.id.length*17);
+      const rand=rng(mixSeed(seeds[letter]||7,q,17));
       const shuffled=(mode==='test')?shuffleSeeded(rights,rand):rights;
       body=`<div class="ws-match">
         <div class="ws-match-col">
@@ -1281,7 +1305,7 @@ function buildPaper(letter,lvl){
 
     if(q.type==='ordering'){
       const items=q.items.filter(x=>x.trim());
-      const rand=rng((seeds[letter]||11)+q.id.length*23);
+      const rand=rng(mixSeed(seeds[letter]||11,q,23));
       const shown=shuffleSeeded(items,rand);
       body=`<div class="ws-order">
         ${shown.map(it=>`<div class="ws-order-row">
