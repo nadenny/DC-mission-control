@@ -270,6 +270,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .quota-flag.ok{background:var(--flask-dim);color:var(--flask)}
 .quota-flag.warn{background:var(--amber-dim);color:var(--amber)}
 .quota-flag.same{background:var(--slate);color:var(--chalk3)}
+.quota-flag.off{background:rgba(245,101,101,.14);color:var(--rose)}
 
 /* Question bank */
 .bank-wrap{width:100%;max-width:920px}
@@ -1169,6 +1170,19 @@ function renderEditor(){
 }
 
 /* ── ORDER FOR A VERSION ── */
+/* A heading with nothing under it is just a stray label on the page —
+   which is what a zeroed-out quota leaves behind. */
+function dropEmptySections(list){
+  return list.filter((q,i)=>{
+    if(q.type!=='section')return true;
+    for(let j=i+1;j<list.length;j++){
+      if(list[j].type==='section')return false;
+      return true;
+    }
+    return false;
+  });
+}
+
 function orderFor(letter,lvl){
   let pool = (mode==='test'&&lvl&&lvl!=='both')
     ? questions.filter(q=>q.type==='section'||qVisible(q,lvl))
@@ -1179,9 +1193,9 @@ function orderFor(letter,lvl){
     const keep=drawForVersion(letter,lvl);
     pool=pool.filter(q=>q.type==='section'||keep.has(q.id));
   }
-  if(mode!=='test'||letter==='A'&&!seeds[letter])return pool;
+  if(mode!=='test'||letter==='A'&&!seeds[letter])return dropEmptySections(pool);
   const shuffleQ=document.getElementById('optShuffleQ')?.checked;
-  if(!shuffleQ)return pool;
+  if(!shuffleQ)return dropEmptySections(pool);
 
   const rand=rng(seeds[letter]||1);
   // split into blocks by section header; shuffle within each block, keep locked in place
@@ -1200,13 +1214,7 @@ function orderFor(letter,lvl){
     else block.push(q);
   });
   flush();
-  // Drop section headings that ended up with nothing under them
-  return out.filter((q,i)=>{
-    if(q.type!=='section')return true;
-    const next=out.slice(i+1).find(x=>x.type==='section');
-    const end=next?out.indexOf(next):out.length;
-    return out.slice(i+1,end).length>0;
-  });
+  return dropEmptySections(out);
 }
 
 function choicesFor(q,letter){
@@ -2805,27 +2813,53 @@ function renderQuotas(){
   el.innerHTML=types.map(t=>{
     const have=pool[t].length;
     const want=quotas[t]===undefined?have:Math.min(quotas[t],have);
-    const need=want*versionCount;
-    const overlap=need>have;
     return `<div class="quota-row">
       <span class="quota-name">${TYPE_LABEL[t]||t}</span>
-      <input class="quota-n" type="number" min="1" max="${have}" value="${want}"
-        oninput="setQuota('${t}',+this.value)">
+      <input class="quota-n" id="quota_${t}" type="number" min="0" max="${have}" value="${want}"
+        oninput="setQuota('${t}',this.value)" onchange="commitQuotas()" onblur="commitQuotas()">
       <span class="quota-of">of ${have}</span>
-      ${want<have
-        ? `<span class="quota-flag ${overlap?'warn':'ok'}" title="${overlap
-            ? 'Pool too small for '+versionCount+' fully distinct versions — some questions will repeat across versions.'
-            : 'Every version gets a completely different set.'}">${overlap?'overlaps':'all unique'}</span>`
-        : `<span class="quota-flag same" title="Every version uses all of these — same questions, different order.">same set</span>`}
+      <span id="qflag_${t}">${quotaFlag(t,want,have)}</span>
     </div>`;
   }).join('');
 }
 
-function setQuota(type,n){
-  const pool=poolByType(null)[type]||[];
-  quotas[type]=Math.max(1,Math.min(n||1,pool.length));
-  renderQuotas();render();
+function quotaFlag(t,want,have){
+  if(want===0)
+    return `<span class="quota-flag off" title="None of these print. The questions stay on your list — put this above 0 to bring them back.">left off</span>`;
+  if(want<have){
+    const overlap=want*versionCount>have;
+    return `<span class="quota-flag ${overlap?'warn':'ok'}" title="${overlap
+      ? 'Pool too small for '+versionCount+' fully distinct versions — some questions will repeat across versions.'
+      : 'Every version gets a completely different set.'}">${overlap?'overlaps':'all unique'}</span>`;
+  }
+  return `<span class="quota-flag same" title="Every version uses all of these — same questions, different order.">same set</span>`;
 }
+
+function setQuota(type,v){
+  const pool=poolByType(null)[type]||[];
+  const have=pool.length;
+  /* 0 means "leave this type off the test", so it has to survive. The old code
+     floored at 1 and turned 0 into 1 via `n||1`, so zero was unreachable.
+     An empty box reads as 0 too, and is allowed while you retype. */
+  const raw=String(v==null?'':v).trim();
+  let n;
+  if(raw===''){ n=0; }
+  else{
+    n=Math.floor(Number(raw));
+    if(!Number.isFinite(n))return;          // mid-typing junk: leave it alone
+  }
+  quotas[type]=Math.max(0,Math.min(n,have));
+
+  /* Refresh only this row's flag. Re-rendering the whole list on every
+     keystroke replaced the input you were typing in, which cost you the
+     second digit of any two-digit number. */
+  const flag=document.getElementById('qflag_'+type);
+  if(flag)flag.innerHTML=quotaFlag(type,quotas[type],have);
+  render();
+}
+
+/* Snap the box to the stored value once you're done typing. */
+function commitQuotas(){renderQuotas();}
 
 function resetQuotas(){
   quotas={};
