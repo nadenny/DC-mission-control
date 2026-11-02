@@ -87,6 +87,12 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .qnum{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--flask);min-width:18px}
 .qbadge{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--slate3);color:var(--chalk3)}
 .qbadge.sec{background:rgba(167,139,250,.15);color:var(--violet)}
+.sec-fold{background:none;border:none;color:var(--violet);cursor:pointer;font-size:11px;
+  line-height:1;padding:2px 3px;flex-shrink:0}
+.sec-fold:hover{color:var(--chalk)}
+.sec-count{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.06em;
+  color:var(--chalk3);text-transform:uppercase}
+.qcard.is-section.shut{border-color:rgba(167,139,250,.45);background:rgba(167,139,250,.07)}
 .qbadge.src{background:rgba(79,209,197,.13);color:var(--flask);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .qcard-actions{margin-left:auto;display:flex;gap:2px}
 .icon-btn{background:none;border:none;color:var(--chalk3);cursor:pointer;font-size:12px;padding:1px 4px;border-radius:3px;transition:all .12s;line-height:1}
@@ -547,6 +553,21 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
       </div>
     </div>
 
+    <!-- WORKSHEET-ONLY: scramble -->
+    <div class="pane" id="wsOptPane" style="display:none">
+      <div class="pane-label">Answer scrambling</div>
+      <div class="opt-row">
+        <input type="checkbox" id="wsShuffleC" checked onchange="render()">
+        <label for="wsShuffleC">Scramble multiple-choice answers</label>
+      </div>
+      <button class="mini-btn" onclick="wsReshuffle()" style="border-color:rgba(79,209,197,.4);color:var(--flask);margin-top:6px">↻ Re-scramble</button>
+      <div class="opt-hint" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);letter-spacing:.04em;line-height:1.7;margin-top:.6rem">
+        AI-written questions put the correct answer first, so without this every answer prints as (a).
+        Matching and ordering always scramble. The arrangement holds until you press Re-scramble, so
+        what you proofread is what prints.
+      </div>
+    </div>
+
     <!-- TEST-ONLY: versions -->
     <div class="pane" id="versionPane" style="display:none">
       <div class="pane-label">Versions</div>
@@ -885,7 +906,10 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
     </div>
 
     <div class="pane">
-      <div class="pane-label"><span id="listLabel">Questions</span><span id="qCount" style="color:var(--flask)">0</span></div>
+      <div class="pane-label">
+        <span><span id="listLabel">Questions</span> <span id="qCount" style="color:var(--flask)">0</span></span>
+        <button id="foldBtn" onclick="collapseAll()" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;background:none;border:none;color:var(--chalk3);cursor:pointer;text-transform:uppercase">Collapse all</button>
+      </div>
       <div class="qlist" id="qList"><div class="empty-q">Nothing yet — add above</div></div>
       <div class="qlist" id="labList" style="display:none"></div>
     </div>
@@ -918,6 +942,7 @@ let mode='worksheet';
 let questions=[];
 let versionCount=2;
 let seeds={};                       // version letter -> shuffle seed
+let wsSeed=Math.floor(Math.random()*1e9)+1;   // worksheet mode has no versions, so it carries one seed
 let testLevel='both';               // which class level to print
 
 function setTestLevel(l){
@@ -987,6 +1012,7 @@ function setMode(m){
   document.getElementById('bankActionPane').style.display=isBank?'':'none';
 
   document.getElementById('versionPane').style.display=isTest?'':'none';
+  document.getElementById('wsOptPane').style.display=(mode==='worksheet')?'':'none';
   document.getElementById('reshuffleBtn').style.display=isTest?'':'none';
   document.getElementById('labControlPane').style.display=isLab?'':'none';
   document.getElementById('labAddPane').style.display=isLab?'':'none';
@@ -1023,6 +1049,13 @@ function renderVerStrip(){
 
 function setVersions(n){versionCount=n;reshuffle();renderVerStrip();renderQuotas();}
 
+/* Worksheets have no versions to reshuffle, just the one seed. */
+function wsReshuffle(){
+  wsSeed=Math.floor(Math.random()*1e9)+1;
+  render();
+  flash('Answers re-scrambled');
+}
+
 function reshuffle(){
   seeds={};
   LETTERS.slice(0,versionCount).forEach((L,i)=>seeds[L]=Math.floor(Math.random()*1e9)+i*7919);
@@ -1031,13 +1064,67 @@ function reshuffle(){
 
 /* ── QUESTIONS ── */
 function addQ(type){
-  questions.push({id:uid(),type,text:'',pts:type==='section'?0:1,locked:false,lvl:'both',...structuredClone(DEFAULTS[type])});
+  const q={id:uid(),type,text:'',pts:type==='section'?0:1,locked:false,lvl:'both',...structuredClone(DEFAULTS[type])};
+  /* File it under the heading that names this type, the same way AI-written
+     questions are filed, instead of dropping it at the very bottom for you to
+     walk back up the list. A new heading still goes at the end. */
+  if(type==='section')questions.push(q);
+  else insertQuestion(q);
+  // If it landed inside a folded section, open that section so you can see it.
+  const sec=sectionOwning(q.id);
+  if(sec)collapsed.delete(sec.id);
   renderEditor();render();
   if(mode==='test')renderQuotas();
-  setTimeout(()=>{const e=document.querySelectorAll('.qcard textarea, .sec-input');e[e.length-1]?.focus();},30);
+  setTimeout(()=>{
+    const card=document.getElementById('qc_'+q.id);
+    if(!card)return;
+    scrollToCard(q.id);
+    (card.querySelector('textarea')||card.querySelector('.sec-input'))?.focus();
+  },30);
+}
+
+/* Which section heading a question currently sits under, if any. */
+function sectionOwning(id){
+  let sec=null;
+  for(const q of questions){
+    if(q.type==='section'){sec=q;continue;}
+    if(q.id===id)return sec;
+  }
+  return null;
 }
 function delQ(id){questions=questions.filter(q=>q.id!==id);renderEditor();render();if(mode==='test')renderQuotas();}
 function moveQ(id,d){const i=questions.findIndex(q=>q.id===id),j=i+d;if(i<0||j<0||j>=questions.length)return;[questions[i],questions[j]]=[questions[j],questions[i]];renderEditor();render();}
+/* Move a heading together with everything under it, swapping places with the
+   neighbouring section. Moving a lone label past its own questions is never
+   what you want, least of all when the section is folded shut. */
+function moveSection(id,d){
+  const bounds=[];
+  questions.forEach((q,i)=>{ if(q.type==='section')bounds.push(i); });
+  const myIdx=questions.findIndex(q=>q.id===id);
+  const at=bounds.indexOf(myIdx);
+  const other=at+d;
+  if(at<0||other<0||other>=bounds.length)return;
+  const blockOf=k=>questions.slice(bounds[k],(k+1<bounds.length)?bounds[k+1]:questions.length);
+  const head=questions.slice(0,bounds[0]);   // anything above the first heading stays put
+  const blocks=bounds.map((_,k)=>blockOf(k));
+  [blocks[at],blocks[other]]=[blocks[other],blocks[at]];
+  questions=[...head,...blocks.flat()];
+  renderEditor();render();
+  if(mode==='test')renderQuotas();
+  scrollToCard(id);
+}
+
+/* Older WebViews choke on the options object, and some have no
+   scrollIntoView at all — never let a nicety break an edit. */
+function scrollToCard(id){
+  try{
+    const card=document.getElementById('qc_'+id);
+    if(card&&card.scrollIntoView)card.scrollIntoView({block:'center'});
+  }catch(e){
+    try{document.getElementById('qc_'+id)?.scrollIntoView();}catch(_){}
+  }
+}
+
 function dupQ(id){const i=questions.findIndex(q=>q.id===id);if(i<0)return;const c=structuredClone(questions[i]);c.id=uid();questions.splice(i+1,0,c);renderEditor();render();}
 function updQ(id,f,v){const q=questions.find(x=>x.id===id);if(q){q[f]=v;render();}}
 function toggleLock(id){const q=questions.find(x=>x.id===id);if(q){q.locked=!q.locked;renderEditor();render();}}
@@ -1065,21 +1152,57 @@ function addOpt(id){const q=questions.find(x=>x.id===id);if(q&&q.options.length<
 function delOpt(id,i){const q=questions.find(x=>x.id===id);if(q&&q.options.length>2){q.options.splice(i,1);renderEditor();render();}}
 
 /* ── EDITOR ── */
+/* Section ids that are folded shut in the editor. Display only — the paper
+   always prints everything. */
+let collapsed=new Set();
+
+function sectionCount(secId){
+  let on=false,n=0;
+  for(const q of questions){
+    if(q.type==='section'){ if(on)break; if(q.id===secId)on=true; continue; }
+    if(on)n++;
+  }
+  return n;
+}
+function toggleSection(id){
+  if(collapsed.has(id))collapsed.delete(id);else collapsed.add(id);
+  renderEditor();
+}
+function collapseAll(){
+  questions.forEach(q=>{if(q.type==='section')collapsed.add(q.id);});
+  renderEditor();
+  document.getElementById('qList').scrollTop=0;
+}
+function expandAll(){ collapsed.clear(); renderEditor(); }
+function anyCollapsed(){ return questions.some(q=>q.type==='section'&&collapsed.has(q.id)); }
+
 function renderEditor(){
   const list=document.getElementById('qList');
   document.getElementById('qCount').textContent=questions.filter(q=>q.type!=='section').length;
+  const fold=document.getElementById('foldBtn');
+  if(fold){
+    const hasSecs=questions.some(q=>q.type==='section');
+    fold.style.display=hasSecs?'':'none';
+    fold.textContent=anyCollapsed()?'Expand all':'Collapse all';
+    fold.setAttribute('onclick',anyCollapsed()?'expandAll()':'collapseAll()');
+  }
   if(!questions.length){list.innerHTML='<div class="empty-q">Nothing yet — add above</div>';return;}
 
-  let n=0;
+  let n=0, hidden=false;
   list.innerHTML=questions.map(q=>{
     if(q.type==='section'){
-      return `<div class="qcard is-section">
+      const shut=collapsed.has(q.id);
+      hidden=shut;
+      const cnt=sectionCount(q.id);
+      return `<div class="qcard is-section ${shut?'shut':''}" id="qc_${q.id}">
         <div class="qcard-head">
+          <button class="sec-fold" onclick="toggleSection('${q.id}')" title="${shut?'Open this section':'Fold this section'}">${shut?'▸':'▾'}</button>
           <span class="qbadge sec">Section</span>
+          <span class="sec-count">${cnt} q${cnt===1?'':'s'}</span>
           <div class="qcard-actions">
-            <button class="icon-btn" onclick="moveQ('${q.id}',-1)">↑</button>
-            <button class="icon-btn" onclick="moveQ('${q.id}',1)">↓</button>
-            <button class="icon-btn danger" onclick="delQ('${q.id}')">×</button>
+            <button class="icon-btn" onclick="moveSection('${q.id}',-1)" title="Move this whole section up">↑</button>
+            <button class="icon-btn" onclick="moveSection('${q.id}',1)" title="Move this whole section down">↓</button>
+            <button class="icon-btn danger" onclick="delQ('${q.id}')" title="Remove the heading (questions stay)">×</button>
           </div>
         </div>
         <input class="sec-input" type="text" value="${esc(q.text)}" placeholder="Part I — Multiple Choice"
@@ -1089,6 +1212,8 @@ function renderEditor(){
     }
 
     n++;
+    // Numbering still counts folded questions so it matches the printed paper.
+    if(hidden)return '';
     let extra='';
     if(q.type==='mc'){
       extra=`<div class="qopts">`+q.options.map((o,oi)=>`
@@ -1148,7 +1273,7 @@ function renderEditor(){
     const ptsField=`<span style="margin-left:auto">Pts</span>
       <input class="inline-num" type="number" min="0" max="50" value="${q.pts}" oninput="updQ('${q.id}','pts',Math.max(0,+this.value||0))">`;
 
-    return `<div class="qcard ${q.locked?'locked':''} ${mode==='test'&&qLevelOf(q)!=='both'?qLevelOf(q):''}">
+    return `<div class="qcard ${q.locked?'locked':''} ${mode==='test'&&qLevelOf(q)!=='both'?qLevelOf(q):''}" id="qc_${q.id}">
       <div class="qcard-head">
         <span class="qnum">${n}.</span>
         <span class="qbadge">${TYPE_LABEL[q.type]}</span>
@@ -1217,9 +1342,24 @@ function orderFor(letter,lvl){
   return dropEmptySections(out);
 }
 
+/* Is scrambling switched on for whatever mode we're printing?
+   Tests scramble per version; a worksheet has no versions, so it scrambles
+   against one sheet-wide seed. Without this a worksheet left every AI-written
+   question with its correct answer sitting in slot (a). */
+function scrambleOn(){
+  if(mode==='test')return !!document.getElementById('optShuffleC')?.checked;
+  if(mode==='worksheet')return !!document.getElementById('wsShuffleC')?.checked;
+  return false;
+}
+/* The base seed for this paper: the version's seed on a test, the sheet's on a worksheet. */
+function scrambleBase(letter,fallback){
+  if(mode==='worksheet')return wsSeed||fallback;
+  return seeds[letter]||fallback;
+}
+
 function choicesFor(q,letter){
-  if(mode!=='test'||!document.getElementById('optShuffleC')?.checked)return q.options;
-  const rand=rng(mixSeed(seeds[letter]||1,q,31));
+  if(!scrambleOn())return q.options;
+  const rand=rng(mixSeed(scrambleBase(letter,1),q,31));
   return shuffleSeeded(q.options,rand);
 }
 
@@ -1291,9 +1431,10 @@ function buildPaper(letter,lvl){
         if((q.left[i]||'').trim())lefts.push(q.left[i]);
         if((q.right[i]||'').trim())rights.push(q.right[i]);
       }
-      // Right column shuffles — seeded per version so it's stable
-      const rand=rng(mixSeed(seeds[letter]||7,q,17));
-      const shuffled=(mode==='test')?shuffleSeeded(rights,rand):rights;
+      /* The right column ALWAYS scrambles, on a worksheet as much as a test —
+         printed in the entered order it would just be 1-A, 2-B, 3-C. */
+      const rand=rng(mixSeed(scrambleBase(letter,7),q,17));
+      const shuffled=shuffleSeeded(rights,rand);
       body=`<div class="ws-match">
         <div class="ws-match-col">
           ${lefts.map((l,i)=>`<div class="ws-match-row">
@@ -1313,7 +1454,9 @@ function buildPaper(letter,lvl){
 
     if(q.type==='ordering'){
       const items=q.items.filter(x=>x.trim());
-      const rand=rng(mixSeed(seeds[letter]||11,q,23));
+      /* Always scrambled — you type these in the correct order, so printing
+         them that way would hand over the answer. */
+      const rand=rng(mixSeed(scrambleBase(letter,11),q,23));
       const shown=shuffleSeeded(items,rand);
       body=`<div class="ws-order">
         ${shown.map(it=>`<div class="ws-order-row">
@@ -3998,6 +4141,7 @@ function render(){
 function currentSheet(){
   return{mode,title:document.getElementById('wsTitle').value,course:document.getElementById('wsCourse').value,
     unit:document.getElementById('wsUnit').value,instr:document.getElementById('wsInstr').value,
+    wsSeed,wsShuffleC:document.getElementById('wsShuffleC').checked,
     eqItems,eqOn:document.getElementById('eqOn').checked,
     eqPlace:document.getElementById('eqPlace').value,
     eqCols:document.getElementById('eqCols').value,
@@ -4042,6 +4186,9 @@ function loadSheet(i){
   document.getElementById('wsCourse').value=s.course||'';
   document.getElementById('wsUnit').value=s.unit||'';
   document.getElementById('wsInstr').value=s.instr||'';
+  collapsed=new Set();
+  wsSeed=s.wsSeed||wsSeed;
+  document.getElementById('wsShuffleC').checked=s.wsShuffleC!==false;
   eqItems=s.eqItems||[];
   document.getElementById('eqOn').checked=s.eqOn!==false;
   document.getElementById('eqPlace').value=s.eqPlace||'top';
@@ -4063,7 +4210,7 @@ function delSheet(i){
 function newSheet(){
   if(questions.length&&!confirm('Clear the current sheet? Save it first if you want to keep it.'))return;
   ['wsTitle','wsCourse','wsUnit','wsInstr'].forEach(id=>document.getElementById(id).value='');
-  eqItems=[];renderEqs();
+  eqItems=[];renderEqs();collapsed=new Set();
   document.getElementById('wsDate').value='yes';document.getElementById('wsPts').value='no';
   questions=[];blocks=[];quotas={};
   if(mode==='lab')renderLabEditor();else renderEditor();
