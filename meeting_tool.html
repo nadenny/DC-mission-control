@@ -724,7 +724,7 @@ h1 em {
     <div class="header-left">
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:8px;flex-wrap:wrap">
         <a href="dc_mission_control.html" style="display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);text-decoration:none;padding:4px 9px;border:1px solid rgba(255,255,255,.14);border-radius:4px">← Mission Control</a>
-        <span id="buildStamp" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-30</span>
+        <span id="buildStamp" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-31</span>
         <button id="syncChip" onclick="openSync()" style="display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:4px;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.45);cursor:pointer">
           <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3)"></span>
           <span id="syncLabel">Offline</span>
@@ -1939,6 +1939,15 @@ const CA_CUR_KEY='dc_ca_current_v1';
 let caDays=[];
 let caPresets=[];
 let caLib=[];
+/* Every field that defines an agenda. 'pattern' and 'skipdates' used to be
+   left out of both save paths, so reopening an agenda lost the days off and
+   the next date reflow shifted every lesson. ('skipwk' was in the old list
+   and matches no element at all.) */
+/* NOTE: 'days' is deliberately absent. The input #ca-days holds the NUMBER of
+   days, while the saved object's .days holds the day objects themselves — a
+   loop over this list used to overwrite the array with the count, which is why
+   a page refresh came back with empty days. The count travels as dayCount. */
+const CA_FIELDS=['title','course','start','pattern','skipdates','level','note'];
 
 const KIND_META={
   lesson:{ico:'📖',label:'Lesson',  col:'#2A4A7A',bg:'#E8EEF6'},
@@ -1979,10 +1988,12 @@ function loadCA(){
   try{ cur=JSON.parse(localStorage.getItem(CA_CUR_KEY)); }catch(e){}
   if(cur&&typeof cur==='object'){
     caDays=Array.isArray(cur.days)?cur.days:[];
-    ['title','course','start','days','skipwk','level','note'].forEach(f=>{
+    CA_FIELDS.forEach(f=>{
       const el=document.getElementById('ca-'+f);
       if(el&&cur[f]!==undefined&&cur[f]!==null)el.value=cur[f];
     });
+    const cnt=document.getElementById('ca-days');
+    if(cnt&&cur.dayCount)cnt.value=cur.dayCount;
   }
 
   // Normalize anything malformed
@@ -1994,6 +2005,9 @@ function loadCA(){
     hw:d.hw||'',
     items:Array.isArray(d.items)?d.items.filter(x=>x&&typeof x==='object'):[]
   }));
+
+  const cntEl=document.getElementById('ca-days');
+  if(cntEl&&caDays.length)cntEl.value=caDays.length;
 
   if(!caDays.length){
     const want=Math.max(1,+((document.getElementById('ca-days')||{}).value)||8);
@@ -2007,9 +2021,11 @@ function loadCA(){
 function persistPresets(){localStorage.setItem(CA_PRESET_KEY,JSON.stringify(caPresets));}
 function persistCA(){
   const cur={days:caDays};
-  ['title','course','start','days','skipwk','level','note'].forEach(f=>{
+  CA_FIELDS.forEach(f=>{
     const el=document.getElementById('ca-'+f); if(el)cur[f]=el.value;
   });
+  const cnt=document.getElementById('ca-days');
+  if(cnt)cur.dayCount=cnt.value;
   localStorage.setItem(CA_CUR_KEY,JSON.stringify(cur));
   if(typeof syncPush==='function')syncPush();
 }
@@ -2132,6 +2148,34 @@ function computeDates(){
       if(take)out.push([d.toISOString().slice(0,10)]);
       schoolDayIdx++;
     }
+    d.setDate(d.getDate()+1);
+  }
+  return out;
+}
+
+/* Which weekdays between the first and last saved date never got used.
+   Exact for patterns that consume every school day, or a fixed set of
+   weekdays; genuinely ambiguous for plain A/B, where half the school days
+   are skipped by design — that returns null rather than a guess. */
+function inferSkipDates(days,pattern){
+  const used=new Set();
+  (days||[]).forEach(d=>{ if(d&&d.date)used.add(d.date); if(d&&d.date2)used.add(d.date2); });
+  if(used.size<2)return [];
+  const all=[...used].sort();
+  const consumesEverySchoolDay=(pattern==='daily'||pattern==='abboth');
+  const onlyWeekdays = pattern==='mwf' ? [1,3,5] : pattern==='tth' ? [2,4] : null;
+  if(!consumesEverySchoolDay&&!onlyWeekdays)return null;
+
+  const out=[];
+  const last=all[all.length-1];
+  const d=new Date(all[0]+'T12:00:00');
+  let guard=0;
+  while(guard++<800){
+    const iso=d.toISOString().slice(0,10);
+    if(iso>last)break;
+    const wd=d.getDay();
+    const counts=(wd!==0&&wd!==6)&&(!onlyWeekdays||onlyWeekdays.includes(wd));
+    if(counts&&!used.has(iso))out.push(iso);
     d.setDate(d.getDate()+1);
   }
   return out;
@@ -2432,9 +2476,11 @@ function saveAgenda(){
   const entry={id:'ca'+Date.now(),title,
     course:document.getElementById('ca-course').value.trim(),
     date:new Date().toISOString().slice(0,10),
-    days:structuredClone(caDays),
-    note:document.getElementById('ca-note').value,
-    start:document.getElementById('ca-start').value};
+    days:structuredClone(caDays)};
+  CA_FIELDS.forEach(f=>{
+    const el=document.getElementById('ca-'+f); if(el)entry[f]=el.value;
+  });
+  entry.dayCount=caDays.length;
   const i=caLib.findIndex(x=>x.title===title&&x.course===entry.course);
   if(i>=0)caLib[i]=entry; else caLib.unshift(entry);
   localStorage.setItem(CA_KEY,JSON.stringify(caLib));
@@ -2460,13 +2506,31 @@ function openAgendaLib(){
   const i=parseInt(pick)-1;
   const e=caLib[i]; if(!e)return;
   caDays=structuredClone(e.days||[]);
-  document.getElementById('ca-title').value=e.title||'';
-  document.getElementById('ca-course').value=e.course||'';
-  document.getElementById('ca-note').value=e.note||'';
-  document.getElementById('ca-start').value=e.start||'';
+  CA_FIELDS.forEach(f=>{
+    const el=document.getElementById('ca-'+f);
+    if(el&&e[f]!==undefined&&e[f]!==null)el.value=e[f];
+  });
   document.getElementById('ca-days').value=caDays.length||1;
+
+  /* Agendas saved before days-off were stored: work them back out of the
+     dates that WERE saved, so the next reflow doesn't shift every lesson. */
+  let note='';
+  if(e.skipdates===undefined){
+    const inferred=inferSkipDates(caDays,(document.getElementById('ca-pattern')||{}).value||'daily');
+    const el=document.getElementById('ca-skipdates');
+    if(inferred===null){
+      if(el)el.value='';
+      note=' — this one was saved before days off were stored, and the pattern makes them impossible to work out. Re-enter them before changing the start date.';
+    }else{
+      if(el)el.value=inferred.join(', ');
+      note=inferred.length
+        ? ' — recovered '+inferred.length+' day'+(inferred.length===1?'':'s')+' off from the saved dates. Worth a check.'
+        : ' — no days off found in the saved dates.';
+    }
+  }
+
   persistCA();renderDays();renderAgendaOut();
-  flashCA('Loaded: '+e.title);
+  flashCA('Loaded: '+e.title+note);
 }
 
 /* ── Import a unit plan from the Hattie planner ── */
