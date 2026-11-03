@@ -108,6 +108,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
   .ws-q[data-qid],.ws-section[data-qid]{cursor:auto!important;background:none!important;box-shadow:none!important}
 }
 .qbadge.src{background:rgba(79,209,197,.13);color:var(--flask);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qbadge.bank{background:rgba(245,166,35,.14);color:var(--amber)}
+.qbadge.dup{background:rgba(245,101,101,.15);color:var(--rose)}
+.icon-btn.bankdel{font-size:12px;line-height:1}
 .qcard-actions{margin-left:auto;display:flex;gap:2px}
 .icon-btn{background:none;border:none;color:var(--chalk3);cursor:pointer;font-size:12px;padding:1px 4px;border-radius:3px;transition:all .12s;line-height:1}
 .icon-btn:hover{color:var(--chalk);background:var(--slate3)}
@@ -1131,6 +1134,108 @@ function moveSection(id,d){
 /* ══ CLICK A QUESTION ON THE PAPER TO EDIT IT ═══════════════════════
    Reviewing a test means spotting a duplicate or a dud on the page, then
    hunting for it in the sidebar. Clicking it on the paper opens it instead. */
+/* ══ BANK AWARENESS WHILE REVIEWING ════════════════════════════════
+   A bad question you only delete from the test comes straight back next
+   year, because the bank still holds it. These let you see what is banked
+   and throw it out from here. */
+
+/* Meaningful words only, for comparing two questions. */
+const STOPWORDS=new Set(['the','and','for','are','was','its','from','what','which','how','does',
+  'did','your','you','not','but','has','have','had','can','will','would','into','than','then',
+  'when','where','who','why','all','any','with','that','this','these','those','each','following',
+  'given','using','use','find','students','student','best','most','least','true','false','about']);
+function qWords(t){
+  const out=new Set();
+  String(t||'').toLowerCase()
+    .replace(/[,;:!?"\u201c\u201d\u2018\u2019]/g,' ')   // sentence punctuation only
+    .split(/\s+/)
+    .forEach(w=>{
+      w=w.replace(/^[.(\[]+/,'').replace(/[.)\]]+$/,'');  // trim wrapping punctuation
+      if(!w||STOPWORDS.has(w))return;
+      /* Keep anything containing a digit whatever its length: H_2SO_4 and
+         Ca(OH)_2 are the whole difference between two otherwise identical
+         questions, and chopping them apart made them look the same. */
+      if(w.length>2||/\d/.test(w))out.add(w);
+    });
+  return out;
+}
+function sharedWords(a,b){
+  const A=qWords(a),B=qWords(b);
+  let shared=0; A.forEach(w=>{if(B.has(w))shared++;});
+  return {shared,a:A.size,b:B.size};
+}
+/* Strict: how alike two questions are overall. Used to flag duplicates. */
+function textAlike(a,b){
+  const {shared,a:na,b:nb}=sharedWords(a,b);
+  if(!na||!nb)return 0;
+  return shared/Math.max(na,nb);
+}
+/* Loose: is one question essentially the other with words added? That is what
+   editing a question does, and the bank still holds the shorter original. */
+function textCovers(a,b){
+  const {shared,a:na,b:nb}=sharedWords(a,b);
+  const smaller=Math.min(na,nb);
+  if(smaller<3)return 0;                 // too short to judge safely
+  return shared/smaller;
+}
+
+/* Rebuilt once per editor render so the cards don't each scan the bank. */
+let _bankFp=new Map();
+function indexBank(){
+  _bankFp=new Map();
+  bank.forEach(b=>{ if(b.fp&&!_bankFp.has(b.fp))_bankFp.set(b.fp,b); });
+}
+/* The bank entry for a question: an exact match, or — if you have since
+   edited the wording — the stale twin it was banked as. */
+function bankEntryFor(q,fuzzy){
+  const hit=_bankFp.get(qFingerprint(q));
+  if(hit)return hit;
+  if(!fuzzy)return null;
+  let best=null,score=0;
+  bank.forEach(b=>{
+    if(b.type!==q.type)return;
+    const sim=textCovers(b.text,q.text);
+    if(sim>score){score=sim;best=b;}
+  });
+  return score>=0.8?best:null;
+}
+
+/* Which questions on this sheet say nearly the same thing as another. */
+function duplicateIds(){
+  const real=questions.filter(q=>q.type!=='section'&&(q.text||'').trim());
+  const dups=new Set();
+  for(let i=0;i<real.length;i++)
+    for(let j=i+1;j<real.length;j++){
+      if(real[i].type!==real[j].type)continue;
+      if(textAlike(real[i].text,real[j].text)>=0.8){dups.add(real[i].id);dups.add(real[j].id);}
+    }
+  return dups;
+}
+
+/* Delete from the test and from the bank in one go. */
+function delQAndBank(id){
+  const q=questions.find(x=>x.id===id);
+  if(!q)return;
+  indexBank();
+  const entry=bankEntryFor(q,true);
+  if(!entry){
+    flash('Not in the bank — deleting from the test only');
+    delQ(id);return;
+  }
+  const exact=_bankFp.get(qFingerprint(q))===entry;
+  const msg=exact
+    ? 'Delete this question from the test AND remove it from the question bank for good?'
+    : 'The bank holds an earlier wording of this question:\n\n  "'+String(entry.text||'').slice(0,160)+'"\n\n'+
+      'Delete this question from the test and remove that bank entry too?';
+  if(!confirm(msg))return;
+  bank=bank.filter(x=>x.id!==entry.id);
+  bankPicked.delete(entry.id);
+  persistBank();
+  if(mode==='bank')renderBank();
+  delQ(id);
+  flash('Deleted from the test and the bank');
+}
+
 function jumpToQuestion(id){
   const q=questions.find(x=>x.id===id);
   if(!q)return;
@@ -1240,6 +1345,9 @@ function renderEditor(){
   }
   if(!questions.length){list.innerHTML='<div class="empty-q">Nothing yet — add above</div>';return;}
 
+  indexBank();
+  const dups=duplicateIds();
+
   let n=0, hidden=false;
   list.innerHTML=questions.map(q=>{
     if(q.type==='section'){
@@ -1322,6 +1430,8 @@ function renderEditor(){
       </div>`;
     }
 
+    const banked=(q.text||'').trim()?bankEntryFor(q,false):null;
+
     const ptsField=`<span style="margin-left:auto">Pts</span>
       <input class="inline-num" type="number" min="0" max="50" value="${q.pts}" oninput="updQ('${q.id}','pts',Math.max(0,+this.value||0))">`;
 
@@ -1330,13 +1440,16 @@ function renderEditor(){
         <span class="qnum">${n}.</span>
         <span class="qbadge">${TYPE_LABEL[q.type]}</span>
         ${q.src?`<span class="qbadge src" title="From ${esc(q.src)}">${esc(q.src)}</span>`:''}
+        ${banked?`<span class="qbadge bank" title="In your question bank${banked.useCount?` · used ${banked.useCount} time${banked.useCount===1?'':'s'}, last ${banked.lastUsed||'—'}`:''}">bank</span>`:''}
+        ${dups.has(q.id)?`<span class="qbadge dup" title="Another question on this sheet asks nearly the same thing.">near-dupe</span>`:''}
         <div class="qcard-actions">
           ${mode==='test'?`<button class="lab-lvl-tag ${qLevelOf(q)}" onclick="cycleQLevel('${q.id}')" title="Both / Honors only / College Prep only">${qLevelOf(q)==='both'?'BOTH':qLevelOf(q)==='honors'?'HON':'CP'}</button>`:''}
           ${mode==='test'?`<button class="icon-btn ${q.locked?'on':''}" onclick="toggleLock('${q.id}')" title="${q.locked?'Unlock position':'Lock in place across versions'}">${q.locked?'🔒':'🔓'}</button>`:''}
           <button class="icon-btn" onclick="moveQ('${q.id}',-1)">↑</button>
           <button class="icon-btn" onclick="moveQ('${q.id}',1)">↓</button>
-          <button class="icon-btn" onclick="dupQ('${q.id}')">⧉</button>
-          <button class="icon-btn danger" onclick="delQ('${q.id}')">×</button>
+          <button class="icon-btn" onclick="dupQ('${q.id}')" title="Duplicate">⧉</button>
+          ${banked?`<button class="icon-btn danger bankdel" onclick="delQAndBank('${q.id}')" title="Delete from this test AND remove it from the question bank, so it can't come back next year">⌫</button>`:''}
+          <button class="icon-btn danger" onclick="delQ('${q.id}')" title="Remove from this test${banked?' (stays in the bank)':''}">×</button>
         </div>
       </div>
       <textarea placeholder="Type the question…" oninput="updQ('${q.id}','text',this.value)">${esc(q.text)}</textarea>
