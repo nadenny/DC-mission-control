@@ -93,6 +93,20 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .sec-count{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.06em;
   color:var(--chalk3);text-transform:uppercase}
 .qcard.is-section.shut{border-color:rgba(167,139,250,.45);background:rgba(167,139,250,.07)}
+
+/* Click-to-edit: the paper's questions are live targets on screen only. */
+.stage .ws-q[data-qid],.stage .ws-section[data-qid]{cursor:pointer;border-radius:3px;
+  transition:background .12s,box-shadow .12s}
+.stage .ws-q[data-qid]:hover,.stage .ws-section[data-qid]:hover{background:rgba(79,209,197,.10);
+  box-shadow:0 0 0 4px rgba(79,209,197,.10)}
+.qcard.jump-hit{animation:jumpFlash 1.4s ease-out}
+@keyframes jumpFlash{
+  0%,22%{border-color:var(--flask);box-shadow:0 0 0 2px rgba(79,209,197,.35)}
+  100%{border-color:var(--edge);box-shadow:none}
+}
+@media print{
+  .ws-q[data-qid],.ws-section[data-qid]{cursor:auto!important;background:none!important;box-shadow:none!important}
+}
 .qbadge.src{background:rgba(79,209,197,.13);color:var(--flask);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .qcard-actions{margin-left:auto;display:flex;gap:2px}
 .icon-btn{background:none;border:none;color:var(--chalk3);cursor:pointer;font-size:12px;padding:1px 4px;border-radius:3px;transition:all .12s;line-height:1}
@@ -1114,6 +1128,44 @@ function moveSection(id,d){
   scrollToCard(id);
 }
 
+/* ══ CLICK A QUESTION ON THE PAPER TO EDIT IT ═══════════════════════
+   Reviewing a test means spotting a duplicate or a dud on the page, then
+   hunting for it in the sidebar. Clicking it on the paper opens it instead. */
+function jumpToQuestion(id){
+  const q=questions.find(x=>x.id===id);
+  if(!q)return;
+  // A folded section would hide the card — open the one it lives in.
+  if(q.type==='section')collapsed.delete(q.id);
+  else{
+    const sec=sectionOwning(id);
+    if(sec)collapsed.delete(sec.id);
+  }
+  renderEditor();
+
+  const card=document.getElementById('qc_'+id);
+  if(!card)return;
+  scrollToCard(id);
+  card.classList.add('jump-hit');
+  setTimeout(()=>card.classList.remove('jump-hit'),1400);
+  const field=card.querySelector('textarea')||card.querySelector('.sec-input');
+  if(field){ try{field.focus({preventScroll:true});}catch(e){field.focus();} }
+}
+
+/* One delegated listener on the preview, so it keeps working through every
+   re-render without rebinding anything. */
+function wireStageClicks(){
+  const stage=document.getElementById('stage');
+  if(!stage||stage._wired)return;
+  stage._wired=true;
+  stage.addEventListener('click',e=>{
+    if(mode==='lab'||mode==='bank')return;
+    const hit=e.target.closest('.ws-q[data-qid], .ws-section[data-qid]');
+    if(!hit)return;
+    const id=hit.getAttribute('data-qid');
+    if(id)jumpToQuestion(id);
+  });
+}
+
 /* Older WebViews choke on the options object, and some have no
    scrollIntoView at all — never let a nicety break an edit. */
 function scrollToCard(id){
@@ -1401,7 +1453,7 @@ function buildPaper(letter,lvl){
   let n=0;
   list.forEach(q=>{
     if(q.type==='section'){
-      h+=`<div class="ws-section">${escC(q.text)||'Section'}</div>`;return;
+      h+=`<div class="ws-section" data-qid="${q.id}">${escC(q.text)||'Section'}</div>`;return;
     }
     n++;
     const pts=showPts?`<span class="ws-q-pts">(${q.pts} pt${q.pts==1?'':'s'})</span>`:'';
@@ -1476,7 +1528,7 @@ function buildPaper(letter,lvl){
     let txt=escC(q.text)||'<span style="color:#B0BAC6">…</span>';
     if(q.type==='fill')txt=txt.replace(/_{2,}/g,'<span class="ws-answer-blank"></span>');
 
-    h+=`<div class="ws-q"><div class="ws-q-head">
+    h+=`<div class="ws-q" data-qid="${q.id}" title="Click to edit this question"><div class="ws-q-head">
       <span class="ws-q-num">${n}.</span>
       <span class="ws-q-text">${txt}</span>${pts}
     </div>${body}</div>`;
@@ -4226,7 +4278,7 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveSheet();}
 });
 
-loadGridWeight();loadApiKey();loadBank();loadSGLib();loadDecks();loadEqPacks();
+loadGridWeight();loadApiKey();loadBank();loadSGLib();loadDecks();loadEqPacks();wireStageClicks();
 if(localStorage.getItem('dc_chembar_open')==='0')document.getElementById('chemBar').style.display='none';
 renderVerStrip();renderEditor();render();
 </script>
