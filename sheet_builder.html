@@ -111,6 +111,18 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .qbadge.bank{background:rgba(245,166,35,.14);color:var(--amber)}
 .qbadge.dup{background:rgba(245,101,101,.15);color:var(--rose)}
 .icon-btn.bankdel{font-size:12px;line-height:1}
+.recon-row{border:1px solid var(--edge);border-radius:4px;padding:9px 10px;margin-bottom:8px;background:rgba(0,0,0,.14)}
+.recon-old,.recon-new{font-size:12px;line-height:1.5;color:var(--chalk2);margin-bottom:5px;word-break:break-word}
+.recon-new{color:var(--chalk)}
+.recon-tag{display:block;font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--chalk3);margin-bottom:2px}
+.recon-tag.now{color:var(--amber)}
+.recon-pick{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px}
+.recon-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.05em;text-transform:uppercase;
+  padding:4px 9px;border-radius:3px;border:1px solid var(--edge);background:var(--slate2);
+  color:var(--chalk3);cursor:pointer}
+.recon-btn:hover{border-color:var(--edge2);color:var(--chalk2)}
+.recon-btn.on{background:var(--amber-dim);color:var(--amber);border-color:rgba(245,166,35,.45)}
 .qcard-actions{margin-left:auto;display:flex;gap:2px}
 .icon-btn{background:none;border:none;color:var(--chalk3);cursor:pointer;font-size:12px;padding:1px 4px;border-radius:3px;transition:all .12s;line-height:1}
 .icon-btn:hover{color:var(--chalk);background:var(--slate3)}
@@ -944,6 +956,26 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
   </div>
 </div>
 
+<div id="reconModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:120;align-items:center;justify-content:center" onclick="if(event.target===this)closeReconcile()">
+  <div style="background:var(--slate2);border:1px solid var(--edge2);border-radius:6px;padding:1.3rem;width:min(560px,94vw);max-height:80vh;display:flex;flex-direction:column">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:.5rem">Edited since you banked them</div>
+    <div style="font-size:12px;color:var(--chalk2);line-height:1.6;margin-bottom:.9rem">
+      <span id="reconCount"></span> look like reworded versions of questions already in your bank.
+      Updating replaces the banked wording and keeps its history. Keeping both leaves the old one there too.
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:.8rem">
+      <button class="mini-btn" style="width:auto;margin:0" onclick="setReconAll('update')">Update all</button>
+      <button class="mini-btn" style="width:auto;margin:0" onclick="setReconAll('new')">Keep both for all</button>
+      <button class="mini-btn" style="width:auto;margin:0" onclick="setReconAll('skip')">Bank none</button>
+    </div>
+    <div id="reconList" style="flex:1;overflow-y:auto;min-height:0"></div>
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:1rem">
+      <button class="btn" onclick="closeReconcile()">Cancel</button>
+      <button class="btn" style="border-color:rgba(245,166,35,.5);color:var(--amber)" onclick="applyReconcile()">Apply</button>
+    </div>
+  </div>
+</div>
+
 <script>
 
 /* structuredClone is missing in older Android WebViews — fall back to a JSON clone. */
@@ -1448,6 +1480,7 @@ function renderEditor(){
           <button class="icon-btn" onclick="moveQ('${q.id}',-1)">↑</button>
           <button class="icon-btn" onclick="moveQ('${q.id}',1)">↓</button>
           <button class="icon-btn" onclick="dupQ('${q.id}')" title="Duplicate">⧉</button>
+          ${banked?`<button class="icon-btn" onclick="pushToBank('${q.id}')" title="Push this wording to the bank now, replacing what's stored">⇪</button>`:''}
           ${banked?`<button class="icon-btn danger bankdel" onclick="delQAndBank('${q.id}')" title="Delete from this test AND remove it from the question bank, so it can't come back next year">⌫</button>`:''}
           <button class="icon-btn danger" onclick="delQ('${q.id}')" title="Remove from this test${banked?' (stays in the bank)':''}">×</button>
         </div>
@@ -3221,22 +3254,49 @@ function qFingerprint(q){
   return (q.type+'|'+(q.text||'').toLowerCase().replace(/\s+/g,' ').trim()).slice(0,300);
 }
 
+/* The parts of a question that actually make up the question, as opposed to
+   bookkeeping the bank keeps about it. */
+const Q_CONTENT=['text','options','left','right','items','lines','height','pts','gweight','gwidth','lvl'];
+
+function contentDiffers(entry,q){
+  return Q_CONTENT.some(k=>{
+    if(q[k]===undefined&&entry[k]===undefined)return false;
+    return JSON.stringify(q[k])!==JSON.stringify(entry[k]);
+  });
+}
+/* Copy the current wording and choices onto a bank entry, leaving its history
+   (when it was added, how often it has been used) alone. */
+function refreshEntry(entry,q){
+  Q_CONTENT.forEach(k=>{ if(q[k]!==undefined)entry[k]=structuredClone(q[k]); });
+  entry.fp=qFingerprint(q);
+}
+
 /* Deposit the current sheet's questions into the bank */
 function bankDeposit(silent){
   const course=document.getElementById('wsCourse').value.trim();
   const unit=document.getElementById('wsUnit').value.trim();
   const today=new Date().toISOString().slice(0,10);
-  let added=0, bumped=0;
+  let added=0, bumped=0, refreshed=0;
+  const pending=[];          // edited wording — you decide update vs. bank as new
+  let twin=null;
 
+  indexBank();
   questions.filter(q=>q.type!=='section'&&(q.text||'').trim()).forEach(q=>{
     const fp=qFingerprint(q);
     const hit=bank.find(b=>b.fp===fp);
     if(hit){
+      /* Same wording. If you fixed a choice or changed the points, the bank
+         used to keep the stale copy silently — carry it over. */
+      if(contentDiffers(hit,q)){ refreshEntry(hit,q); refreshed++; }
       hit.lastUsed=today;
       hit.useCount=(hit.useCount||0)+1;
       if(course&&!hit.course)hit.course=course;
       if(unit&&!hit.unit)hit.unit=unit;
       bumped++;
+    }else if((twin=bankEntryFor(q,true))){
+      /* Looks like an edit of something already banked — ask rather than
+         quietly leaving a near-twin behind. */
+      pending.push({qid:q.id,entryId:twin.id});
     }else{
       const copy=structuredClone(q);
       delete copy.id;
@@ -3252,8 +3312,104 @@ function bankDeposit(silent){
   });
   persistBank();
   if(!silent)bankOut(`Banked ${added} new question${added===1?'':'s'}`+
-    (bumped?`, updated ${bumped} already there.`:'.'));
-  return {added,bumped};
+    (bumped?`, ${bumped} already there`:'')+(refreshed?`, refreshed ${refreshed}`:'')+'.');
+  if(pending.length)openReconcile(pending,course,unit);
+  return {added,bumped,refreshed,pending:pending.length};
+}
+
+
+/* ══ "IS THIS AN EDIT, OR A NEW QUESTION?" ══════════════════════════
+   Changing a question's wording used to add a second bank entry and keep the
+   old one, so the bank slowly filled with near-twins that came back in later
+   tests. Now each edited question gets a decision. */
+let _recon=[];
+
+function openReconcile(pending,course,unit){
+  _recon=pending.map(x=>({...x,choice:'update'}));
+  renderReconcile(course,unit);
+  document.getElementById('reconModal').style.display='flex';
+}
+function closeReconcile(){
+  document.getElementById('reconModal').style.display='none';
+  _recon=[];
+}
+function setRecon(i,choice){ if(_recon[i]){_recon[i].choice=choice;renderReconcile();} }
+function setReconAll(choice){ _recon.forEach(r=>r.choice=choice); renderReconcile(); }
+
+function renderReconcile(){
+  const list=document.getElementById('reconList');
+  if(!list)return;
+  document.getElementById('reconCount').textContent=
+    _recon.length+' question'+(_recon.length===1?'':'s');
+  list.innerHTML=_recon.map((r,i)=>{
+    const q=questions.find(x=>x.id===r.qid);
+    const b=bank.find(x=>x.id===r.entryId);
+    if(!q||!b)return '';
+    return `<div class="recon-row">
+      <div class="recon-old"><span class="recon-tag">In the bank</span>${esc(b.text||'')}</div>
+      <div class="recon-new"><span class="recon-tag now">On this test</span>${esc(q.text||'')}</div>
+      <div class="recon-pick">
+        <button class="recon-btn ${r.choice==='update'?'on':''}" onclick="setRecon(${i},'update')">Update the bank</button>
+        <button class="recon-btn ${r.choice==='new'?'on':''}" onclick="setRecon(${i},'new')">Keep both</button>
+        <button class="recon-btn ${r.choice==='skip'?'on':''}" onclick="setRecon(${i},'skip')">Don't bank</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function applyReconcile(){
+  const course=document.getElementById('wsCourse').value.trim();
+  const unit=document.getElementById('wsUnit').value.trim();
+  const today=new Date().toISOString().slice(0,10);
+  let upd=0,neu=0,skip=0;
+  _recon.forEach(r=>{
+    const q=questions.find(x=>x.id===r.qid);
+    if(!q)return;
+    if(r.choice==='skip'){skip++;return;}
+    if(r.choice==='update'){
+      const b=bank.find(x=>x.id===r.entryId);
+      if(b){ refreshEntry(b,q); b.lastUsed=today; b.useCount=(b.useCount||0)+1; upd++; return; }
+    }
+    const copy=structuredClone(q); delete copy.id;
+    bank.push({id:'b'+Date.now()+Math.random().toString(36).slice(2,6),
+      fp:qFingerprint(q), ...copy, course, unit,
+      topic:'', difficulty:'', tags:[], addedAt:today, lastUsed:today, useCount:1});
+    neu++;
+  });
+  persistBank();
+  if(mode==='bank')renderBank();
+  renderEditor();
+  closeReconcile();
+  flash([upd?upd+' updated':'',neu?neu+' banked as new':'',skip?skip+' skipped':'']
+    .filter(Boolean).join(' · ')||'Nothing changed');
+}
+
+/* Option 3: push one question's current wording onto its bank entry, on demand. */
+function pushToBank(id){
+  const q=questions.find(x=>x.id===id);
+  if(!q)return;
+  indexBank();
+  const entry=bankEntryFor(q,true);
+  const today=new Date().toISOString().slice(0,10);
+  if(!entry){
+    const copy=structuredClone(q); delete copy.id;
+    bank.push({id:'b'+Date.now()+Math.random().toString(36).slice(2,6),
+      fp:qFingerprint(q), ...copy,
+      course:document.getElementById('wsCourse').value.trim(),
+      unit:document.getElementById('wsUnit').value.trim(),
+      topic:'', difficulty:'', tags:[], addedAt:today, lastUsed:today, useCount:1});
+    persistBank();renderEditor();
+    flash('Added to the bank');
+    return;
+  }
+  if(contentDiffers(entry,q)&&!confirm('Replace the banked version with what is on this test?\n\nIn the bank:\n  "'+
+     String(entry.text||'').slice(0,160)+'"\n\nOn this test:\n  "'+String(q.text||'').slice(0,160)+'"'))return;
+  refreshEntry(entry,q);
+  entry.lastUsed=today;
+  persistBank();
+  if(mode==='bank')renderBank();
+  renderEditor();
+  flash('Bank updated');
 }
 
 function bankOut(t){
