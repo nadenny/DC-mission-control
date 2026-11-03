@@ -306,6 +306,24 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 .quota-flag.warn{background:var(--amber-dim);color:var(--amber)}
 .quota-flag.same{background:var(--slate);color:var(--chalk3)}
 .quota-flag.off{background:rgba(245,101,101,.14);color:var(--rose)}
+.quota-block{padding:5px 0;border-bottom:1px solid var(--edge)}
+.quota-block:last-child{border-bottom:none}
+.pts-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:4px 0 2px 2px}
+.pts-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--chalk3)}
+.pts-cell{display:flex;align-items:center;gap:3px}
+.pts-tag{font-family:'IBM Plex Mono',monospace;font-size:7.5px;letter-spacing:.06em;
+  padding:1px 4px;border-radius:2px}
+.pts-tag.cp{background:var(--flask-dim);color:var(--flask)}
+.pts-tag.hon{background:rgba(167,139,250,.16);color:var(--violet)}
+.pts-n{width:34px;background:var(--slate2);border:1px solid var(--edge);border-radius:3px;
+  color:var(--chalk);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 4px;
+  text-align:center;outline:none;box-sizing:border-box}
+.pts-n:focus{border-color:var(--amber)}
+.pts-tot{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--chalk3);letter-spacing:.04em}
+.inline-num.overridden{opacity:.45}
+.pts-ovr{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.05em;
+  color:var(--amber);background:var(--amber-dim);padding:2px 5px;border-radius:2px;white-space:nowrap}
 
 /* Question bank */
 .bank-wrap{width:100%;max-width:920px}
@@ -1464,8 +1482,12 @@ function renderEditor(){
 
     const banked=(q.text||'').trim()?bankEntryFor(q,false):null;
 
+    const ovr=mode==='test'?ptsNote(q.type):'';
     const ptsField=`<span style="margin-left:auto">Pts</span>
-      <input class="inline-num" type="number" min="0" max="50" value="${q.pts}" oninput="updQ('${q.id}','pts',Math.max(0,+this.value||0))">`;
+      <input class="inline-num ${ovr?'overridden':''}" type="number" min="0" max="50" value="${q.pts}"
+        title="${ovr?'The Versions panel is setting this by type — '+esc(ovr):'Points for this question'}"
+        oninput="updQ('${q.id}','pts',Math.max(0,+this.value||0))">
+      ${ovr?`<span class="pts-ovr" title="Set in the Versions panel, by question type">${esc(ovr)}</span>`:''}`;
 
     return `<div class="qcard ${q.locked?'locked':''} ${mode==='test'&&qLevelOf(q)!=='both'?qLevelOf(q):''}" id="qc_${q.id}">
       <div class="qcard-head">
@@ -1572,7 +1594,7 @@ function buildPaper(letter,lvl){
   const courseLine=[course,unit].filter(Boolean).join('  ·  ');
   const list=orderFor(letter,lvl);
   const qOnly=list.filter(q=>q.type!=='section');
-  const totalPts=qOnly.reduce((s,q)=>s+(+q.pts||0),0);
+  const totalPts=qOnly.reduce((s,q)=>s+ptsFor(q,lvl),0);
 
   let h=`<div class="paper">`;
   if(mode==='test'&&(versionCount>1||(lvl&&lvl!=='both')))
@@ -1602,7 +1624,8 @@ function buildPaper(letter,lvl){
       h+=`<div class="ws-section" data-qid="${q.id}">${escC(q.text)||'Section'}</div>`;return;
     }
     n++;
-    const pts=showPts?`<span class="ws-q-pts">(${q.pts} pt${q.pts==1?'':'s'})</span>`:'';
+    const qPts=ptsFor(q,lvl);
+    const pts=showPts?`<span class="ws-q-pts">(${qPts} pt${qPts==1?'':'s'})</span>`:'';
     let body='';
 
     if(q.type==='mc'){
@@ -2670,7 +2693,7 @@ async function aiReview(btn){
   const real=questions.filter(q=>q.type!=='section');
   if(!real.length){qAiShow('Add some questions first.');return;}
   const showPts=document.getElementById('wsPts').value==='yes';
-  const total=real.reduce((s,q)=>s+(+q.pts||0),0);
+  const total=real.reduce((s,q)=>s+ptsFor(q,null),0);
   const res=await callAI(qAiSys(),
 `Review this ${mode==='test'?'test':'worksheet'} as an experienced science teacher would.
 
@@ -3132,6 +3155,35 @@ function printStudyGuide(){
 
 /* ═══ PER-VERSION QUOTAS — draw a different subset for each version ═══ */
 let quotas={};   // type -> how many each version should use
+/* type -> {regular, honors}: what a question of that type is worth on each
+   level's paper. A blank leaves the question's own Pts value alone, so you can
+   still override one question by hand. */
+let typePts={};
+
+/* Which level's point value applies to the paper being built. */
+function ptsLevelFor(lvl){
+  if(lvl==='honors'||lvl==='regular')return lvl;
+  if(testLevel==='honors'||testLevel==='regular')return testLevel;
+  return null;
+}
+/* What this question is actually worth on this paper. */
+function ptsFor(q,lvl){
+  if(mode==='test'){
+    const L=ptsLevelFor(lvl);
+    const row=typePts[q.type];
+    if(row&&L&&row[L]!==''&&row[L]!=null)return +row[L]||0;
+  }
+  return +q.pts||0;
+}
+/* The override in force for a type, as "CP 7 · HON 2", or '' if none. */
+function ptsNote(type){
+  const row=typePts[type];
+  if(!row)return '';
+  const bits=[];
+  if(row.regular!==''&&row.regular!=null)bits.push('CP '+row.regular);
+  if(row.honors!==''&&row.honors!=null)bits.push('HON '+row.honors);
+  return bits.join(' · ');
+}
 
 function poolByType(lvl){
   const out={};
@@ -3154,12 +3206,27 @@ function renderQuotas(){
   el.innerHTML=types.map(t=>{
     const have=pool[t].length;
     const want=quotas[t]===undefined?have:Math.min(quotas[t],have);
-    return `<div class="quota-row">
-      <span class="quota-name">${TYPE_LABEL[t]||t}</span>
-      <input class="quota-n" id="quota_${t}" type="number" min="0" max="${have}" value="${want}"
-        oninput="setQuota('${t}',this.value)" onchange="commitQuotas()" onblur="commitQuotas()">
-      <span class="quota-of">of ${have}</span>
-      <span id="qflag_${t}">${quotaFlag(t,want,have)}</span>
+    const row=typePts[t]||{};
+    return `<div class="quota-block">
+      <div class="quota-row">
+        <span class="quota-name">${TYPE_LABEL[t]||t}</span>
+        <input class="quota-n" id="quota_${t}" type="number" min="0" max="${have}" value="${want}"
+          oninput="setQuota('${t}',this.value)" onchange="commitQuotas()" onblur="commitQuotas()">
+        <span class="quota-of">of ${have}</span>
+        <span id="qflag_${t}">${quotaFlag(t,want,have)}</span>
+      </div>
+      <div class="pts-row">
+        <span class="pts-lbl">pts each</span>
+        <span class="pts-cell"><span class="pts-tag cp">CP</span>
+          <input class="pts-n" type="number" min="0" max="50" placeholder="—" value="${row.regular??''}"
+            title="What each ${esc(TYPE_LABEL[t]||t)} question is worth on the College Prep paper. Leave blank to use each question's own Pts."
+            oninput="setTypePts('${t}','regular',this.value)"></span>
+        <span class="pts-cell"><span class="pts-tag hon">HON</span>
+          <input class="pts-n" type="number" min="0" max="50" placeholder="—" value="${row.honors??''}"
+            title="What each ${esc(TYPE_LABEL[t]||t)} question is worth on the Honors paper. Leave blank to use each question's own Pts."
+            oninput="setTypePts('${t}','honors',this.value)"></span>
+        <span class="pts-tot" id="ptstot_${t}">${typeTotals(t,want)}</span>
+      </div>
     </div>`;
   }).join('');
 }
@@ -3174,6 +3241,39 @@ function quotaFlag(t,want,have){
       : 'Every version gets a completely different set.'}">${overlap?'overlaps':'all unique'}</span>`;
   }
   return `<span class="quota-flag same" title="Every version uses all of these — same questions, different order.">same set</span>`;
+}
+
+/* Points per question type, per level. Blank means "leave each question's own
+   Pts alone", so a one-off question can still differ. */
+function setTypePts(type,lvl,v){
+  const raw=String(v==null?'':v).trim();
+  if(!typePts[type])typePts[type]={regular:'',honors:''};
+  if(raw===''){ typePts[type][lvl]=''; }
+  else{
+    const n=Math.floor(Number(raw));
+    if(!Number.isFinite(n))return;
+    typePts[type][lvl]=Math.max(0,Math.min(50,n));
+  }
+  if(!String(typePts[type].regular).length&&!String(typePts[type].honors).length)delete typePts[type];
+  const tot=document.getElementById('ptstot_'+type);
+  if(tot)tot.textContent=typeTotals(type,quotas[type]===undefined?(poolByType(null)[type]||[]).length:quotas[type]);
+  renderEditor();render();
+}
+
+/* What this type contributes to each paper's total, so the sums are visible
+   without printing. Counts only the questions that level actually prints —
+   an Honors-only question adds nothing to the CP total. */
+function typeTotals(type,count){
+  const row=typePts[type];
+  if(!row)return '';
+  const cap=(count===undefined||count===null)?Infinity:(+count||0);
+  const bits=[];
+  [['regular','CP'],['honors','HON']].forEach(([lvl,label])=>{
+    if(row[lvl]===''||row[lvl]==null)return;
+    const pool=(poolByType(lvl)[type]||[]).length;
+    bits.push(label+' '+(Math.min(pool,cap)*(+row[lvl]||0)));
+  });
+  return bits.length?'= '+bits.join(' / '):'';
 }
 
 function setQuota(type,v){
@@ -3196,6 +3296,8 @@ function setQuota(type,v){
      second digit of any two-digit number. */
   const flag=document.getElementById('qflag_'+type);
   if(flag)flag.innerHTML=quotaFlag(type,quotas[type],have);
+  const tot=document.getElementById('ptstot_'+type);
+  if(tot)tot.textContent=typeTotals(type,quotas[type]);
   render();
 }
 
@@ -4468,7 +4570,7 @@ function currentSheet(){
     eqCols:document.getElementById('eqCols').value,
     eqTitle:document.getElementById('eqTitle').value,
     date:document.getElementById('wsDate').value,pts:document.getElementById('wsPts').value,
-    versionCount,questions,blocks,quotas,
+    versionCount,questions,blocks,quotas,typePts,
     labCap:document.getElementById('labCap').value,
     labOverhead:document.getElementById('labOverhead').value,
     savedAt:Date.now()};
@@ -4518,7 +4620,7 @@ function loadSheet(i){
   renderEqs();
   document.getElementById('wsDate').value=s.date||'yes';
   document.getElementById('wsPts').value=s.pts||'no';
-  questions=s.questions||[];versionCount=s.versionCount||2;blocks=s.blocks||[];quotas=s.quotas||{};migrateBlocks();
+  questions=s.questions||[];versionCount=s.versionCount||2;blocks=s.blocks||[];quotas=s.quotas||{};typePts=s.typePts||{};migrateBlocks();
   if(s.labCap)document.getElementById('labCap').value=s.labCap;
   if(s.labOverhead)document.getElementById('labOverhead').value=s.labOverhead;
   setMode(s.mode||'worksheet');closeLoad();
@@ -4533,7 +4635,7 @@ function newSheet(){
   ['wsTitle','wsCourse','wsUnit','wsInstr'].forEach(id=>document.getElementById(id).value='');
   eqItems=[];renderEqs();collapsed=new Set();
   document.getElementById('wsDate').value='yes';document.getElementById('wsPts').value='no';
-  questions=[];blocks=[];quotas={};
+  questions=[];blocks=[];quotas={};typePts={};
   if(mode==='lab')renderLabEditor();else renderEditor();
   render();
 }
