@@ -20,6 +20,34 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:15px}
 body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--chalk);min-height:100vh}
+/* ── "Your files" browser ── */
+.fl-modal{background:var(--slate2);border:1px solid var(--edge2);border-radius:10px;width:min(720px,94vw);max-height:84vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.fl-head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.2rem .4rem}
+.fl-title{font-size:18px;font-weight:600;color:var(--chalk)}
+.fl-tools{display:flex;gap:8px;padding:.3rem 1.2rem .7rem}
+.fl-tools input{flex:1;font:inherit;font-size:14px;padding:9px 12px;border-radius:7px;background:var(--slate);border:1px solid var(--edge);color:var(--chalk);outline:none}
+.fl-tools input:focus{border-color:var(--flask)}
+.fl-tools select{font:inherit;font-size:13px;padding:8px 10px;border-radius:7px;background:var(--slate);border:1px solid var(--edge);color:var(--chalk)}
+.fl-tabs{display:flex;gap:4px;padding:0 1.2rem;border-bottom:1px solid var(--edge);overflow-x:auto}
+.fl-tab{font:inherit;font-size:13px;background:none;border:0;border-bottom:2px solid transparent;color:var(--chalk2);padding:8px 10px;cursor:pointer;white-space:nowrap}
+.fl-tab span{font-size:11px;color:var(--chalk3);margin-left:3px}
+.fl-tab.on{color:var(--chalk);border-bottom-color:var(--flask)}
+.fl-list{overflow-y:auto;padding:.4rem 1.2rem 1.2rem}
+.fl-type{font-size:13px;font-weight:600;color:var(--chalk);margin:1rem 0 .2rem}
+.fl-type span{font-weight:400;color:var(--chalk3);font-size:12px;margin-left:4px}
+.fl-course{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--chalk3);margin:.7rem 0 .2rem}
+.fl-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;border:1px solid transparent}
+.fl-row:hover{background:var(--slate3);border-color:var(--edge)}
+.fl-main{flex:1;min-width:0;cursor:pointer}
+.fl-name{font-size:14px;font-weight:500;color:var(--chalk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-meta{font-size:12px;color:var(--chalk3);margin-top:1px}
+.fl-chip{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:999px;white-space:nowrap;min-width:78px;text-align:center}
+.fl-chip.t{background:var(--amber-dim);color:var(--amber)}
+.fl-chip.w{background:var(--flask-dim);color:var(--flask)}
+.fl-chip.l{background:rgba(167,139,250,.16);color:var(--violet)}
+.fl-chip.g{background:rgba(96,165,250,.14);color:#60A5FA}
+.fl-empty{font-size:13px;color:var(--chalk3);padding:1.4rem 0;text-align:center}
+@media (max-width:560px){ .fl-chip{min-width:0} .fl-row .btn{display:none} }
 
 /* ── TOPBAR ── */
 .topbar{background:var(--slate2);border-bottom:1px solid var(--edge);padding:.6rem 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:40}
@@ -581,7 +609,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
   </select>
   <button class="btn" onclick="newSheet()">New</button>
   <button class="btn" onclick="saveSheet()">Save</button>
-  <button class="btn" onclick="openLoad()">Open</button>
+  <button class="btn" onclick="openLoad()" title="Browse your saved tests, worksheets, labs and study guides">📂 My files</button>
   <button class="btn" id="bankBtn" onclick="bankDeposit()" title="Add these questions to the bank">↓ Bank</button>
   <button class="btn" id="reshuffleBtn" onclick="reshuffle()" style="display:none">↻ Reshuffle</button>
   <button class="btn btn-primary" onclick="window.print()">Print / PDF</button>
@@ -983,10 +1011,21 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--slate);color:var(--
 </div>
 
 <div id="loadModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;align-items:center;justify-content:center" onclick="if(event.target===this)closeLoad()">
-  <div style="background:var(--slate2);border:1px solid var(--edge2);border-radius:6px;padding:1.4rem;width:420px;max-height:70vh;overflow-y:auto">
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk3);margin-bottom:1rem">Saved sheets</div>
-    <div id="savedList"></div>
-    <div style="display:flex;justify-content:flex-end;margin-top:1rem"><button class="btn" onclick="closeLoad()">Close</button></div>
+  <div class="fl-modal">
+    <div class="fl-head">
+      <div class="fl-title">Your files</div>
+      <button class="icon-btn" onclick="closeLoad()" aria-label="Close" style="font-size:18px">×</button>
+    </div>
+    <div class="fl-tools">
+      <input type="search" id="flSearch" placeholder="Search titles, courses, units…" oninput="openLoad()" autocomplete="off">
+      <select id="flSort" onchange="openLoad()" aria-label="Sort">
+        <option value="new">Newest first</option>
+        <option value="az">A → Z</option>
+        <option value="course">By course</option>
+      </select>
+    </div>
+    <div class="fl-tabs" id="flTabs" role="tablist"></div>
+    <div id="savedList" class="fl-list"></div>
   </div>
 </div>
 
@@ -4691,20 +4730,66 @@ function saveSheet(){
   if(mode==='test'||mode==='worksheet')banked=bankDeposit(true);
   flash('Saved'+(banked.added?` · ${banked.added} banked`:''));
 }
+/* ── "Your files": saved sheets organised by type, then course ──
+   Display only — storage is unchanged (loadSheet/delSheet still use the
+   position in the saved list). */
+let flTab='all';
+const FL_TYPES=[
+  {key:'test',      label:'Tests',        one:'Test',        cls:'t'},
+  {key:'worksheet', label:'Worksheets',   one:'Worksheet',   cls:'w'},
+  {key:'lab',       label:'Labs',         one:'Lab',         cls:'l'},
+  {key:'guide',     label:'Study guides', one:'Study guide', cls:'g'},
+];
+function flDate(ms){
+  if(!ms)return '';
+  const d=new Date(ms); if(isNaN(d))return '';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:d.getFullYear()===new Date().getFullYear()?undefined:'numeric'});
+}
 function openLoad(){
   let all=[];try{all=JSON.parse(localStorage.getItem(SAVE_KEY))||[];}catch{}
-  document.getElementById('savedList').innerHTML=all.length?all.map((s,i)=>`
-    <div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--edge)">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:${s.mode==='test'?'var(--amber-dim)':s.mode==='lab'?'rgba(167,139,250,.16)':'var(--flask-dim)'};color:${s.mode==='test'?'var(--amber)':s.mode==='lab'?'var(--violet)':'var(--flask)'}">${s.mode==='test'?'Test':s.mode==='lab'?'Lab':'WS'}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:500;color:var(--chalk)">${esc(s.title)}</div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--chalk3);margin-top:2px">${esc([s.course,s.unit].filter(Boolean).join(' · '))} · ${s.mode==='lab'?(s.blocks||[]).length+' sections':s.questions.filter(q=>q.type!=='section').length+' q'}</div>
+  const q=(document.getElementById('flSearch').value||'').trim().toLowerCase();
+  const sort=document.getElementById('flSort').value;
+  // one list of everything, remembering where each sheet sits in storage
+  let items=all.map((s,i)=>({kind:(s.mode==='test'||s.mode==='lab')?s.mode:'worksheet', i, title:s.title||'(untitled)',
+    course:s.course||'', unit:s.unit||'', when:s.savedAt||0,
+    detail:s.mode==='lab'?(s.blocks||[]).length+' sections':(s.questions||[]).filter(x=>x.type!=='section').length+' questions'}));
+  items=items.concat((typeof sgLib!=='undefined'?sgLib:[]).map(g=>({kind:'guide', id:g.id, title:g.name||'Study guide',
+    course:g.course||'', unit:g.unit||'', when:g.date?new Date(g.date+'T12:00:00').getTime():0, detail:''})));
+  if(q)items=items.filter(x=>(x.title+' '+x.course+' '+x.unit).toLowerCase().includes(q));
+  const counts={}; items.forEach(x=>counts[x.kind]=(counts[x.kind]||0)+1);
+  document.getElementById('flTabs').innerHTML=[{key:'all',label:'All'},...FL_TYPES].map(t=>{
+    const n=t.key==='all'?items.length:(counts[t.key]||0);
+    return `<button role="tab" aria-selected="${flTab===t.key}" class="fl-tab ${flTab===t.key?'on':''}" onclick="flTab='${t.key}';openLoad()">${t.label} <span>${n}</span></button>`;
+  }).join('');
+  const cmp={new:(a,b)=>b.when-a.when, az:(a,b)=>a.title.localeCompare(b.title), course:(a,b)=>a.course.localeCompare(b.course)||b.when-a.when}[sort];
+  const row=x=>`
+    <div class="fl-row">
+      <span class="fl-chip ${FL_TYPES.find(t=>t.key===x.kind).cls}">${FL_TYPES.find(t=>t.key===x.kind).one}</span>
+      <div class="fl-main" onclick="${x.kind==='guide'?`openStudyGuide('${x.id}');closeLoad()`:`loadSheet(${x.i})`}">
+        <div class="fl-name">${esc(x.title)}</div>
+        <div class="fl-meta">${esc([x.unit,x.detail].filter(Boolean).join(' · '))}${x.when?` · saved ${flDate(x.when)}`:''}</div>
       </div>
-      <button class="btn" onclick="loadSheet(${i})">Open</button>
-      <button class="icon-btn danger" onclick="delSheet(${i})">×</button>
-    </div>`).join('')
-    :`<div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk3);padding:1rem 0;text-align:center">Nothing saved yet</div>`;
-  document.getElementById('loadModal').style.display='flex';
+      <button class="btn" onclick="${x.kind==='guide'?`openStudyGuide('${x.id}');closeLoad()`:`loadSheet(${x.i})`}">Open</button>
+      <button class="icon-btn danger" title="Delete" onclick="${x.kind==='guide'?`deleteStudyGuide('${x.id}');openLoad()`:`delSheet(${x.i})`}">×</button>
+    </div>`;
+  const types=flTab==='all'?FL_TYPES:FL_TYPES.filter(t=>t.key===flTab);
+  let html='';
+  for(const t of types){
+    const list=items.filter(x=>x.kind===t.key).sort(cmp);
+    if(!list.length){ if(flTab!=='all')html+=`<div class="fl-empty">${q?'No '+t.label.toLowerCase()+' match “'+esc(q)+'”':'No '+t.label.toLowerCase()+' saved yet'}</div>`; continue; }
+    if(flTab==='all')html+=`<div class="fl-type">${t.label} <span>${list.length}</span></div>`;
+    // group by course
+    const byCourse=new Map();
+    list.forEach(x=>{const c=x.course||'No course';if(!byCourse.has(c))byCourse.set(c,[]);byCourse.get(c).push(x);});
+    const courses=[...byCourse.keys()].sort((a,b)=>a==='No course'?1:b==='No course'?-1:a.localeCompare(b));
+    for(const c of courses){
+      if(byCourse.size>1||c!=='No course')html+=`<div class="fl-course">${esc(c)}</div>`;
+      html+=byCourse.get(c).map(row).join('');
+    }
+  }
+  document.getElementById('savedList').innerHTML=html||`<div class="fl-empty">${q?'Nothing matches “'+esc(q)+'”':'Nothing saved yet — use Save (Ctrl+S) on a sheet.'}</div>`;
+  const m=document.getElementById('loadModal');
+  if(m.style.display!=='flex'){ m.style.display='flex'; setTimeout(()=>document.getElementById('flSearch').focus(),30); }
 }
 function closeLoad(){document.getElementById('loadModal').style.display='none';}
 function loadSheet(i){
@@ -4792,7 +4877,7 @@ renderVerStrip();renderEditor();render();
       if(names.includes('guides'))loadSGLib();
       if(names.includes('eqPacks'))loadEqPacks();
       if(names.includes('blueprint'))loadDecks();
-      if(names.includes('sheets')&&document.getElementById('loadModal').style.display==='flex')openLoad();
+      if((names.includes('sheets')||names.includes('guides'))&&document.getElementById('loadModal').style.display==='flex')openLoad();
     },
   });
   document.body.appendChild(s);

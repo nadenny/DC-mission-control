@@ -880,6 +880,82 @@ body::after {
   .ledit-field input { font-size: 16px; }
   .cal-signin-btn, .oo-btn, .ledit-save, .ledit-cancel { min-height: 40px; }
 }
+
+/* ═══════════ FRIENDLIER LAYOUT (Nov 2026) ═══════════
+   Overrides only — delete this block to get the old look back. */
+html { font-size: 15px; }
+body::after { display: none; }                               /* no scan-line overlay */
+.header { padding: .85rem 1.5rem; gap: 1.1rem; }
+.header-logo { font-size: 24px; text-shadow: none; }
+.header-sub { font-family: 'Outfit', sans-serif; font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--ink2); }
+#hdrGreet { color: var(--ink); font-weight: 500; }
+.header-status { font-family: 'Outfit', sans-serif; font-size: 13px; letter-spacing: 0; color: var(--ink2); }
+.status-dot { display: none; }
+.clock { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 500; letter-spacing: 0; text-shadow: none; color: var(--ink); }
+#syncChip, #bkChip { font-family: 'Outfit', sans-serif !important; font-size: 12px !important; letter-spacing: 0 !important; text-transform: none !important; padding: 6px 12px !important; border-radius: 999px !important; }
+
+/* summary numbers */
+.metrics-bar { gap: 12px; padding: 16px 20px 0; background: none; border: 0; }
+.metric-cell { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.metric-n { font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 26px; text-shadow: none; }
+.metric-label { font-family: 'Outfit', sans-serif; font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--ink2); }
+
+/* tools: one roomy row of cards */
+.tools-wrap { padding: 16px 20px 0; }
+.tools-strip-panel { border-radius: 14px; border: 1px solid var(--border); padding: 1rem 1.15rem 1.15rem; }
+.tools-strip { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; }
+.tool-tile { border-radius: 10px; padding: 10px 12px; display: grid; grid-template-columns: auto minmax(0,1fr); column-gap: 11px; align-items: center; }
+.tool-tile::before { top: 0; bottom: 0; left: 0; right: auto; width: 3px; height: auto; border-radius: 10px 0 0 10px; }
+.tool-icon { font-size: 21px; margin: 0; grid-row: span 2; }
+.tool-name { font-size: 14px; margin: 0; }
+.tool-desc { font-family: 'Outfit', sans-serif; font-size: 12px; letter-spacing: 0; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tool-tile.wide { grid-column: auto; }
+
+/* panels become cards with room to breathe */
+.grid { grid-template-columns: 300px minmax(0,1fr) 320px; gap: 16px; padding: 16px 20px 28px; background: none; min-height: 0; }
+.col { background: none; gap: 16px; }
+.panel { border-radius: 14px; border: 1px solid var(--border); padding: 1.05rem 1.2rem 1.15rem; }
+.panel-label { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink); margin-bottom: .9rem; gap: 8px; }
+.panel-label::before { display: none; }
+.pl-ico { font-size: 16px; }
+.pl-btn { font-family: 'Outfit', sans-serif; font-size: 12.5px; font-weight: 500; padding: 4px 11px; border-radius: 999px;
+  background: var(--bg3); color: var(--ink2); border: 1px solid var(--border2); cursor: pointer; }
+.pl-btn:hover { color: var(--gold); border-color: var(--gold-glow); }
+
+/* readable small text */
+.todo-input, .scratch-pad { font-size: 14px; }
+.todo-add-btn { font-family: 'Outfit', sans-serif; font-size: 13px; letter-spacing: 0; border-radius: 6px; }
+.todo-tab { font-family: 'Outfit', sans-serif; font-size: 13px; letter-spacing: 0; text-transform: none; }
+.oo-label, .oo-upnext-label { font-family: 'Outfit', sans-serif; font-size: 12px; letter-spacing: 0; text-transform: none; }
+.oo-name { font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 22px; text-shadow: none; }
+.oo-sub { font-size: 12.5px; }
+.oo-up-day { font-family: 'Outfit', sans-serif; font-size: 12px; min-width: 70px; }
+.oo-up-name { font-size: 13.5px; }
+.oo-btn { font-family: 'Outfit', sans-serif; font-size: 13px; letter-spacing: 0; text-transform: none; border-radius: 6px; }
+.ring-label { font-family: 'Outfit', sans-serif; font-size: 12.5px; letter-spacing: 0; text-transform: none; }
+.ring-days { font-size: 13px; }
+.reminder-title { font-size: 13.5px; }
+.reminder-sub { font-size: 12.5px; }
+
+@media (max-width: 1100px) {
+  .grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+  .grid > .col:first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .grid { grid-template-columns: minmax(0,1fr); padding: 12px 12px 24px; gap: 12px; }
+  .col { gap: 12px; }
+  .tools-wrap, .metrics-bar { padding-left: 12px; padding-right: 12px; }
+  .tools-strip { grid-template-columns: minmax(0,1fr); }
+  .todo-input-row { flex-wrap: wrap; }
+  .todo-input { flex: 1 1 100%; min-width: 0; }
+  .todo-priority { flex: 1; }
+  .metric-n { font-size: 22px; }
+  /* phone: today's 1:1 and tasks first, tools after */
+  body { display: flex; flex-direction: column; }
+  .grid { order: 1; }
+  .tools-wrap { order: 2; padding-bottom: 24px; }
+  .grid { padding-bottom: 0; }
+}
 </style>
 <link rel="stylesheet" href="dc_theme.css">
 </head>
@@ -889,7 +965,7 @@ body::after {
 <header class="header">
   <div>
     <div class="header-logo">DC MISSION CONTROL</div>
-    <div class="header-sub">La Salle · Math &amp; Science · 2026–27</div>
+    <div class="header-sub"><span id="hdrGreet">Welcome back</span> · La Salle Math &amp; Science</div>
   </div>
   <div class="header-search">
     <input type="search" id="gSearch" placeholder="Search everything…  ( / )" autocomplete="off" aria-label="Search all tools"
@@ -926,52 +1002,18 @@ body::after {
     <div class="metric-n" style="color:var(--blue)" id="m-links">—</div>
     <div class="metric-label">Quick links</div>
   </div>
-  <div class="metric-cell">
+  <div class="metric-cell" style="display:none">
     <div class="metric-n" style="color:var(--green)" id="m-tools">8</div>
     <div class="metric-label">DC tools built</div>
   </div>
 </div>
 
 <!-- ── MAIN GRID ── -->
-<div class="grid">
-
-  <!-- ════ LEFT COLUMN ════ -->
-  <div class="col">
-
-    <!-- Semester status -->
-    <div class="panel p-sem">
-      <div class="panel-label" style="justify-content:space-between">
-        <span><span class="pl-accent">SEM</span> · YEAR STATUS</span>
-        <button onclick="openDates()" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;background:none;border:none;color:var(--gold);cursor:pointer;text-transform:uppercase">Edit</button>
-      </div>
-      <div class="semester-ring-wrap">
-        <svg class="ring-svg" width="72" height="72" viewBox="0 0 72 72">
-          <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
-          <circle cx="36" cy="36" r="30" fill="none" stroke="var(--gold)" stroke-width="6"
-            stroke-dasharray="188.5" stroke-dashoffset="188.5"
-            stroke-linecap="round" transform="rotate(-90 36 36)"
-            id="semRing" style="transition:stroke-dashoffset 1s ease-out;filter:drop-shadow(0 0 4px var(--gold-glow))"/>
-        </svg>
-        <div class="ring-info">
-          <div class="ring-pct" id="semPct">—%</div>
-          <div class="ring-label">of school year</div>
-          <div class="ring-days" id="semDays">Computing…</div>
-        </div>
-      </div>
-
-      <div class="alert-strip" id="activeAlert" style="display:none">
-        <div class="alert-strip-icon">⚠</div>
-        <div class="alert-strip-text">
-          <strong id="alertTitle">Alert</strong>
-          <span id="alertBody">—</span>
-        </div>
-      </div>
-    </div>
-
+<div class="tools-wrap">
     <!-- DC Tools -->
-    <div class="panel p-tools" style="flex:1">
-      <div class="panel-label"><span class="pl-accent">SYS</span> · DC TOOLS</div>
-      <div class="tool-grid">
+    <div class="panel p-tools tools-strip-panel">
+      <div class="panel-label"><span class="pl-ico">🧰</span> Your tools</div>
+      <div class="tool-grid tools-strip">
         <a class="tool-tile" style="--tile-color:var(--gold)" href="semester_startup_checklist.html">
           <span class="tool-icon">✅</span>
           <div class="tool-name">Semester Checklist</div>
@@ -1024,6 +1066,44 @@ body::after {
         </a>
       </div>
     </div>
+</div>
+
+<div class="grid">
+
+  <!-- ════ LEFT COLUMN ════ -->
+  <div class="col">
+
+    <!-- Semester status -->
+    <div class="panel p-sem">
+      <div class="panel-label" style="justify-content:space-between">
+        <span><span class="pl-ico">📅</span> School year</span>
+        <button class="pl-btn" onclick="openDates()">Edit dates</button>
+      </div>
+      <div class="semester-ring-wrap">
+        <svg class="ring-svg" width="72" height="72" viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+          <circle cx="36" cy="36" r="30" fill="none" stroke="var(--gold)" stroke-width="6"
+            stroke-dasharray="188.5" stroke-dashoffset="188.5"
+            stroke-linecap="round" transform="rotate(-90 36 36)"
+            id="semRing" style="transition:stroke-dashoffset 1s ease-out;filter:drop-shadow(0 0 4px var(--gold-glow))"/>
+        </svg>
+        <div class="ring-info">
+          <div class="ring-pct" id="semPct">—%</div>
+          <div class="ring-label">of school year</div>
+          <div class="ring-days" id="semDays">Computing…</div>
+        </div>
+      </div>
+
+      <div class="alert-strip" id="activeAlert" style="display:none">
+        <div class="alert-strip-icon">⚠</div>
+        <div class="alert-strip-text">
+          <strong id="alertTitle">Alert</strong>
+          <span id="alertBody">—</span>
+        </div>
+      </div>
+    </div>
+
+
 
   </div>
 
@@ -1032,7 +1112,7 @@ body::after {
 
     <!-- To-do -->
     <div class="panel p-tasks" style="flex:1">
-      <div class="panel-label"><span class="pl-accent">OPS</span> · TASK QUEUE</div>
+      <div class="panel-label"><span class="pl-ico">✅</span> Tasks</div>
 
       <div class="todo-input-row">
         <input class="todo-input" type="text" id="todoInput" placeholder="Add a task…" onkeydown="if(event.key==='Enter')addTodo()">
@@ -1042,7 +1122,7 @@ body::after {
           <option value="normal" selected>🔵 Normal</option>
           <option value="low">⚪ Low</option>
         </select>
-        <button class="todo-add-btn" onclick="addTodo()">ADD</button>
+        <button class="todo-add-btn" onclick="addTodo()">Add</button>
       </div>
 
       <div class="todo-tabs">
@@ -1056,16 +1136,16 @@ body::after {
 
     <!-- Scratch pad -->
     <div class="panel p-scratch">
-      <div class="panel-label"><span class="pl-accent">LOG</span> · SCRATCH PAD</div>
+      <div class="panel-label"><span class="pl-ico">📝</span> Quick notes</div>
       <textarea class="scratch-pad" id="scratchPad" placeholder="Quick notes, ideas, things to remember… saves automatically." oninput="saveScratch()"></textarea>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--ink3);margin-top:5px;letter-spacing:.06em">AUTO-SAVED · BROWSER STORAGE</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--ink3);margin-top:5px;letter-spacing:.06em">Saves automatically</div>
     </div>
 
     <!-- Calendar -->
     <div class="panel p-cal" style="flex:1;overflow-y:auto;max-height:460px">
       <div class="panel-label" style="justify-content:space-between">
-        <span><span class="pl-accent">CAL</span> · UPCOMING EVENTS</span>
-        <button class="cal-refresh-btn" id="calRefreshBtn" onclick="calRefreshAll()" style="display:none">↻ REFRESH</button>
+        <span><span class="pl-ico">🗓</span> Upcoming events</span>
+        <button class="cal-refresh-btn" id="calRefreshBtn" onclick="calRefreshAll()" style="display:none">↻ Refresh</button>
       </div>
       <div id="calPanel">
         <div id="calEmpty" class="cal-signin-wrap">
@@ -1092,8 +1172,8 @@ body::after {
     <!-- 1:1 Rotation -->
     <div class="panel p-oo">
       <div class="panel-label" style="justify-content:space-between">
-        <span><span class="pl-accent">1:1</span> · TODAY'S CHECK-IN</span>
-        <button onclick="openRoster()" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;background:none;border:none;color:var(--gold);cursor:pointer;text-transform:uppercase">ROSTER</button>
+        <span><span class="pl-ico">🤝</span> Today's 1:1</span>
+        <button class="pl-btn" onclick="openRoster()">Roster</button>
       </div>
       <div id="oneOnOnePanel"></div>
     </div>
@@ -1101,8 +1181,8 @@ body::after {
     <!-- Quick links -->
     <div class="panel p-links" style="flex:1">
       <div class="panel-label" style="justify-content:space-between">
-        <span><span class="pl-accent">NAV</span> · QUICK LINKS</span>
-        <button onclick="openAddLink()" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;background:none;border:none;color:var(--gold);cursor:pointer;text-transform:uppercase">+ ADD</button>
+        <span><span class="pl-ico">🔗</span> Links</span>
+        <button class="pl-btn" onclick="openAddLink()">+ Add</button>
       </div>
 
       <div id="linksContainer"></div>
@@ -1110,7 +1190,7 @@ body::after {
 
     <!-- Reminders -->
     <div class="panel p-remind">
-      <div class="panel-label"><span class="pl-accent">BRIEF</span> · KEY REMINDERS</div>
+      <div class="panel-label"><span class="pl-ico">📌</span> Reminders</div>
       <div class="reminder-item">
         <div class="reminder-icon">⚠️</div>
         <div class="reminder-body">
@@ -1336,10 +1416,12 @@ body::after {
 // ─── CLOCK ───
 function tickClock() {
   const now = new Date();
-  const t = now.toLocaleTimeString('en-US', { hour12: false });
+  const t = now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
   document.getElementById('clock').textContent = t;
   document.getElementById('headerDate').textContent =
-    now.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }).toUpperCase();
+    now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  const h=now.getHours(), g=document.getElementById('hdrGreet');
+  if(g)g.textContent = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
 }
 setInterval(tickClock, 1000);
 tickClock();
