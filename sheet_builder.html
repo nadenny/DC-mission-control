@@ -4849,7 +4849,7 @@ renderVerStrip();renderEditor();render();
 
 // Opened from Mission Control search: ?bank=words → open the question bank filtered
 (function(){
-  const q=new URLSearchParams(location.search).get('bank');
+  const q=new URLSearchParams(location.hash.slice(1)).get('bank')||new URLSearchParams(location.search).get('bank');
   if(q&&typeof setMode==='function'){
     setMode('bank');
     const s=document.getElementById('bkSearch');

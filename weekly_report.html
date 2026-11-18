@@ -171,6 +171,21 @@ function build(){
     ?`<ul class="plain">${mtgs.map(m=>`<li><b>${esc(m.type||'Meeting')}</b> · ${esc(m.dateLabel||'')} <span class="muted">${esc(trunc(m.notesText||m.agendaText||'',110))}</span></li>`).join('')}</ul>`
     :`<p class="none">No meetings saved this week.</p>`);
 
+  // ── email (only what the home page loaded in this tab; never stored) ──
+  let gm=null; try{ gm=JSON.parse(sessionStorage.getItem('dc_gmail_session_v1')); }catch{}
+  if(gm){
+    const got=(gm.recent||[]).filter(e=>inRange(toDate(e.when),a,b));
+    const senders={}; got.forEach(e=>{ senders[e.from]=(senders[e.from]||0)+1; });
+    const top=Object.entries(senders).sort((x,y)=>y[1]-x[1]).slice(0,5);
+    const needs=gm.needs||[];
+    h+=`<h2>Email</h2><p style="font-size:12.5px">${got.length?`<b>${got.length}</b> emails received this week${(gm.recent||[]).length>=50?' (at least)':''}`+(top.length?` · most from ${top.map(([n,c])=>`${esc(n)} (${c})`).join(', ')}`:''):'No inbox email in this week from the last 14 days loaded.'}</p>`;
+    h+=needs.length?`<p style="font-size:12.5px;margin-top:8px"><b>${needs.length}</b> still ${esc(gm.filter||'marked')}:</p><table><tr><th>From</th><th>Subject</th><th>Date</th></tr>${needs.slice(0,10).map(e=>
+        `<tr><td>${esc(e.from)}</td><td>${esc(trunc(e.subject,80))}</td><td class="muted">${esc(nice(new Date(e.when)))}</td></tr>`).join('')}</table>`
+      :`<p class="none">Nothing waiting for a reply.</p>`;
+  }else if(localStorage.getItem('dc_gmail_on_v1')){
+    h+=`<h2>Email</h2><p class="none">To include email, click Refresh in “Needs reply” on the home page, then open this report from there (same tab).</p>`;
+  }
+
   h+=`<h2>Teacher notes (people log)</h2>`+(notes.length
     ?`<table><tr><th>Teacher</th><th>Type</th><th>Note</th></tr>${notes.map(p=>`<tr><td>${esc(p.person)}</td><td class="muted">${esc(p.cat||'')}</td><td>${esc(trunc(p.text,140))}</td></tr>`).join('')}</table>`
     :`<p class="none">No teacher notes this week.</p>`);

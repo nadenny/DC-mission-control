@@ -937,6 +937,27 @@ body::after { display: none; }                               /* no scan-line ove
 .reminder-title { font-size: 13.5px; }
 .reminder-sub { font-size: 12.5px; }
 
+/* email */
+.gm-note { font-size: 13px; color: var(--ink2); line-height: 1.55; }
+.gm-note b { color: var(--ink); font-weight: 500; }
+.gm-row { padding: 9px 2px; border-bottom: 1px solid var(--border); }
+.gm-row:last-child { border-bottom: 0; }
+.gm-top { display: flex; gap: 8px; align-items: baseline; }
+.gm-from { font-size: 13.5px; font-weight: 600; color: var(--ink); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-row.unread .gm-from::before { content: '●'; color: var(--blue); font-size: 9px; margin-right: 6px; vertical-align: 2px; }
+.gm-date { font-size: 12px; color: var(--ink3); white-space: nowrap; }
+.gm-subj { font-size: 13.5px; color: var(--ink); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-snip { font-size: 12.5px; color: var(--ink3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-acts { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.gm-act { font-family: 'Outfit', sans-serif; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border2);
+  background: var(--bg3); color: var(--ink2); cursor: pointer; text-decoration: none; }
+.gm-act:hover { color: var(--gold); border-color: var(--gold-glow); }
+.gm-act.done { color: var(--green); border-color: rgba(74,222,128,.35); }
+.oo-mail { margin: .55rem 0 .2rem; padding: 7px 9px; border-radius: 6px; background: var(--bg2); border: 1px solid var(--border); font-size: 12.5px; line-height: 1.5; text-align: left; }
+.oo-mail b { font-weight: 600; color: var(--blue); display: block; margin-bottom: 2px; font-size: 12px; }
+.oo-mail a { color: var(--ink2); text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oo-mail a:hover { color: var(--ink); }
+
 @media (max-width: 1100px) {
   .grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
   .grid > .col:first-child { grid-column: 1 / -1; }
@@ -1132,6 +1153,22 @@ body::after { display: none; }                               /* no scan-line ove
       </div>
 
       <div class="todo-list" id="todoList"></div>
+    </div>
+
+    <!-- Email (Gmail, read-only) -->
+    <div class="panel p-mail">
+      <div class="panel-label" style="justify-content:space-between">
+        <span><span class="pl-ico">📬</span> Needs reply</span>
+        <span style="display:flex;gap:6px">
+          <select id="gmFilterSel" class="pl-btn" onchange="gmSetFilter(this.value)" aria-label="Which emails" style="display:none">
+            <option value="is:starred">Starred</option>
+            <option value="is:unread in:inbox">Unread in inbox</option>
+            <option value="label">A Gmail label…</option>
+          </select>
+          <button class="pl-btn" id="gmBtn" onclick="gmLoad()">Connect email</button>
+        </span>
+      </div>
+      <div id="gmPanel"></div>
     </div>
 
     <!-- Scratch pad -->
@@ -2087,6 +2124,7 @@ function renderOneOnOne() {
       <div class="oo-name">${escHtml(todayPerson)}</div>
       <div class="oo-sub">Day ${pos} of ${cycleLen} · brief 5–10 min touchpoint</div>
       ${plcBrief(todayPerson)}
+      ${gmBrief(todayPerson)}
       <div class="oo-actions">
         <button class="oo-btn ${isDone ? 'done' : ''}" onclick="markOODone()">${isDone ? '✓ Done' : 'Mark done'}</button>
         <button class="oo-btn" onclick="skipOOToday()">Skip</button>
@@ -2121,6 +2159,7 @@ function renderOneOnOne() {
   </div>`;
 
   panel.innerHTML = html;
+  if (gmToken && todayPerson) gmLoadPerson(todayPerson);   // recent email with today's teacher
 }
 
 function markOODone() {
@@ -2463,6 +2502,164 @@ function mergeMC(cloud){
   return out;
 }
 
+// ═══════════ EMAIL (Gmail, read-only) ═══════════
+/* Reads Gmail with the same Google OAuth Client ID the calendar uses, but its
+   own read-only sign-in. Emails live in memory only: never written to this
+   device's storage or to the cloud. A slim list (sender, subject, date) is kept
+   in sessionStorage for THIS TAB so the weekly report can include it; it is
+   gone when the tab closes. Settings stored: which emails to show, and whether
+   email was set up (no email content). */
+var GM_SCOPE='https://www.googleapis.com/auth/gmail.readonly';
+var GM_FILTER_KEY='dc_gmail_filter_v1', GM_ON_KEY='dc_gmail_on_v1', GM_SESSION='dc_gmail_session_v1';
+var gmToken=null, gmTokenExp=0, gmUser='', gmItems=[], gmRecent=[], gmPerson={}, gmBusy=false, gmErr='';
+
+function gmFilter(){ return localStorage.getItem(GM_FILTER_KEY)||'is:starred'; }
+function gmFilterLabel(){
+  const f=gmFilter();
+  return f==='is:starred'?'starred':f==='is:unread in:inbox'?'unread in your inbox':'labelled “'+f.replace(/^label:/,'').replace(/-/g,' ')+'”';
+}
+function gmGetToken(){
+  return new Promise((res,rej)=>{
+    if(gmToken&&Date.now()<gmTokenExp-60000)return res(gmToken);
+    const id=localStorage.getItem(CAL_CLIENT_KEY);
+    if(!id)return rej(new Error('no-client'));
+    if(!(window.google&&google.accounts&&google.accounts.oauth2))return rej(new Error('Google sign-in is still loading — try again in a moment.'));
+    const c=google.accounts.oauth2.initTokenClient({client_id:id, scope:GM_SCOPE,
+      callback:r=>{ if(r.error)return rej(new Error(r.error_description||r.error)); gmToken=r.access_token; gmTokenExp=Date.now()+(+r.expires_in||3600)*1000; res(gmToken); },
+      error_callback:e=>rej(new Error(e&&e.type==='popup_closed'?'The Google window was closed.':(e&&e.message)||'Sign-in was cancelled.'))});
+    c.requestAccessToken({prompt:''});
+  });
+}
+async function gmApi(path){
+  const r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/'+path,{headers:{Authorization:'Bearer '+gmToken}});
+  if(r.status===401){ gmToken=null; throw new Error('Your Google sign-in expired — click Refresh.'); }
+  if(r.status===403){ const j=await r.json().catch(()=>({})); throw new Error('Google refused access: '+((j.error&&j.error.message)||'403')+'. See setup steps.'); }
+  if(!r.ok)throw new Error('Gmail error '+r.status);
+  return r.json();
+}
+function gmParseFrom(v){
+  const m=String(v||'').match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>/);
+  return m?{name:(m[1]||m[2]).trim(),email:m[2].trim()}:{name:String(v||'').trim(),email:String(v||'').trim()};
+}
+async function gmList(q,max){
+  const r=await gmApi('messages?maxResults='+max+'&q='+encodeURIComponent(q));
+  const ids=(r.messages||[]).map(m=>m.id);
+  const msgs=await Promise.all(ids.map(id=>gmApi('messages/'+id+'?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject').catch(()=>null)));
+  return msgs.filter(Boolean).map(m=>{
+    const h={}; ((m.payload&&m.payload.headers)||[]).forEach(x=>h[x.name.toLowerCase()]=x.value);
+    const f=gmParseFrom(h.from);
+    return {id:m.id, threadId:m.threadId, from:f.name, fromEmail:f.email, to:h.to||'', subject:h.subject||'(no subject)',
+      snippet:(m.snippet||'').replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/&amp;/g,'&'),
+      when:+m.internalDate||0, unread:(m.labelIds||[]).includes('UNREAD'), starred:(m.labelIds||[]).includes('STARRED')};
+  });
+}
+function gmLink(e){ return 'https://mail.google.com/mail/'+(gmUser?'?authuser='+encodeURIComponent(gmUser):'u/0/')+'#all/'+e.threadId; }
+function gmWhen(ms){
+  const d=new Date(ms), now=new Date();
+  if(d.toDateString()===now.toDateString())return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function gmSaveSession(){
+  const slim=a=>a.map(e=>({from:e.from,fromEmail:e.fromEmail,subject:e.subject,when:e.when,threadId:e.threadId,unread:e.unread}));
+  try{ sessionStorage.setItem(GM_SESSION,JSON.stringify({user:gmUser,at:Date.now(),filter:gmFilterLabel(),needs:slim(gmItems),recent:slim(gmRecent)})); }catch{}
+}
+async function gmLoad(){
+  if(gmBusy)return;
+  if(!localStorage.getItem(CAL_CLIENT_KEY)){ gmErr='no-client'; gmRender(); return; }
+  gmBusy=true; gmErr=''; gmRender();
+  try{
+    await gmGetToken();
+    if(!gmUser){ const p=await gmApi('profile'); gmUser=p.emailAddress||''; }
+    [gmItems,gmRecent]=await Promise.all([gmList(gmFilter(),15), gmList('in:inbox newer_than:14d',50)]);
+    gmPerson={};
+    localStorage.setItem(GM_ON_KEY,'1');
+    gmSaveSession(); gsIndex=null;
+    gmBusy=false; gmRender();
+    gmLoadPerson(ooTodayName());
+  }catch(e){ gmBusy=false; gmErr=e.message||String(e); gmRender(); }
+}
+function gmSetFilter(v){
+  if(v==='label'){
+    const l=(prompt('Gmail label to show (exactly as it appears in Gmail), e.g. Follow up:')||'').trim();
+    if(!l){ document.getElementById('gmFilterSel').value=gmFilter().startsWith('label:')?'label':gmFilter(); return; }
+    v='label:'+l.toLowerCase().replace(/["\s\/]+/g,'-');   // Gmail search form of "Follow up" is label:follow-up
+  }
+  localStorage.setItem(GM_FILTER_KEY,v);
+  if(gmToken)gmLoad(); else gmRender();
+}
+function gmRender(){
+  const el=document.getElementById('gmPanel'), btn=document.getElementById('gmBtn'), sel=document.getElementById('gmFilterSel');
+  if(!el)return;
+  const connected=!!gmToken&&!gmErr;
+  btn.textContent=gmBusy?'Loading…':connected?'↻ Refresh':'Connect email';
+  sel.style.display=connected?'':'none';
+  sel.value=gmFilter().startsWith('label:')?'label':gmFilter();
+  if(gmErr==='no-client'){
+    el.innerHTML=`<div class="gm-note">Email uses the same Google sign-in as your calendar. Connect your calendar once (Upcoming events → <b>Sign in with Google</b>), then click <b>Connect email</b>.</div>`; return;
+  }
+  if(gmErr){
+    el.innerHTML=`<div class="gm-note" style="color:var(--red)">${escHtml(gmErr)}</div>
+      <div class="gm-note" style="margin-top:6px"><a href="#" onclick="gmHelp();return false" style="color:var(--gold)">First-time setup steps</a></div>`; return;
+  }
+  if(gmBusy&&!gmItems.length){ el.innerHTML=`<div class="gm-note">Loading your email…</div>`; return; }
+  if(!gmToken){
+    el.innerHTML=`<div class="gm-note">See the emails you've <b>starred</b> (or a label you choose) right here, turn them into tasks or concern cases, and see recent email with today's 1:1. Read-only — nothing is sent or changed in Gmail, and email is never saved.</div>
+      <div class="gm-note" style="margin-top:6px"><a href="#" onclick="gmHelp();return false" style="color:var(--gold)">First-time setup steps</a></div>`; return;
+  }
+  if(!gmItems.length){ el.innerHTML=`<div class="gm-note">Nothing ${escHtml(gmFilterLabel())} right now. 🎉</div>`; return; }
+  el.innerHTML=gmItems.map((e,i)=>`
+    <div class="gm-row ${e.unread?'unread':''}">
+      <div class="gm-top"><span class="gm-from" title="${escHtml(e.fromEmail)}">${escHtml(e.from)}</span><span class="gm-date">${gmWhen(e.when)}</span></div>
+      <div class="gm-subj">${escHtml(e.subject)}</div>
+      <div class="gm-snip">${escHtml(e.snippet)}</div>
+      <div class="gm-acts">
+        <a class="gm-act" href="${gmLink(e)}" target="_blank" rel="noopener">Open in Gmail ↗</a>
+        <button class="gm-act ${todos.some(t=>t.email&&t.email.id===e.id)?'done':''}" onclick="gmToTask(${i})">${todos.some(t=>t.email&&t.email.id===e.id)?'✓ In tasks':'+ Task'}</button>
+        <button class="gm-act" onclick="gmToConcern(${i})">+ Concern case</button>
+      </div>
+    </div>`).join('');
+}
+function gmHelp(){
+  alert('One-time setup (in the same Google Cloud project as your calendar Client ID):\n\n'+
+    '1. console.cloud.google.com → APIs & Services → Library → search "Gmail API" → Enable.\n'+
+    '2. APIs & Services → OAuth consent screen → Data access / Scopes → Add "…/auth/gmail.readonly" → Save.\n'+
+    '   (If the app is in "Testing", make sure your school address is listed under Test users.)\n'+
+    '3. Back here, click Connect email and allow "Read your email".\n\n'+
+    'If Google says the app is blocked, your school\'s Google admin restricts Gmail access for outside apps — ask IT to allow your OAuth Client ID.');
+}
+function gmToTask(i){
+  const e=gmItems[i]; if(!e)return;
+  if(todos.some(t=>t.email&&t.email.id===e.id))return;
+  todos.unshift({id:'t'+Date.now(), text:`Reply to ${e.from}: ${e.subject}`, pri:'normal', done:false, createdAt:Date.now(),
+    email:{id:e.id, threadId:e.threadId}});
+  saveTodos(); renderTodos(); gmRender();
+}
+function gmToConcern(i){
+  const e=gmItems[i]; if(!e)return;
+  const d=new Date(e.when), p=n=>String(n).padStart(2,'0');
+  // Handed over inside this browser tab (sessionStorage), never through the web address
+  sessionStorage.setItem('dc_concern_prefill',JSON.stringify({
+    date:`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`,
+    summary:`Email from ${e.from} <${e.fromEmail}> on ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}\nSubject: ${e.subject}\n\n${e.snippet}`,
+  }));
+  location.href='concern_log.html';
+}
+/* Recent email with a teacher (for the 1:1 card) — searched by last name */
+function ooTodayName(){ const el=document.querySelector('.oo-today .oo-name'); return el?el.textContent.trim():''; }
+async function gmLoadPerson(name){
+  if(!name||!gmToken||gmPerson[name])return;
+  const t=plcTokens(name); const last=t[t.length-1]; if(!last||last.length<2)return;
+  gmPerson[name]='loading';
+  try{ gmPerson[name]=await gmList(`(from:${last} OR to:${last}) newer_than:30d`,3); }
+  catch{ gmPerson[name]=[]; }
+  renderOneOnOne();
+}
+function gmBrief(name){
+  const l=gmPerson&&gmPerson[name];
+  if(!Array.isArray(l)||!l.length)return '';
+  return `<div class="oo-mail"><b>✉ Recent email</b>${l.map(e=>`<a href="${gmLink(e)}" target="_blank" rel="noopener" title="${escHtml(e.subject)}">${gmWhen(e.when)} · ${escHtml(e.subject)}</a>`).join('')}</div>`;
+}
+
 // ═══════════ PLC GRADE FLAGS ═══════════
 /* Imported from the PLC notebook (plc_summary.py → Summaries\plc_flags_<batch>.json).
    Teacher-level stats only. Stored as a list (not keyed by name) because cloud
@@ -2596,6 +2793,15 @@ function gsBuild(){
       idx.push({src:s, title:tk?it[tk]:s.label, date:dk?it[dk]:'', text, lower:text.toLowerCase()});
     });
   }
+  // Email: whatever was loaded in this tab (memory, or this tab's session list)
+  let mail=gmRecent.concat(gmItems);
+  if(!mail.length){ try{ const s=JSON.parse(sessionStorage.getItem(GM_SESSION)); if(s){ mail=(s.recent||[]).concat(s.needs||[]); if(!gmUser)gmUser=s.user||''; } }catch{} }
+  const seen=new Set(), src={label:'Email', page:null};
+  mail.forEach(e=>{
+    if(!e||seen.has(e.threadId+e.subject))return; seen.add(e.threadId+e.subject);
+    const text=[e.from,e.fromEmail,e.subject,e.snippet||''].join(' · ');
+    idx.push({src, title:e.subject, date:gmWhen(e.when), text, lower:text.toLowerCase(), href:gmLink(e)});
+  });
   return idx;
 }
 function gsEsc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -2625,8 +2831,9 @@ function gsRun(){
   for(const [src,list] of groups){
     html+=`<div class="gs-group"><span>${gsEsc(src.label)}</span><span style="color:var(--ink3)">${list.length}</span></div>`;
     list.slice(0,8).forEach(h=>{
-      const href=src.page?src.page+(src.q?`?${src.q}=${encodeURIComponent(input.value.trim())}`:''):'#';
-      html+=`<a class="gs-item" href="${href}" ${src.page?'':'onclick="gsClose();return false"'}>
+      // "#…" keeps the search words in the browser (never sent to the web server)
+      const href=h.href||(src.page?src.page+(src.q?`#${src.q}=${encodeURIComponent(input.value.trim())}`:''):'#');
+      html+=`<a class="gs-item" href="${href}" ${h.href?'target="_blank" rel="noopener"':src.page?'':'onclick="gsClose();return false"'}>
         <div><span class="gs-title">${gsMark(String(h.title).slice(0,90),words)}</span>${h.date?`<span class="gs-meta">${gsEsc(h.date)}</span>`:''}</div>
         <div class="gs-snip">${gsMark(gsSnippet(h.text,words),words)}</div></a>`;
     });
@@ -2910,6 +3117,7 @@ renderOneOnOne();
 updateMetrics();
 bkRefresh();
 plcRefreshTile();
+gmRender();
 </script>
 </body>
 </html>

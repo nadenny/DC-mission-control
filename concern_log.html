@@ -1220,10 +1220,22 @@ document.addEventListener('keydown', e => {
 
 load();
 render();
-// Opened from Mission Control search: ?q=name → pre-fill the search box
+// Opened from Mission Control search: #q=name (or older ?q=) → pre-fill the search box
 (function(){
-  const q=new URLSearchParams(location.search).get('q');
+  const q=new URLSearchParams(location.hash.slice(1)).get('q')||new URLSearchParams(location.search).get('q');
   if(q){ document.getElementById('searchInput').value=q; render(); }
+})();
+// "+ Concern case" from an email on Mission Control: details handed over inside
+// this browser tab (sessionStorage), used once, then removed.
+(function(){
+  let p=null; try{ p=JSON.parse(sessionStorage.getItem('dc_concern_prefill')); }catch{}
+  if(!p)return;
+  sessionStorage.removeItem('dc_concern_prefill');
+  openNew();
+  if(p.date)document.getElementById('f-date').value=p.date;
+  if(p.summary)document.getElementById('f-summary').value=p.summary;
+  const via=document.getElementById('f-via');
+  if(via&&!/Email/.test(via.value))via.value='Email — parent';
 })();
 </script>
 <script src="dc_sync.js"></script>
