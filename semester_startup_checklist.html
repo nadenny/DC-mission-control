@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-dc="checklist">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DC Semester Startup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
 <style>
   :root {
     --bg: #F5F2ED;
@@ -28,7 +28,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     background: var(--bg);
     color: var(--ink);
     min-height: 100vh;
@@ -64,7 +64,7 @@
 
   .back-link {
     display: inline-flex; align-items: center; gap: 5px;
-    font-family: 'DM Mono', monospace; font-size: 10px;
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
     letter-spacing: .1em; text-transform: uppercase;
     color: rgba(255,255,255,.45); text-decoration: none;
     padding: 4px 10px; border: 1px solid rgba(255,255,255,.15);
@@ -74,7 +74,7 @@
   .back-link:hover { color: #E8A07A; border-color: rgba(232,160,122,.4); }
 
   .header-eyebrow {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 10px;
     letter-spacing: .15em;
     text-transform: uppercase;
@@ -83,11 +83,11 @@
   }
 
   h1 {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Outfit', serif;
     font-size: clamp(28px, 5vw, 42px);
     font-weight: 400;
     line-height: 1.1;
-    color: #fff;
+    color: var(--on-ink,#fff);
     margin-bottom: 1rem;
   }
 
@@ -104,7 +104,7 @@
   }
 
   .semester-badge {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 11px;
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.15);
@@ -141,7 +141,7 @@
   }
 
   .progress-label {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 11px;
     color: rgba(255,255,255,0.5);
     white-space: nowrap;
@@ -162,7 +162,7 @@
   }
 
   .filter-btn {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 10px;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -180,7 +180,7 @@
   .ctrl-sep { flex: 1; }
 
   .reset-btn {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 10px;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -216,13 +216,13 @@
   }
 
   .phase-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Outfit', serif;
     font-size: 22px;
     font-weight: 400;
   }
 
   .phase-sub {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 10px;
     letter-spacing: .1em;
     text-transform: uppercase;
@@ -231,7 +231,7 @@
 
   .phase-count {
     margin-left: auto;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 10px;
     color: var(--ink-3);
   }
@@ -242,7 +242,7 @@
   }
 
   .urgency-label {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 9px;
     letter-spacing: .12em;
     text-transform: uppercase;
@@ -322,7 +322,7 @@
   }
 
   .ttag {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 9px;
     letter-spacing: .05em;
     padding: 2px 7px;
@@ -350,7 +350,7 @@
   .all-done.visible { display: block; }
 
   .all-done-title {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Outfit', serif;
     font-style: italic;
     font-size: 28px;
     color: var(--ink);
@@ -360,7 +360,7 @@
   .all-done-sub {
     font-size: 13px;
     color: var(--ink-3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 11px;
     letter-spacing: .05em;
   }
@@ -372,7 +372,7 @@
     padding: 0 3rem;
     font-size: 11px;
     color: var(--ink-3);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     letter-spacing: .03em;
   }
 
@@ -396,7 +396,7 @@
   }
 
   .modal h3 {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Outfit', serif;
     font-size: 20px;
     font-weight: 400;
     margin-bottom: 4px;
@@ -410,7 +410,7 @@
 
   .modal input {
     width: 100%;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 13px;
     padding: 8px 12px;
     border: 1px solid var(--rule);
@@ -423,7 +423,7 @@
   .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
 
   .modal-btns button {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 11px;
     letter-spacing: .06em;
     text-transform: uppercase;
@@ -452,6 +452,8 @@
     .back-link, .controls { display: none !important; }
   }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dc_theme.css">
 </head>
 <body>
 
@@ -809,8 +811,8 @@ function render() {
 
   if (!anyVisible && filter === 'todo') {
     html = `<div style="text-align:center;padding:3rem 0">
-      <div style="font-family:'DM Serif Display',serif;font-style:italic;font-size:22px;color:var(--ink);margin-bottom:8px">Nothing left to do.</div>
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3)">All filtered tasks complete.</div>
+      <div style="font-family:'Outfit',serif;font-style:italic;font-size:22px;color:var(--ink);margin-bottom:8px">Nothing left to do.</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--ink-3)">All filtered tasks complete.</div>
     </div>`;
   }
 

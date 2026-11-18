@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-dc="meeting">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -14,7 +14,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Karla:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="dc_sync.js"></script>
+
 <style>
 :root {
   --paper: #F7F4EE;
@@ -26,11 +27,11 @@
   --rule: #D8D2C6;
   --rule2: #C8C2B4;
   --red: #C43C1A;
-  --red-dim: #FAE9E3;
+  --red-dim: var(--tint-red,#FAE9E3);
   --teal: #1A6B5C;
-  --teal-dim: #E3F0ED;
+  --teal-dim: var(--tint-teal,#E3F0ED);
   --gold: #8B6914;
-  --gold-dim: #F5EDD8;
+  --gold-dim: var(--tint-gold,#F5EDD8);
   --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
 }
 
@@ -38,7 +39,7 @@
 html { font-size: 15px; }
 
 body {
-  font-family: 'Karla', sans-serif;
+  font-family: 'Outfit', sans-serif;
   background: var(--paper);
   color: var(--ink);
   min-height: 100vh;
@@ -80,7 +81,7 @@ header {
 }
 
 .header-badge {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 9px;
   letter-spacing: .18em;
   text-transform: uppercase;
@@ -89,10 +90,10 @@ header {
 }
 
 h1 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Outfit', serif;
   font-weight: 300;
   font-size: clamp(24px, 3.5vw, 36px);
-  color: #fff;
+  color: var(--on-ink,#fff);
   line-height: 1.1;
 }
 
@@ -114,7 +115,7 @@ h1 em {
 }
 
 .api-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 9px;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -124,7 +125,7 @@ h1 em {
 
 .api-input {
   width: 100%;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 12px;
   padding: 8px 12px;
   background: rgba(255,255,255,0.06);
@@ -139,7 +140,7 @@ h1 em {
 .api-input::placeholder { color: rgba(255,255,255,0.2); }
 
 .api-status {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   color: rgba(255,255,255,0.25);
   margin-top: 4px;
@@ -164,7 +165,7 @@ h1 em {
 }
 
 .tab {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -206,7 +207,7 @@ h1 em {
 
 /* ── Cards ── */
 .card {
-  background: #fff;
+  background: var(--card,#fff);
   border: 1px solid var(--rule);
   border-radius: 8px;
   box-shadow: var(--shadow);
@@ -231,7 +232,7 @@ h1 em {
 }
 
 .card-title {
-  font-family: 'Fraunces', serif;
+  font-family: 'Outfit', serif;
   font-size: 15px;
   font-weight: 400;
   color: var(--ink);
@@ -263,7 +264,7 @@ h1 em {
 }
 
 .field label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 9px;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -273,7 +274,7 @@ h1 em {
 .field input,
 .field select,
 .field textarea {
-  font-family: 'Karla', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 13px;
   padding: 7px 10px;
   background: var(--paper);
@@ -289,7 +290,7 @@ h1 em {
 .field select:focus,
 .field textarea:focus {
   border-color: var(--rule2);
-  background: #fff;
+  background: var(--card,#fff);
 }
 
 .field textarea { min-height: 120px; }
@@ -316,7 +317,7 @@ h1 em {
   flex: 1;
   border: none;
   background: transparent;
-  font-family: 'Karla', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 13px;
   color: var(--ink);
   outline: none;
@@ -324,7 +325,7 @@ h1 em {
 }
 
 .standing-mins {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   color: var(--ink3);
   width: 30px;
@@ -336,7 +337,7 @@ h1 em {
   text-align: right;
   border: none;
   background: transparent;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   color: var(--ink2);
   outline: none;
@@ -355,7 +356,7 @@ h1 em {
 .remove-btn:hover { color: var(--red); }
 
 .add-item-btn {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -374,7 +375,7 @@ h1 em {
 /* ── Action button ── */
 .run-btn {
   width: 100%;
-  font-family: 'Fraunces', serif;
+  font-family: 'Outfit', serif;
   font-size: 15px;
   font-style: italic;
   font-weight: 300;
@@ -382,7 +383,7 @@ h1 em {
   border-radius: 6px;
   border: none;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink,#fff);
   cursor: pointer;
   transition: all .15s;
   display: flex;
@@ -397,7 +398,7 @@ h1 em {
 .run-btn .spinner {
   width: 14px; height: 14px;
   border: 1.5px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
+  border-top-color: var(--on-ink,#fff);
   border-radius: 50%;
   animation: spin .7s linear infinite;
   display: none;
@@ -419,7 +420,7 @@ h1 em {
 }
 
 .output-empty-title {
-  font-family: 'Fraunces', serif;
+  font-family: 'Outfit', serif;
   font-style: italic;
   font-size: 20px;
   margin-bottom: 6px;
@@ -427,7 +428,7 @@ h1 em {
 }
 
 .output-empty-sub {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   letter-spacing: .06em;
   color: var(--rule2);
@@ -439,7 +440,7 @@ h1 em {
   line-height: 1.75;
   color: var(--ink2);
   white-space: pre-wrap;
-  font-family: 'Karla', sans-serif;
+  font-family: 'Outfit', sans-serif;
   min-height: 120px;
 }
 
@@ -453,14 +454,14 @@ h1 em {
 }
 
 .out-btn {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 9px;
   letter-spacing: .1em;
   text-transform: uppercase;
   padding: 5px 14px;
   border-radius: 4px;
   border: 1px solid var(--rule);
-  background: #fff;
+  background: var(--card,#fff);
   color: var(--ink2);
   cursor: pointer;
   transition: all .12s;
@@ -469,7 +470,7 @@ h1 em {
 .out-btn.green { border-color: rgba(26,107,92,0.3); background: var(--teal-dim); color: var(--teal); }
 
 .char-count {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 9px;
   color: var(--ink3);
   margin-left: auto;
@@ -484,13 +485,13 @@ h1 em {
   font-size: 12px;
   color: var(--red);
   margin-top: 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   display: none;
 }
 
 /* ── Section divider ── */
 .section-rule {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 9px;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -514,7 +515,7 @@ h1 em {
 
 /* Output formatting */
 .output-body h3 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Outfit', serif;
   font-weight: 400;
   font-size: 15px;
   color: var(--ink);
@@ -531,7 +532,7 @@ h1 em {
 }
 
 .output-body .t-time {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 11px;
   color: var(--ink3);
   min-width: 70px;
@@ -540,7 +541,7 @@ h1 em {
 
 .output-body .t-item { flex: 1; color: var(--ink); font-size: 13.5px; }
 .output-body .t-dur {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   color: var(--ink3);
 }
@@ -630,50 +631,50 @@ h1 em {
   h1 { font-size: 23px; }
 }
 /* ── ARCHIVE ── */
-.arch-filter{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:3px;border:1px solid var(--rule);background:transparent;color:var(--ink3);cursor:pointer;transition:all .12s}
+.arch-filter{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:3px;border:1px solid var(--rule);background:transparent;color:var(--ink3);cursor:pointer;transition:all .12s}
 .arch-filter:hover{border-color:var(--rule2);color:var(--ink2)}
-.arch-filter.active{background:var(--ink);color:#fff;border-color:var(--ink)}
-.arch-card{border:1px solid var(--rule);border-radius:5px;margin-bottom:8px;background:#fff;overflow:hidden;transition:box-shadow .15s}
+.arch-filter.active{background:var(--ink);color:var(--on-ink,#fff);border-color:var(--ink)}
+.arch-card{border:1px solid var(--rule);border-radius:5px;margin-bottom:8px;background:var(--card,#fff);overflow:hidden;transition:box-shadow .15s}
 .arch-card:hover{box-shadow:var(--shadow-sm)}
 .arch-card.open{border-color:var(--rule2);box-shadow:var(--shadow)}
 .arch-head{display:flex;align-items:center;gap:.75rem;padding:11px 14px;cursor:pointer;transition:background .12s}
 .arch-head:hover{background:var(--paper2)}
-.arch-title{font-family:'Fraunces',serif;font-size:15px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.arch-meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.03em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.arch-tag{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid}
-.arch-tag.agenda{background:#F5EDD8;color:#8B6914;border-color:#D9C48E}
-.arch-tag.notes{background:#E3F0ED;color:#1A6B5C;border-color:#8FC4B6}
+.arch-title{font-family:'Outfit',serif;font-size:15px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arch-meta{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.03em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arch-tag{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid}
+.arch-tag.agenda{background:var(--tint-gold,#F5EDD8);color:var(--gold,#8B6914);border-color:var(--tint-gold-bd,#D9C48E)}
+.arch-tag.notes{background:var(--tint-teal,#E3F0ED);color:var(--teal,#1A6B5C);border-color:var(--tint-teal-bd,#8FC4B6)}
 .arch-chev{font-size:11px;color:var(--ink3);width:12px;text-align:center}
 .arch-body{padding:0 14px 14px;border-top:1px solid var(--rule)}
-.arch-sec-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);padding:.875rem 0 .5rem}
-.arch-content{font-family:'Karla',sans-serif;font-size:12.5px;line-height:1.7;color:var(--ink2);white-space:pre-wrap;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:11px 13px;max-height:280px;overflow-y:auto}
+.arch-sec-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);padding:.875rem 0 .5rem}
+.arch-content{font-family:'Outfit',sans-serif;font-size:12.5px;line-height:1.7;color:var(--ink2);white-space:pre-wrap;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:11px 13px;max-height:280px;overflow-y:auto}
 .arch-actions{display:flex;gap:7px;align-items:center;margin-top:.875rem;flex-wrap:wrap}
 
 /* ── PEOPLE LOG ── */
-.pe-cat{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:3px;border:1px solid var(--rule);background:transparent;color:var(--ink3);cursor:pointer;transition:all .12s}
+.pe-cat{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:3px;border:1px solid var(--rule);background:transparent;color:var(--ink3);cursor:pointer;transition:all .12s}
 .pe-cat:hover{border-color:var(--rule2)}
-.pe-cat.on[data-c="Accomplishment"]{background:#F5EDD8;color:#8B6914;border-color:#D9C48E}
-.pe-cat.on[data-c="Growth"]{background:#E3F0ED;color:#1A6B5C;border-color:#8FC4B6}
-.pe-cat.on[data-c="Concern"]{background:#FAE9E3;color:#C43C1A;border-color:#E8AF9A}
-.pe-cat.on[data-c="Note"]{background:#E8EEF6;color:#2A4A7A;border-color:#A8BFDC}
-.pe-person-card{border:1px solid var(--rule);border-radius:5px;margin-bottom:8px;background:#fff;overflow:hidden}
+.pe-cat.on[data-c="Accomplishment"]{background:var(--tint-gold,#F5EDD8);color:var(--gold,#8B6914);border-color:var(--tint-gold-bd,#D9C48E)}
+.pe-cat.on[data-c="Growth"]{background:var(--tint-teal,#E3F0ED);color:var(--teal,#1A6B5C);border-color:var(--tint-teal-bd,#8FC4B6)}
+.pe-cat.on[data-c="Concern"]{background:var(--tint-red,#FAE9E3);color:var(--red,#C43C1A);border-color:var(--tint-red-bd,#E8AF9A)}
+.pe-cat.on[data-c="Note"]{background:var(--tint-blue,#E8EEF6);color:var(--tx-blue,#2A4A7A);border-color:var(--tint-blue-bd,#A8BFDC)}
+.pe-person-card{border:1px solid var(--rule);border-radius:5px;margin-bottom:8px;background:var(--card,#fff);overflow:hidden}
 .pe-person-head{display:flex;align-items:center;gap:.75rem;padding:11px 14px;cursor:pointer;transition:background .12s}
 .pe-person-head:hover{background:var(--paper2)}
-.pe-person-name{font-family:'Fraunces',serif;font-size:16px;color:var(--ink)}
+.pe-person-name{font-family:'Outfit',serif;font-size:16px;color:var(--ink)}
 .pe-counts{display:flex;gap:5px}
-.pe-pill{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.06em;padding:2px 7px;border-radius:2px;border:1px solid}
-.pe-pill.a{background:#F5EDD8;color:#8B6914;border-color:#D9C48E}
-.pe-pill.g{background:#E3F0ED;color:#1A6B5C;border-color:#8FC4B6}
-.pe-pill.c{background:#FAE9E3;color:#C43C1A;border-color:#E8AF9A}
-.pe-pill.n{background:#E8EEF6;color:#2A4A7A;border-color:#A8BFDC}
+.pe-pill{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.06em;padding:2px 7px;border-radius:2px;border:1px solid}
+.pe-pill.a{background:var(--tint-gold,#F5EDD8);color:var(--gold,#8B6914);border-color:var(--tint-gold-bd,#D9C48E)}
+.pe-pill.g{background:var(--tint-teal,#E3F0ED);color:var(--teal,#1A6B5C);border-color:var(--tint-teal-bd,#8FC4B6)}
+.pe-pill.c{background:var(--tint-red,#FAE9E3);color:var(--red,#C43C1A);border-color:var(--tint-red-bd,#E8AF9A)}
+.pe-pill.n{background:var(--tint-blue,#E8EEF6);color:var(--tx-blue,#2A4A7A);border-color:var(--tint-blue-bd,#A8BFDC)}
 .pe-body{padding:0 14px 14px;border-top:1px solid var(--rule)}
 .pe-entry{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
 .pe-entry:last-of-type{border-bottom:none}
-.pe-entry-date{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3);min-width:58px;padding-top:2px;letter-spacing:.03em}
+.pe-entry-date{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);min-width:58px;padding-top:2px;letter-spacing:.03em}
 .pe-entry-text{flex:1;font-size:13px;line-height:1.55;color:var(--ink2)}
-.pe-entry-cat{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:2px;align-self:flex-start;flex-shrink:0}
+.pe-entry-cat{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:2px;align-self:flex-start;flex-shrink:0}
 .pe-del{background:none;border:none;color:var(--rule2);cursor:pointer;font-size:13px;padding:0 2px;flex-shrink:0;transition:color .12s;align-self:flex-start}
-.pe-del:hover{color:#C43C1A}
+.pe-del:hover{color:var(--red,#C43C1A)}
 .pe-summary-box{background:#FFFDF5;border:1px solid #E8DFC0;border-radius:4px;padding:12px 14px;margin-top:.875rem;font-size:13px;line-height:1.7;color:var(--ink2);white-space:pre-wrap}
 
 /* ── CLASS AGENDA ── */
@@ -681,32 +682,32 @@ h1 em {
 .ca-preset:hover{opacity:.78}
 .ca-preset button{background:none;border:none;color:inherit;opacity:.45;cursor:pointer;font-size:14px;line-height:1;padding:0}
 .ca-preset button:hover{opacity:1}
-.ca-day{border:1px solid var(--rule);border-radius:6px;margin-bottom:9px;background:#fff;overflow:hidden}
+.ca-day{border:1px solid var(--rule);border-radius:6px;margin-bottom:9px;background:var(--card,#fff);overflow:hidden}
 .ca-day-head{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper2);border-bottom:1px solid var(--rule);flex-wrap:wrap}
-.ca-day-n{font-family:'Fraunces',serif;font-size:14px;color:var(--ink);flex-shrink:0}
-.ca-day-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);flex-shrink:0;min-width:150px;line-height:1.35}
-.ca-topic{flex:1;min-width:130px;font-family:'Karla',sans-serif;font-size:13px;padding:5px 9px;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink);outline:none}
+.ca-day-n{font-family:'Outfit',serif;font-size:14px;color:var(--ink);flex-shrink:0}
+.ca-day-date{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--ink3);flex-shrink:0;min-width:150px;line-height:1.35}
+.ca-topic{flex:1;min-width:130px;font-family:'Outfit',sans-serif;font-size:13px;padding:5px 9px;border:1px solid var(--rule);border-radius:4px;background:var(--card,#fff);color:var(--ink);outline:none}
 .ca-topic:focus{border-color:var(--rule2)}
 .ca-mini{background:none;border:1px solid var(--rule);border-radius:3px;color:var(--ink3);cursor:pointer;font-size:11px;padding:3px 7px;transition:all .12s;flex-shrink:0}
 .ca-mini:hover:not(:disabled){border-color:var(--rule2);color:var(--ink)}
 .ca-mini:disabled{opacity:.3;cursor:default}
-.ca-mini.danger:hover{color:#C43C1A;border-color:#E8AF9A}
+.ca-mini.danger:hover{color:var(--red,#C43C1A);border-color:var(--tint-red-bd,#E8AF9A)}
 .ca-items{padding:9px 12px;display:flex;flex-direction:column;gap:5px}
 .ca-item{display:flex;align-items:center;gap:6px}
-.ca-item-k{font-family:'Karla',sans-serif;font-size:12px;padding:5px 7px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);outline:none;flex-shrink:0;width:118px}
-.ca-item-t{flex:1;min-width:0;font-family:'Karla',sans-serif;font-size:13px;padding:5px 9px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);outline:none}
-.ca-item-t:focus{border-color:var(--rule2);background:#fff}
-.ca-hw-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);width:118px;flex-shrink:0;padding-left:4px}
-.ca-lvl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;width:30px;height:27px;flex-shrink:0;border-radius:3px;border:1px solid var(--rule);background:var(--paper);color:var(--ink3);cursor:pointer;transition:all .12s;padding:0}
+.ca-item-k{font-family:'Outfit',sans-serif;font-size:12px;padding:5px 7px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);outline:none;flex-shrink:0;width:118px}
+.ca-item-t{flex:1;min-width:0;font-family:'Outfit',sans-serif;font-size:13px;padding:5px 9px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);outline:none}
+.ca-item-t:focus{border-color:var(--rule2);background:var(--card,#fff)}
+.ca-hw-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--ink3);width:118px;flex-shrink:0;padding-left:4px}
+.ca-lvl{font-family:'Share Tech Mono',monospace;font-size:9px;font-weight:500;width:30px;height:27px;flex-shrink:0;border-radius:3px;border:1px solid var(--rule);background:var(--paper);color:var(--ink3);cursor:pointer;transition:all .12s;padding:0}
 .ca-lvl.both{background:var(--paper2)}
 .ca-lvl.honors{background:#EEEBFB;color:#4A3A9A;border-color:#C4B8F0}
-.ca-lvl.regular{background:#E1F5EE;color:#0F6E56;border-color:#9AD4C4}
+.ca-lvl.regular{background:var(--tint-green,#E1F5EE);color:var(--tx-green,#0F6E56);border-color:var(--tint-green-bd,#9AD4C4)}
 .ca-ord{display:flex;flex-direction:column;gap:1px;flex-shrink:0}
 .ca-arrow{background:none;border:1px solid var(--rule);border-radius:2px;color:var(--ink3);cursor:pointer;
   font-size:7px;line-height:1;padding:2px 4px;width:20px;transition:all .12s}
 .ca-arrow:hover:not(:disabled){border-color:var(--rule2);color:var(--ink);background:var(--paper2)}
 .ca-arrow:disabled{opacity:.25;cursor:default}
-.ca-add{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:none;border:1px dashed var(--rule);border-radius:4px;padding:6px 10px;color:var(--ink3);cursor:pointer;transition:all .12s;align-self:flex-start}
+.ca-add{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:none;border:1px dashed var(--rule);border-radius:4px;padding:6px 10px;color:var(--ink3);cursor:pointer;transition:all .12s;align-self:flex-start}
 .ca-add:hover{border-color:var(--rule2);color:var(--ink2)}
 
 @media (max-width:640px){
@@ -716,6 +717,8 @@ h1 em {
 }
 
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dc_theme.css">
 </head>
 <body>
 
@@ -723,9 +726,9 @@ h1 em {
   <div class="header-inner">
     <div class="header-left">
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:8px;flex-wrap:wrap">
-        <a href="dc_mission_control.html" style="display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);text-decoration:none;padding:4px 9px;border:1px solid rgba(255,255,255,.14);border-radius:4px">← Mission Control</a>
-        <span id="buildStamp" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-31</span>
-        <button id="syncChip" onclick="openSync()" style="display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:4px;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.45);cursor:pointer">
+        <a href="dc_mission_control.html" style="display:inline-flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);text-decoration:none;padding:4px 9px;border:1px solid rgba(255,255,255,.14);border-radius:4px">← Mission Control</a>
+        <span id="buildStamp" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(255,255,255,.28);padding:4px 7px;border:1px solid rgba(255,255,255,.1);border-radius:4px" title="Build version — tells you if the page is cached">2026-build-31</span>
+        <button id="syncChip" onclick="openSync()" style="display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:4px;border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.45);cursor:pointer">
           <span id="syncDot" style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3)"></span>
           <span id="syncLabel">Offline</span>
         </button>
@@ -775,7 +778,7 @@ h1 em {
   <!-- Input card -->
   <div class="card">
     <div class="card-header">
-      <div class="card-icon" style="background:#F5EDD8">📋</div>
+      <div class="card-icon" style="background:var(--tint-gold,#F5EDD8)">📋</div>
       <div>
         <div class="card-title">Meeting details</div>
         <div class="card-sub">Fill in what you know — Claude handles the rest</div>
@@ -822,7 +825,7 @@ h1 em {
             <option value="custom">Custom…</option>
           </select>
           <input type="text" id="ag-length-custom" placeholder="e.g. 1:00–3:15 PM (135 min)"
-            style="display:none;margin-top:6px;font-family:'Karla',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);outline:none">
+            style="display:none;margin-top:6px;font-family:'Outfit',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);outline:none">
         </div>
       </div>
 
@@ -838,19 +841,19 @@ h1 em {
         <div class="standing-item">
           <input type="text" placeholder="Opening / check-in" value="Opening / check-in" />
           <span class="standing-mins"><input type="number" value="5" min="1" max="30" /></span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
           <button class="remove-btn" onclick="removeStanding(this)" title="Remove">×</button>
         </div>
         <div class="standing-item">
           <input type="text" placeholder="Admin updates" value="Admin updates" />
           <span class="standing-mins"><input type="number" value="5" min="1" max="30" /></span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
           <button class="remove-btn" onclick="removeStanding(this)" title="Remove">×</button>
         </div>
         <div class="standing-item">
           <input type="text" placeholder="Open concerns / parking lot" value="Open concerns" />
           <span class="standing-mins"><input type="number" value="5" min="1" max="30" /></span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
           <button class="remove-btn" onclick="removeStanding(this)" title="Remove">×</button>
         </div>
       </div>
@@ -874,7 +877,7 @@ h1 em {
   <!-- Tips card -->
   <div class="card">
     <div class="card-header">
-      <div class="card-icon" style="background:#E3F0ED">💡</div>
+      <div class="card-icon" style="background:var(--tint-teal,#E3F0ED)">💡</div>
       <div>
         <div class="card-title">How it works</div>
         <div class="card-sub">Tips for best results</div>
@@ -886,14 +889,14 @@ h1 em {
       <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Use the context field</strong> to flag anything sensitive: a topic that needs more time, someone who should own a particular item, or a decision you need to actually reach.</p>
       <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Output is copy-ready.</strong> The generated agenda is formatted to paste directly into an email or Schoology post.</p>
       <hr style="border:none;border-top:1px solid var(--rule);margin:1rem 0">
-      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.04em">Your API key is used only in your browser. It is never stored or sent anywhere except directly to Anthropic.</p>
+      <p style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.04em">Your API key is used only in your browser. It is never stored or sent anywhere except directly to Anthropic.</p>
     </div>
   </div>
 
   <!-- Output -->
   <div class="card output-card" id="ag-output-card">
     <div class="card-header">
-      <div class="card-icon" style="background:#F5EDD8">✉️</div>
+      <div class="card-icon" style="background:var(--tint-gold,#F5EDD8)">✉️</div>
       <div>
         <div class="card-title">Generated agenda</div>
         <div class="card-sub">Ready to copy and send</div>
@@ -981,7 +984,7 @@ h1 em {
 
   <div class="card">
     <div class="card-header">
-      <div class="card-icon" style="background:#E3F0ED">💡</div>
+      <div class="card-icon" style="background:var(--tint-teal,#E3F0ED)">💡</div>
       <div>
         <div class="card-title">How it works</div>
         <div class="card-sub">Tips for best results</div>
@@ -993,14 +996,14 @@ h1 em {
       <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Check "Follow-up email draft"</strong> if you want the output to include a full send-ready email summarizing decisions and next steps.</p>
       <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Output is structured.</strong> You get clean sections for summary, decisions, and action items — easy to copy into your email template library.</p>
       <hr style="border:none;border-top:1px solid var(--rule);margin:1rem 0">
-      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.04em">Paste as much as you have. Claude handles the rest.</p>
+      <p style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.04em">Paste as much as you have. Claude handles the rest.</p>
     </div>
   </div>
 
   <!-- Notes output -->
   <div class="card span2" id="nt-output-card">
     <div class="card-header">
-      <div class="card-icon" style="background:#E3F0ED">✅</div>
+      <div class="card-icon" style="background:var(--tint-teal,#E3F0ED)">✅</div>
       <div>
         <div class="card-title">Cleaned notes &amp; action items</div>
         <div class="card-sub">Ready to copy or forward</div>
@@ -1023,7 +1026,7 @@ h1 em {
 
   <div class="card">
     <div class="card-header">
-      <div class="card-icon" style="background:#E3F0ED">🗄️</div>
+      <div class="card-icon" style="background:var(--tint-teal,#E3F0ED)">🗄️</div>
       <div style="flex:1">
         <div class="card-title">Meeting archive</div>
         <div class="card-sub" id="archStat">0 meetings</div>
@@ -1036,7 +1039,7 @@ h1 em {
       <button class="arch-filter" onclick="setArchFilter('notes',this)">With notes</button>
       <div style="flex:1"></div>
       <input id="archSearch" type="text" placeholder="Search meetings…" oninput="renderArchive()"
-        style="font-family:'Karla',sans-serif;font-size:12px;padding:5px 10px;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink);outline:none;width:200px">
+        style="font-family:'Outfit',sans-serif;font-size:12px;padding:5px 10px;border:1px solid var(--rule);border-radius:4px;background:var(--card,#fff);color:var(--ink);outline:none;width:200px">
     </div>
     <div style="padding:1rem 1.25rem" id="archList"></div>
   </div>
@@ -1050,7 +1053,7 @@ h1 em {
 
   <div class="card" style="margin-bottom:1.25rem">
     <div class="card-header">
-      <div class="card-icon" style="background:#F5EDD8">📅</div>
+      <div class="card-icon" style="background:var(--tint-gold,#F5EDD8)">📅</div>
       <div style="flex:1">
         <div class="card-title">Chapter agenda</div>
         <div class="card-sub">Map a chapter day by day, then post it for students</div>
@@ -1099,7 +1102,7 @@ h1 em {
   <!-- Recurring items -->
   <div class="card" style="margin-bottom:1.25rem">
     <div class="card-header">
-      <div class="card-icon" style="background:#E3F0ED">🔁</div>
+      <div class="card-icon" style="background:var(--tint-teal,#E3F0ED)">🔁</div>
       <div style="flex:1">
         <div class="card-title">Your usual items</div>
         <div class="card-sub">Click to drop one into a day — edit the presets to match how you run class</div>
@@ -1109,9 +1112,9 @@ h1 em {
       <div id="ca-presets" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.75rem"></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <input type="text" id="ca-new-preset" placeholder="Add a preset (e.g. Lab safety video)"
-          style="flex:1;min-width:170px;font-family:'Karla',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);outline:none"
+          style="flex:1;min-width:170px;font-family:'Outfit',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);outline:none"
           onkeydown="if(event.key==='Enter')addPreset()">
-        <select id="ca-new-kind" style="font-family:'Karla',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);outline:none">
+        <select id="ca-new-kind" style="font-family:'Outfit',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);outline:none">
           <option value="lesson">Lesson</option><option value="video">Video</option>
           <option value="quiz">Quiz</option><option value="lab">Lab</option>
           <option value="practice">Practice</option><option value="review">Review</option>
@@ -1169,7 +1172,7 @@ h1 em {
   <!-- Log entry -->
   <div class="card">
     <div class="card-header">
-      <div class="card-icon" style="background:#F5EDD8">⭐</div>
+      <div class="card-icon" style="background:var(--tint-gold,#F5EDD8)">⭐</div>
       <div>
         <div class="card-title">Log something</div>
         <div class="card-sub">Quick entry — takes 15 seconds</div>
@@ -1208,7 +1211,7 @@ h1 em {
   <!-- Tips -->
   <div class="card">
     <div class="card-header">
-      <div class="card-icon" style="background:#E3F0ED">💡</div>
+      <div class="card-icon" style="background:var(--tint-teal,#E3F0ED)">💡</div>
       <div>
         <div class="card-title">Why this matters</div>
         <div class="card-sub">The end-of-year problem, solved</div>
@@ -1220,7 +1223,7 @@ h1 em {
       <p style="margin-bottom:.75rem"><strong style="color:var(--ink)">Concerns go here too.</strong> Not everything is a win. A pattern of missed deadlines documented across the year is far more defensible than a vague impression.</p>
       <p><strong style="color:var(--ink)">Then generate a summary.</strong> Pick a person, hit Summarize, and Claude writes a clean year-in-review paragraph from every entry — ready for an evaluation or a rec letter.</p>
       <hr style="border:none;border-top:1px solid var(--rule);margin:1rem 0">
-      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.04em">Everything stays in your browser. Nothing is shared.</p>
+      <p style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--ink3);letter-spacing:.04em">Everything stays in your browser. Nothing is shared.</p>
     </div>
   </div>
 
@@ -1241,7 +1244,7 @@ h1 em {
       <button class="arch-filter" onclick="setPeFilter('Concern',this)">Concerns</button>
       <div style="flex:1"></div>
       <input id="peSearch" type="text" placeholder="Search entries…" oninput="renderPeople()"
-        style="font-family:'Karla',sans-serif;font-size:12px;padding:5px 10px;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink);outline:none;width:200px">
+        style="font-family:'Outfit',sans-serif;font-size:12px;padding:5px 10px;border:1px solid var(--rule);border-radius:4px;background:var(--card,#fff);color:var(--ink);outline:none;width:200px">
     </div>
     <div style="padding:1rem 1.25rem" id="peList"></div>
   </div>
@@ -1251,27 +1254,27 @@ h1 em {
 
 <!-- SYNC MODAL -->
 <div id="syncBackdrop" style="display:none;position:fixed;inset:0;background:rgba(20,18,15,.6);z-index:150;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)closeSync()">
-  <div style="background:#fff;border:1px solid var(--rule);border-radius:6px;padding:1.4rem;width:100%;max-width:400px;max-height:85vh;overflow-y:auto">
-    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:1rem">Cloud sync</div>
+  <div style="background:var(--card,#fff);border:1px solid var(--rule);border-radius:6px;padding:1.4rem;width:100%;max-width:400px;max-height:85vh;overflow-y:auto">
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:1rem">Cloud sync</div>
     <div id="syncStateBox" style="font-size:12.5px;color:var(--ink3);line-height:1.6;margin-bottom:1rem"></div>
 
     <div id="syncAuthStep" style="display:none">
       <div style="margin-bottom:10px">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:4px">Email</label>
+        <label style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:4px">Email</label>
         <input type="email" id="fbEmail" autocomplete="username" style="width:100%;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);outline:none">
       </div>
       <div style="margin-bottom:10px">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:4px">Password</label>
+        <label style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:4px">Password</label>
         <input type="password" id="fbPass" autocomplete="current-password" onkeydown="if(event.key==='Enter')fbSignIn()" style="width:100%;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);outline:none">
       </div>
-      <div id="syncErr" style="font-size:11.5px;color:#C43C1A;line-height:1.5;margin-bottom:.6rem;display:none"></div>
+      <div id="syncErr" style="font-size:11.5px;color:var(--red,#C43C1A);line-height:1.5;margin-bottom:.6rem;display:none"></div>
       <button class="out-btn green" onclick="fbSignIn()" style="width:100%;min-height:40px">Sign in</button>
     </div>
 
     <div id="syncOnStep" style="display:none">
       <div style="background:#E8F5EE;border:1px solid #70C090;border-radius:4px;padding:10px 12px;margin-bottom:1rem">
         <div style="font-size:12.5px;color:#0E4A2A;font-weight:500;margin-bottom:3px">✓ Syncing</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink3)" id="syncWho"></div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--ink3)" id="syncWho"></div>
       </div>
       <div style="font-size:12px;color:var(--ink3);line-height:1.65;margin-bottom:1rem">
         Your meeting archive and people log sync to every device signed into this account.
@@ -1377,28 +1380,49 @@ function startSync(){
   if(!fbUser||!fbDb)return;
   fbRef=fbDb.ref('users/'+fbUser.uid+'/meeting');
   setSyncChip('on','Synced');
+  let firstSnap=true;
   fbRef.on('value',snap=>{
-    const r=snap.val();
-    if(!r){pushAll();return;}
+    const cloud=snap.val();
+    if(!cloud){pushAll();return;}
+    // Merge (never drop) on first connect, with unsent edits, or mid-edit
+    const merging=window.DCSync&&(pushQueued||(firstSnap&&MT_SYNC.needsMerge(fbUser.uid)));
+    firstSnap=false;
+    const r=merging?mergeMeeting(cloud):cloud;
     applyingRemote=true;
     try{
       Object.entries(SYNC_MAP).forEach(([k,h])=>{if(r[k]!==undefined)h.set(r[k]);});
       localStorage.setItem(ARCH_KEY,JSON.stringify(archive));
       localStorage.setItem(PEEP_KEY,JSON.stringify(people));
     }finally{applyingRemote=false;}
+    if(merging){clearTimeout(pushTimer);pushAll();}
+    else if(window.DCSync&&!pushQueued)MT_SYNC.markSynced(fbUser.uid);
   },()=>setSyncChip('err','Sync error'));
+}
+function mergeMeeting(cloud){
+  const M=DCSync.merge,out={...cloud},has=v=>v!==undefined&&v!==null;
+  out.archive=M({kind:'list'},archive,has(cloud.archive)?cloud.archive:undefined);
+  out.people =M({kind:'list'},people, has(cloud.people)?cloud.people:undefined);
+  return out;   // classAgendas already merges itself; caPresets: cloud wins
 }
 function stopSync(){if(fbRef){fbRef.off();fbRef=null;}}
 
+var pushQueued=false;
+var MT_SYNC=window.DCSync?DCSync.legacy('meeting'):null;
 function pushAll(){
   if(!fbRef||applyingRemote)return;
+  pushQueued=false;
   const p={};
   Object.entries(SYNC_MAP).forEach(([k,h])=>{p[k]=h.get();});
   p._at=Date.now();
-  fbRef.set(p).catch(()=>{});
+  const uid=fbUser&&fbUser.uid;
+  fbRef.set(p).then(()=>{if(MT_SYNC&&uid&&!pushQueued)MT_SYNC.markSynced(uid);})
+    .catch(()=>setSyncChip('err','Sync error'));
 }
 function syncPush(){
-  if(!fbRef||applyingRemote)return;
+  if(applyingRemote)return;
+  if(MT_SYNC)MT_SYNC.markPending();
+  if(!fbRef)return;
+  pushQueued=true;
   clearTimeout(pushTimer);
   pushTimer=setTimeout(pushAll,400);
 }
@@ -1540,7 +1564,7 @@ function addStanding() {
   item.innerHTML = `
     <input type="text" placeholder="Item name" />
     <span class="standing-mins"><input type="number" value="10" min="1" max="60" /></span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3)">min</span>
     <button class="remove-btn" onclick="removeStanding(this)" title="Remove">×</button>`;
   list.appendChild(item);
 }
@@ -1847,9 +1871,9 @@ function renderArchive() {
 
   if (!items.length) {
     list.innerHTML = `<div style="text-align:center;padding:3rem 1rem">
-      <div style="font-family:'Fraunces',serif;font-style:italic;font-size:19px;color:var(--ink3);margin-bottom:6px">
+      <div style="font-family:'Outfit',serif;font-style:italic;font-size:19px;color:var(--ink3);margin-bottom:6px">
         ${archive.length ? 'No matching meetings' : 'Nothing archived yet'}</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--rule2)">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--rule2)">
         ${archive.length ? 'Try a different search or filter' : 'Generate an agenda or clean notes, then click Save to archive'}</div>
     </div>`;
     return;
@@ -2448,7 +2472,9 @@ async function copyAgendaText(btn){
 function downloadAgendaHTML(){
   const title=document.getElementById('ca-title').value.trim()||'Chapter Agenda';
   const body=agendaHTML();
-  const doc=`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
+  const doc=`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dc_theme.css">
+</head>
     <body style="margin:26px">${body}</body></html>`;
   const blob=new Blob([doc],{type:'text/html'});
   const a=document.createElement('a');
@@ -2463,7 +2489,9 @@ function printAgenda(){
   if(!w){flashCA('Popup blocked — allow popups for this site.');return;}
   w.document.write(`<!doctype html><html><head><meta charset="utf-8">
     <title>${escapeHtml(document.getElementById('ca-title').value||'Agenda')}</title>
-    <style>@page{size:letter;margin:.6in}body{margin:0}</style></head>
+    <style>@page{size:letter;margin:.6in}body{margin:0}</style><link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dc_theme.css">
+</head>
     <body>${body}</body></html>`);
   w.document.close();
   setTimeout(()=>{w.focus();w.print();},400);
@@ -2682,9 +2710,9 @@ function renderPeople() {
 
   if (!names.length) {
     list.innerHTML = `<div style="text-align:center;padding:2.5rem 1rem">
-      <div style="font-family:'Fraunces',serif;font-style:italic;font-size:19px;color:var(--ink3);margin-bottom:6px">
+      <div style="font-family:'Outfit',serif;font-style:italic;font-size:19px;color:var(--ink3);margin-bottom:6px">
         ${people.length ? 'No matching entries' : 'Nothing logged yet'}</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--rule2)">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--rule2)">
         ${people.length ? 'Try a different filter or search' : 'Log your first entry above'}</div>
     </div>`;
     return;
@@ -2702,7 +2730,7 @@ function renderPeople() {
       <div class="pe-person-head" onclick="togglePerson('${escapeHtml(name).replace(/'/g,"\\'")}')">
         <div style="flex:1;min-width:0">
           <div class="pe-person-name">${escapeHtml(name)}</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3);margin-top:2px;letter-spacing:.03em">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);margin-top:2px;letter-spacing:.03em">
             ${evs.length} entr${evs.length===1?'y':'ies'} shown</div>
         </div>
         <div class="pe-counts">${pills}</div>

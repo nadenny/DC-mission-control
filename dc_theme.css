@@ -1,0 +1,120 @@
+/* DC Mission Control — shared look for every tool.
+   Each page keeps its own CSS; this file maps that page's colour names onto
+   one dark palette (the home page's), and sets the same fonts everywhere.
+   Screen only: printouts keep each page's original light print styles. */
+
+:root{
+  --dc-bg:#080C14; --dc-bg2:#0C1220; --dc-bg3:#111827; --dc-bg4:#171F30; --dc-panel:#0F1828;
+  --dc-border:rgba(255,255,255,.07); --dc-border2:rgba(255,255,255,.13); --dc-border3:rgba(255,255,255,.22);
+  --dc-ink:#E8EDF5; --dc-ink2:#A3AFC4; --dc-ink3:#6B7A93;
+  --dc-gold:#F5C842; --dc-gold-dim:rgba(245,200,66,.12); --dc-gold-bd:rgba(245,200,66,.35);
+  --dc-teal:#2DD4BF; --dc-teal-dim:rgba(45,212,191,.12); --dc-teal-bd:rgba(45,212,191,.35);
+  --dc-blue:#60A5FA; --dc-blue-dim:rgba(96,165,250,.12); --dc-blue-bd:rgba(96,165,250,.35);
+  --dc-green:#4ADE80; --dc-green-dim:rgba(74,222,128,.12); --dc-green-bd:rgba(74,222,128,.35);
+  --dc-red:#F87171; --dc-red-dim:rgba(248,113,113,.12); --dc-red-bd:rgba(248,113,113,.38);
+  --dc-amber:#FB923C; --dc-amber-dim:rgba(251,146,60,.12); --dc-amber-bd:rgba(251,146,60,.38);
+  --dc-purple:#A78BFA; --dc-purple-dim:rgba(167,139,250,.12);
+  --dc-sans:'Outfit',system-ui,sans-serif; --dc-mono:'Share Tech Mono',ui-monospace,monospace; --dc-display:'Bebas Neue','Outfit',sans-serif;
+}
+
+@media screen {
+  html[data-dc]{color-scheme:dark}
+  html[data-dc] body{background:var(--dc-bg);color:var(--dc-ink)}
+  html[data-dc] ::selection{background:var(--dc-gold-dim);color:var(--dc-gold)}
+  html[data-dc] :focus-visible{outline:2px solid var(--dc-gold-bd);outline-offset:2px}
+  html[data-dc] ::-webkit-scrollbar{width:10px;height:10px}
+  html[data-dc] ::-webkit-scrollbar-thumb{background:var(--dc-bg4);border-radius:6px;border:2px solid var(--dc-bg)}
+  html[data-dc] ::-webkit-scrollbar-track{background:transparent}
+  html[data-dc] input::placeholder, html[data-dc] textarea::placeholder{color:var(--dc-ink3)}
+  html[data-dc] select option{background:var(--dc-bg3);color:var(--dc-ink)}
+  /* Italic accent words in page titles ("Concern *log*") become gold, upright */
+  html[data-dc] h1 em, html[data-dc] h1 i{font-style:normal;color:var(--dc-gold)}
+
+  /* ── Concern log ── */
+  html[data-dc="concern"]{
+    --paper:var(--dc-bg); --paper2:var(--dc-bg3); --paper3:var(--dc-bg4);
+    --ink:var(--dc-ink); --ink2:var(--dc-ink2); --ink3:var(--dc-ink3);
+    --rule:var(--dc-border2); --rule2:var(--dc-border3);
+    --card:var(--dc-panel);
+    --open-bg:var(--dc-amber-dim); --open-fg:#FDBA74; --open-bd:var(--dc-amber-bd);
+    --progress-bg:var(--dc-blue-dim); --progress-fg:#93C5FD; --progress-bd:var(--dc-blue-bd);
+    --resolved-bg:var(--dc-green-dim); --resolved-fg:#86EFAC; --resolved-bd:var(--dc-green-bd);
+    --escalated-bg:var(--dc-red-dim); --escalated-fg:#FCA5A5; --escalated-bd:var(--dc-red-bd);
+    --tint-red:var(--dc-red-dim); --tx-red:var(--dc-red); --tint-red-bd:var(--dc-red-bd);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow:0 2px 10px rgba(0,0,0,.45); --shadow-lg:0 12px 40px rgba(0,0,0,.6);
+    --on-ink:var(--dc-bg);
+  }
+
+  /* ── Meeting tool ── */
+  html[data-dc="meeting"]{
+    --paper:var(--dc-bg); --paper2:var(--dc-bg3); --paper3:var(--dc-bg4);
+    --ink:var(--dc-ink); --ink2:var(--dc-ink2); --ink3:var(--dc-ink3);
+    --rule:var(--dc-border2); --rule2:var(--dc-border3);
+    --red:var(--dc-red); --red-dim:var(--dc-red-dim);
+    --teal:var(--dc-teal); --teal-dim:var(--dc-teal-dim);
+    --gold:var(--dc-gold); --gold-dim:var(--dc-gold-dim);
+    --card:var(--dc-panel);
+    --tint-gold:var(--dc-gold-dim); --tint-gold-bd:var(--dc-gold-bd);
+    --tint-teal:var(--dc-teal-dim); --tint-teal-bd:var(--dc-teal-bd);
+    --tint-red:var(--dc-red-dim);   --tint-red-bd:var(--dc-red-bd);
+    --tint-blue:var(--dc-blue-dim); --tint-blue-bd:var(--dc-blue-bd); --tx-blue:var(--dc-blue);
+    --tint-green:var(--dc-green-dim); --tint-green-bd:var(--dc-green-bd); --tx-green:var(--dc-green);
+    --shadow:0 2px 12px rgba(0,0,0,.45);
+    --on-ink:var(--dc-bg);
+  }
+
+  /* Header + tab bar were already a dark band (--ink background, --paper text):
+     inside them, swap the two back so the band keeps its original design. */
+  html[data-dc="meeting"] header,
+  html[data-dc="meeting"] .tabs-bar{
+    --ink:var(--dc-bg2); --paper:var(--dc-ink); --paper2:var(--dc-ink2); --paper3:var(--dc-ink3);
+    --on-ink:var(--dc-ink);
+    border-bottom:1px solid var(--dc-border2);
+  }
+
+  /* ── Semester checklist ── */
+  html[data-dc="checklist"]{
+    --bg:var(--dc-bg); --surface:var(--dc-panel);
+    --ink:var(--dc-ink); --ink-2:var(--dc-ink2); --ink-3:var(--dc-ink3);
+    --rule:var(--dc-border2);
+    --accent:var(--dc-gold); --accent-light:var(--dc-gold-dim);
+    --week1:var(--dc-teal); --week1-light:var(--dc-teal-dim);
+    --week2:var(--dc-blue); --week2-light:var(--dc-blue-dim);
+    --critical:var(--dc-red); --critical-light:var(--dc-red-dim);
+    --done-text:var(--dc-ink3);
+    --card:var(--dc-panel); --on-ink:var(--dc-bg);
+  }
+
+  html[data-dc="checklist"] header{ --ink:var(--dc-bg2); --bg:var(--dc-ink); --on-ink:var(--dc-ink); border-bottom:1px solid var(--dc-border2); }
+  html[data-dc="checklist"] .progress-bar-fill{background:var(--dc-gold)}
+  html[data-dc="checklist"] .task.checked .task-checkbox{background:var(--dc-gold);border-color:var(--dc-gold)}
+  html[data-dc="checklist"] .task.checked .task-checkbox::after{border-color:var(--dc-bg)}
+  html[data-dc="checklist"] .ttag.math{border-color:var(--dc-blue-bd);color:var(--dc-blue);background:var(--dc-blue-dim)}
+  html[data-dc="checklist"] .ttag.sci{border-color:var(--dc-teal-bd);color:var(--dc-teal);background:var(--dc-teal-dim)}
+  html[data-dc="checklist"] .ttag.both{border-color:rgba(167,139,250,.35);color:var(--dc-purple);background:var(--dc-purple-dim)}
+  html[data-dc="checklist"] .ttag.admin{border-color:var(--dc-amber-bd);color:var(--dc-amber);background:var(--dc-amber-dim)}
+  html[data-dc="checklist"] .ttag.physics-first{border-color:var(--dc-gold-bd);color:var(--dc-gold);background:var(--dc-gold-dim)}
+
+  /* ── Email library (already dark: just align the palette) ── */
+  html[data-dc="email"]{
+    --bg:var(--dc-bg); --surface:var(--dc-bg2); --surface2:var(--dc-bg3); --surface3:var(--dc-bg4);
+    --ink:var(--dc-ink); --ink2:var(--dc-ink2); --ink3:var(--dc-ink3);
+    --rule:var(--dc-border2);
+    --accent:var(--dc-gold); --accent-dim:var(--dc-gold-dim); --accent-border:var(--dc-gold-bd);
+    --green:var(--dc-green); --green-dim:var(--dc-green-dim);
+    --blue:var(--dc-blue); --blue-dim:var(--dc-blue-dim);
+    --rose:var(--dc-red); --rose-dim:var(--dc-red-dim);
+    --sand:var(--dc-ink2); --sand-dim:rgba(163,175,196,.1);
+  }
+
+  /* ── Sheet builder (already dark: align palette; the white worksheet
+        preview keeps --paper / --ink / --rule untouched) ── */
+  html[data-dc="sheet"]{
+    --slate:var(--dc-bg); --slate2:var(--dc-bg3); --slate3:var(--dc-bg4);
+    --edge:rgba(255,255,255,.14); --edge2:rgba(255,255,255,.22);
+    --chalk:var(--dc-ink); --chalk2:var(--dc-ink2); --chalk3:var(--dc-ink3);
+    --flask:var(--dc-teal); --flask-dim:var(--dc-teal-dim);
+    --amber:var(--dc-gold); --amber-dim:var(--dc-gold-dim);
+    --rose:var(--dc-red); --violet:var(--dc-purple);
+  }
+}

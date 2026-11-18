@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-dc="concern">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DC Concern Log</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@400;500;600&family=Inconsolata:wght@400;500&display=swap" rel="stylesheet">
+
 <style>
 :root {
   --paper:    #F9F6F1;
@@ -29,9 +29,9 @@
   --resolved-fg: #0E4A2A;
   --resolved-bd: #70C090;
 
-  --escalated-bg: #FDECEC;
+  --escalated-bg: var(--tint-red,#FDECEC);
   --escalated-fg: #7A1A1A;
-  --escalated-bd: #E07070;
+  --escalated-bd: var(--tint-red-bd,#E07070);
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
   --shadow:    0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
@@ -42,7 +42,7 @@
 html { font-size: 15px; }
 
 body {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Outfit', sans-serif;
   background: var(--paper);
   color: var(--ink);
   min-height: 100vh;
@@ -74,16 +74,16 @@ header {
 
 .back-link {
   display:inline-flex; align-items:center; gap:5px;
-  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:500;
+  font-family:'Outfit',sans-serif; font-size:11px; font-weight:500;
   letter-spacing:.1em; text-transform:uppercase;
   color:var(--ink3); text-decoration:none;
   padding:3px 10px; border:1px solid var(--rule);
   border-radius:3px; margin-bottom:10px; transition:all .15s;
 }
-.back-link:hover { color:var(--ink); border-color:var(--rule2); background:#fff; }
+.back-link:hover { color:var(--ink); border-color:var(--rule2); background:var(--card,#fff); }
 
 .header-kicker {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: .18em;
@@ -93,7 +93,7 @@ header {
 }
 
 h1 {
-  font-family: 'Libre Baskerville', serif;
+  font-family: 'Outfit', serif;
   font-size: clamp(20px, 2.5vw, 28px);
   font-weight: 400;
   color: var(--ink);
@@ -117,7 +117,7 @@ h1 em {
 }
 
 .stat-n {
-  font-family: 'Libre Baskerville', serif;
+  font-family: 'Outfit', serif;
   font-size: 26px;
   font-weight: 400;
   color: var(--ink);
@@ -125,7 +125,7 @@ h1 em {
 }
 
 .stat-label {
-  font-family: 'Inconsolata', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 9px;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -160,7 +160,7 @@ h1 em {
 }
 
 .filter-pill {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: .08em;
@@ -174,7 +174,7 @@ h1 em {
   transition: all .12s;
 }
 .filter-pill:hover { border-color: var(--rule2); color: var(--ink2); }
-.filter-pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+.filter-pill.active { background: var(--ink); color: var(--on-ink,#fff); border-color: var(--ink); }
 
 .toolbar-sep { flex: 1; }
 
@@ -183,12 +183,12 @@ h1 em {
 }
 
 .search-input {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 12px;
   padding: 5px 10px 5px 28px;
   border: 1px solid var(--rule);
   border-radius: 3px;
-  background: #fff;
+  background: var(--card,#fff);
   color: var(--ink);
   outline: none;
   width: 200px;
@@ -206,7 +206,7 @@ h1 em {
 }
 
 .new-btn {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .1em;
@@ -215,7 +215,7 @@ h1 em {
   border-radius: 3px;
   border: none;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink,#fff);
   cursor: pointer;
   transition: opacity .12s;
 }
@@ -235,7 +235,7 @@ h1 em {
 }
 
 .empty-title {
-  font-family: 'Libre Baskerville', serif;
+  font-family: 'Outfit', serif;
   font-style: italic;
   font-size: 22px;
   color: var(--ink3);
@@ -243,7 +243,7 @@ h1 em {
 }
 
 .empty-sub {
-  font-family: 'Inconsolata', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   letter-spacing: .08em;
   color: var(--rule2);
@@ -258,7 +258,7 @@ h1 em {
 }
 
 .case-card {
-  background: #fff;
+  background: var(--card,#fff);
   border: 1px solid var(--rule);
   border-left: 3px solid transparent;
   border-radius: 4px;
@@ -282,7 +282,7 @@ h1 em {
 }
 
 .case-id {
-  font-family: 'Inconsolata', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   letter-spacing: .08em;
   color: var(--ink3);
@@ -293,7 +293,7 @@ h1 em {
 .case-title-wrap { flex: 1; min-width: 0; }
 
 .case-title {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: .01em;
@@ -320,7 +320,7 @@ h1 em {
 }
 
 .status-badge {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: .1em;
@@ -336,7 +336,7 @@ h1 em {
 .status-badge.escalated  { background: var(--escalated-bg);  color: var(--escalated-fg);  border-color: var(--escalated-bd); }
 
 .case-date {
-  font-family: 'Inconsolata', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   color: var(--ink3);
   min-width: 72px;
@@ -344,7 +344,7 @@ h1 em {
 }
 
 .step-count {
-  font-family: 'Inconsolata', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   color: var(--ink3);
   min-width: 48px;
@@ -365,7 +365,7 @@ h1 em {
 .modal-backdrop.open { display: flex; }
 
 .modal {
-  background: #fff;
+  background: var(--card,#fff);
   border-radius: 5px;
   width: 100%;
   max-width: 720px;
@@ -389,7 +389,7 @@ h1 em {
 }
 
 .modal-kicker {
-  font-family: 'Inconsolata', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -397,7 +397,7 @@ h1 em {
 }
 
 .modal-title {
-  font-family: 'Libre Baskerville', serif;
+  font-family: 'Outfit', serif;
   font-size: 18px;
   font-weight: 400;
   flex: 1;
@@ -432,7 +432,7 @@ h1 em {
 }
 
 .form-field label {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: .12em;
@@ -443,7 +443,7 @@ h1 em {
 .form-field input,
 .form-field select,
 .form-field textarea {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 13px;
   padding: 7px 10px;
   border: 1px solid var(--rule);
@@ -458,16 +458,16 @@ h1 em {
 .form-field select:focus,
 .form-field textarea:focus {
   border-color: var(--rule2);
-  background: #fff;
+  background: var(--card,#fff);
 }
 
 .form-field textarea { resize: vertical; min-height: 80px; }
 
-.form-field select option { background: #fff; }
+.form-field select option { background: var(--card,#fff); }
 
 /* ─── SECTION DIVIDER in modal ─── */
 .modal-section {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: .14em;
@@ -531,7 +531,7 @@ h1 em {
 }
 
 .step-type {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .06em;
@@ -540,7 +540,7 @@ h1 em {
 }
 
 .step-date {
-  font-family: 'Inconsolata', monospace;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   color: var(--ink3);
 }
@@ -559,7 +559,7 @@ h1 em {
   transition: color .12s;
   margin-left: auto;
 }
-.step-del:hover { color: #C43C1A; }
+.step-del:hover { color: var(--red,#C43C1A); }
 
 /* Add step row */
 .add-step-row {
@@ -572,7 +572,7 @@ h1 em {
 
 .add-step-row select,
 .add-step-row input {
-  font-family: 'Barlow', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 13px;
   padding: 7px 10px;
   border: 1px solid var(--rule);
@@ -584,10 +584,10 @@ h1 em {
 
 .add-step-row select { min-width: 140px; }
 .add-step-row input:focus,
-.add-step-row select:focus { border-color: var(--rule2); background: #fff; }
+.add-step-row select:focus { border-color: var(--rule2); background: var(--card,#fff); }
 
 .add-step-btn {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .08em;
@@ -614,7 +614,7 @@ h1 em {
 }
 
 .save-btn {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .1em;
@@ -623,14 +623,14 @@ h1 em {
   border: none;
   border-radius: 3px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink,#fff);
   cursor: pointer;
   transition: opacity .12s;
 }
 .save-btn:hover { opacity: .85; }
 
 .delete-btn {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .1em;
@@ -639,15 +639,15 @@ h1 em {
   border: 1px solid var(--rule);
   border-radius: 3px;
   background: transparent;
-  color: #C43C1A;
+  color: var(--red,#C43C1A);
   cursor: pointer;
   transition: all .12s;
   margin-left: auto;
 }
-.delete-btn:hover { background: #FDECEC; border-color: #E07070; }
+.delete-btn:hover { background: var(--tint-red,#FDECEC); border-color: var(--tint-red-bd,#E07070); }
 
 .cancel-btn {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: .08em;
@@ -664,7 +664,7 @@ h1 em {
 
 /* Export btn */
 .export-btn {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: .1em;
@@ -694,6 +694,8 @@ h1 em {
   .add-step-row { grid-template-columns: 1fr; }
 }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dc_theme.css">
 </head>
 <body>
 
@@ -862,7 +864,7 @@ h1 em {
     <div class="modal-section">Steps taken &amp; timeline</div>
 
     <div class="steps-list" id="steps-list">
-      <div style="font-family:'Inconsolata',monospace;font-size:10px;color:var(--rule2);letter-spacing:.06em;text-transform:uppercase;padding:6px 0">No steps logged yet</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--rule2);letter-spacing:.06em;text-transform:uppercase;padding:6px 0">No steps logged yet</div>
     </div>
 
     <div class="add-step-row">
@@ -1108,7 +1110,7 @@ function backdropClick(e) {
 function renderSteps() {
   const list = document.getElementById('steps-list');
   if (tempSteps.length === 0) {
-    list.innerHTML = `<div style="font-family:'Inconsolata',monospace;font-size:10px;color:var(--rule2);letter-spacing:.06em;text-transform:uppercase;padding:6px 0">No steps logged yet</div>`;
+    list.innerHTML = `<div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--rule2);letter-spacing:.06em;text-transform:uppercase;padding:6px 0">No steps logged yet</div>`;
     return;
   }
   list.innerHTML = tempSteps.map((s, i) => `
@@ -1218,6 +1220,11 @@ document.addEventListener('keydown', e => {
 
 load();
 render();
+// Opened from Mission Control search: ?q=name → pre-fill the search box
+(function(){
+  const q=new URLSearchParams(location.search).get('q');
+  if(q){ document.getElementById('searchInput').value=q; render(); }
+})();
 </script>
 <script src="dc_sync.js"></script>
 <script>

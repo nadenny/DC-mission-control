@@ -262,5 +262,25 @@ function attach(opts){
   return {merge:(name,l,r)=>merge(cols[name],l,r)};
 }
 
-window.DCSync={attach,_merge:merge};
+/* Helpers for pages with their own older sync code (home page, meeting tool).
+   They keep their cloud format; these just track "has unsent edits" and
+   "has this device synced with this account before", and do the merging. */
+function legacy(node){
+  const get=()=>readMeta()[node]||{};
+  const put=p=>{const m=readMeta(); m[node]={...(m[node]||{}),...p}; writeMeta(m);};
+  return {
+    needsMerge:uid=>{const s=get(); return s.uid!==uid||!!s.pending;},
+    markPending:()=>put({pending:true}),
+    markSynced:uid=>put({uid,pending:false}),
+  };
+}
+/* Free-text (scratch pad): never drop either side's words. */
+function mergeText(local,remote){
+  local=local||''; remote=remote||'';
+  if(local===remote||remote.includes(local))return remote;
+  if(local.includes(remote))return local;
+  return remote+'\n\n— from another device —\n'+local;
+}
+
+window.DCSync={attach,merge,legacy,mergeText,_merge:merge};
 })();

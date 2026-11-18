@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-dc="email">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DC Email Library</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Epilogue:wght@300;400;500&family=Inconsolata:wght@400;500&display=swap" rel="stylesheet">
+
 <style>
 :root {
   --bg: #0E0E0F;
@@ -33,7 +33,7 @@
 html{font-size:15px}
 
 body {
-  font-family:'Epilogue',sans-serif;
+  font-family:'Outfit',sans-serif;
   background:var(--bg);
   color:var(--ink);
   min-height:100vh;
@@ -67,7 +67,7 @@ aside {
 
 .back-link {
   display:inline-flex; align-items:center; gap:5px;
-  font-family:'Inconsolata',monospace; font-size:10px;
+  font-family:'Share Tech Mono',monospace; font-size:10px;
   letter-spacing:.1em; text-transform:uppercase;
   color:var(--ink3); text-decoration:none;
   padding:4px 10px; border:1px solid var(--rule);
@@ -76,7 +76,7 @@ aside {
 .back-link:hover { color:var(--accent); border-color:var(--accent-border); }
 
 .aside-wordmark {
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:10px;
   letter-spacing:.18em;
   text-transform:uppercase;
@@ -85,7 +85,7 @@ aside {
 }
 
 .aside-title {
-  font-family:'Playfair Display',serif;
+  font-family:'Outfit',serif;
   font-size:18px;
   font-weight:400;
   color:var(--ink);
@@ -103,7 +103,7 @@ aside {
 }
 
 .cat-label {
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:9px;
   letter-spacing:.15em;
   text-transform:uppercase;
@@ -146,7 +146,7 @@ aside {
   margin-top:auto;
   padding:1.25rem 1.5rem;
   border-top:1px solid var(--rule);
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:10px;
   color:var(--ink3);
   letter-spacing:.04em;
@@ -174,14 +174,14 @@ aside {
 }
 
 .top-bar-title {
-  font-family:'Playfair Display',serif;
+  font-family:'Outfit',serif;
   font-size:16px;
   font-style:italic;
   color:var(--ink2);
 }
 
 .top-bar-cat {
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:10px;
   letter-spacing:.1em;
   text-transform:uppercase;
@@ -194,7 +194,7 @@ aside {
 .spacer{flex:1}
 
 .copy-btn {
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:10px;
   letter-spacing:.1em;
   text-transform:uppercase;
@@ -221,7 +221,7 @@ aside {
 }
 
 .fields-heading {
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:9px;
   letter-spacing:.15em;
   text-transform:uppercase;
@@ -242,7 +242,7 @@ aside {
 }
 
 .field-label {
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:10px;
   color:var(--ink3);
   letter-spacing:.06em;
@@ -250,7 +250,7 @@ aside {
 
 .field-group input,
 .field-group select {
-  font-family:'Epilogue',sans-serif;
+  font-family:'Outfit',sans-serif;
   font-size:13px;
   padding:7px 10px;
   background:var(--surface2);
@@ -272,7 +272,7 @@ aside {
 .preview-section { margin-bottom:1.5rem; }
 
 .preview-heading {
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:9px;
   letter-spacing:.15em;
   text-transform:uppercase;
@@ -303,7 +303,7 @@ aside {
 }
 
 .subject-label {
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:11px;
   color:var(--ink3);
   flex-shrink:0;
@@ -324,7 +324,7 @@ aside {
   line-height:1.75;
   color:var(--ink2);
   white-space:pre-wrap;
-  font-family:'Epilogue',sans-serif;
+  font-family:'Outfit',sans-serif;
   min-height:240px;
 }
 
@@ -334,7 +334,7 @@ aside {
   border-radius:3px;
   padding:0 4px;
   color:var(--accent);
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:11px;
 }
 
@@ -363,7 +363,7 @@ aside {
 }
 
 .empty-title {
-  font-family:'Playfair Display',serif;
+  font-family:'Outfit',serif;
   font-style:italic;
   font-size:26px;
   color:var(--ink3);
@@ -371,7 +371,7 @@ aside {
 }
 
 .empty-sub {
-  font-family:'Inconsolata',monospace;
+  font-family:'Share Tech Mono',monospace;
   font-size:11px;
   color:var(--ink3);
   letter-spacing:.06em;
@@ -382,6 +382,8 @@ aside {
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dc_theme.css">
 </head>
 <body>
 <div class="layout">
@@ -792,7 +794,7 @@ function renderContent(tmpl) {
         <div class="field-label">${f.label}</div>
         <textarea id="field_${f.id}" placeholder="${f.placeholder || ''}"
           oninput="onFieldChange('${f.id}', this.value)"
-          style="font-family:'Epilogue',sans-serif;font-size:13px;padding:7px 10px;background:var(--surface2);border:1px solid var(--rule);border-radius:5px;color:var(--ink);resize:vertical;min-height:72px;outline:none;width:100%;transition:border-color .15s"
+          style="font-family:'Outfit',sans-serif;font-size:13px;padding:7px 10px;background:var(--surface2);border:1px solid var(--rule);border-radius:5px;color:var(--ink);resize:vertical;min-height:72px;outline:none;width:100%;transition:border-color .15s"
           onfocus="this.style.borderColor='rgba(232,168,106,0.5)'"
           onblur="this.style.borderColor='var(--rule)'"
         >${val}</textarea>
@@ -895,7 +897,7 @@ function checkHandoff(){
   const banner=document.createElement('div');
   banner.style.cssText="background:var(--surface2);border:1px solid var(--accent-border);border-left:2px solid var(--accent);border-radius:5px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:12px;color:var(--ink2);line-height:1.6";
   banner.innerHTML=`<strong style="color:var(--accent)">Agenda received from the Meeting Tool.</strong><br>
-    Fields below are prefilled. <button onclick="useFullAgenda()" style="font-family:'Inconsolata',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent);padding:4px 10px;border-radius:3px;cursor:pointer;margin-top:6px">Use the full timed agenda instead</button>`;
+    Fields below are prefilled. <button onclick="useFullAgenda()" style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent);padding:4px 10px;border-radius:3px;cursor:pointer;margin-top:6px">Use the full timed agenda instead</button>`;
   document.getElementById('content').prepend(banner);
 
   history.replaceState({},'',location.pathname);

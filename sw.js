@@ -1,7 +1,7 @@
 /* DC Mission Control — service worker
    HTML is NEVER cached: a stale page shell was the single worst failure mode
    on the phone. Only static assets get cached. */
-const CACHE_VERSION = 'dc-mc-v39';
+const CACHE_VERSION = 'dc-mc-v40';
 const ASSETS = ['./manifest.json','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -27,11 +27,12 @@ self.addEventListener('fetch', e => {
   // Escape hatch: ?nosw bypasses the worker entirely
   if (url.search.includes('nosw')) return;
 
-  // Our own scripts (dc_sync.js) are treated like pages: always fresh.
+  // Our own scripts and styles (dc_sync.js, dc_theme.css) are treated like
+  // pages: always fresh, cache only as an offline fallback.
   const isHTML = e.request.mode === 'navigate'
     || url.pathname.endsWith('.html')
     || url.pathname.endsWith('/')
-    || (url.origin === location.origin && url.pathname.endsWith('.js'));
+    || (url.origin === location.origin && /\.(js|css)$/.test(url.pathname));
 
   if (isHTML) {
     // Network first, always. Cache is only a last resort when offline.
