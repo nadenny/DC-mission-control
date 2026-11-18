@@ -1161,6 +1161,7 @@ body::after { display: none; }                               /* no scan-line ove
         <span><span class="pl-ico">📬</span> Needs reply</span>
         <span style="display:flex;gap:6px">
           <select id="gmFilterSel" class="pl-btn" onchange="gmSetFilter(this.value)" aria-label="Which emails" style="display:none">
+            <option value="waiting">Waiting on my reply</option>
             <option value="is:starred">Starred</option>
             <option value="is:unread in:inbox">Unread in inbox</option>
             <option value="label">A Gmail label…</option>
@@ -1188,7 +1189,7 @@ body::after { display: none; }                               /* no scan-line ove
         <div id="calEmpty" class="cal-signin-wrap">
           <div class="cal-signin-icon">📅</div>
           <div class="cal-signin-title">Google Calendar</div>
-          <div class="cal-signin-sub">Sign in once to connect all your calendars automatically</div>
+          <div class="cal-signin-sub">One sign-in loads your calendars and your email</div>
           <button class="cal-signin-btn" id="calSigninBtn" onclick="calSignIn()">
             <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             Sign in with Google
@@ -1814,17 +1815,45 @@ function initCalendar() {
   setupTokenClient(clientId);
 }
 
+/* ONE Google sign-in for calendar + email: the same token carries both
+   read-only permissions, so a single click loads both panels. */
+const GMAIL_READ_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 function setupTokenClient(clientId) {
   calTokenClient = google.accounts.oauth2.initTokenClient({
     client_id: clientId,
-    scope: SCOPES,
+    scope: SCOPES + ' ' + GMAIL_READ_SCOPE,
+    include_granted_scopes: true,
     callback: (resp) => {
-      if (resp.error) { showCalError('Sign-in failed: ' + resp.error); return; }
+      if (resp.error) { showCalError('Sign-in failed: ' + resp.error); gmErr = 'Sign-in failed: ' + resp.error; gmRender(); return; }
       calAccessToken = resp.access_token;
-      calFetchEvents();
+      const ok = s => { try { return google.accounts.oauth2.hasGrantedAllScopes(resp, s); } catch (e) { return true; } };
+      if (ok(SCOPES)) calFetchEvents();
+      else showCalError('Calendar access was not allowed — sign in again and tick "See your calendars".');
+      if (ok(GMAIL_READ_SCOPE)) {
+        gmToken = resp.access_token;
+        gmTokenExp = Date.now() + (+resp.expires_in || 3600) * 1000;
+        gmLoad();
+      } else {
+        gmToken = null;
+        gmErr = 'Email access was not allowed — click Sign in with Google and tick "Read your email".';
+        gmRender();
+      }
     },
-    error_callback: () => {} // silent fail on restore attempt
+    error_callback: (e) => {
+      if (e && e.type === 'popup_closed') return;
+      gmErr = (e && e.message) || 'Google sign-in did not finish.'; gmRender();
+    }
   });
+}
+
+/* Used by both the calendar and the email panel */
+function googleSignIn() {
+  if (!localStorage.getItem(CAL_CLIENT_KEY)) { calSignIn(); return; }
+  if (!(window.google && google.accounts && google.accounts.oauth2)) {
+    gmErr = 'Google sign-in is still loading — try again in a moment.'; gmRender(); return;
+  }
+  if (!calTokenClient) setupTokenClient(localStorage.getItem(CAL_CLIENT_KEY));
+  calTokenClient.requestAccessToken({ prompt: '' });   // only asks again if something new needs approving
 }
 
 function calSignIn() {
@@ -1843,7 +1872,7 @@ function calSignIn() {
     syncPush();   // share it with your other devices
   }
   if (!calTokenClient) setupTokenClient(clientId);
-  calTokenClient.requestAccessToken({ prompt: 'consent' });
+  calTokenClient.requestAccessToken({ prompt: '' });
 }
 
 function calForget(){
@@ -2513,23 +2542,16 @@ var GM_SCOPE='https://www.googleapis.com/auth/gmail.readonly';
 var GM_FILTER_KEY='dc_gmail_filter_v1', GM_ON_KEY='dc_gmail_on_v1', GM_SESSION='dc_gmail_session_v1';
 var gmToken=null, gmTokenExp=0, gmUser='', gmItems=[], gmRecent=[], gmPerson={}, gmBusy=false, gmErr='';
 
-function gmFilter(){ return localStorage.getItem(GM_FILTER_KEY)||'is:starred'; }
+/* "waiting" = inbox conversations from the last 2 weeks where someone else wrote last */
+var GM_WAITING='waiting';
+var GM_WAITING_Q='in:inbox newer_than:14d -from:me -category:promotions -category:social -category:updates -category:forums';
+function gmFilter(){ return localStorage.getItem(GM_FILTER_KEY)||GM_WAITING; }
+function gmQuery(){ const f=gmFilter(); return f===GM_WAITING?GM_WAITING_Q:f; }
 function gmFilterLabel(){
   const f=gmFilter();
-  return f==='is:starred'?'starred':f==='is:unread in:inbox'?'unread in your inbox':'labelled “'+f.replace(/^label:/,'').replace(/-/g,' ')+'”';
+  return f===GM_WAITING?'waiting on your reply':f==='is:starred'?'starred':f==='is:unread in:inbox'?'unread in your inbox':'labelled “'+f.replace(/^label:/,'').replace(/-/g,' ')+'”';
 }
-function gmGetToken(){
-  return new Promise((res,rej)=>{
-    if(gmToken&&Date.now()<gmTokenExp-60000)return res(gmToken);
-    const id=localStorage.getItem(CAL_CLIENT_KEY);
-    if(!id)return rej(new Error('no-client'));
-    if(!(window.google&&google.accounts&&google.accounts.oauth2))return rej(new Error('Google sign-in is still loading — try again in a moment.'));
-    const c=google.accounts.oauth2.initTokenClient({client_id:id, scope:GM_SCOPE,
-      callback:r=>{ if(r.error)return rej(new Error(r.error_description||r.error)); gmToken=r.access_token; gmTokenExp=Date.now()+(+r.expires_in||3600)*1000; res(gmToken); },
-      error_callback:e=>rej(new Error(e&&e.type==='popup_closed'?'The Google window was closed.':(e&&e.message)||'Sign-in was cancelled.'))});
-    c.requestAccessToken({prompt:''});
-  });
-}
+function gmHasToken(){ return !!gmToken&&Date.now()<gmTokenExp-60000; }
 async function gmApi(path){
   const r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/'+path,{headers:{Authorization:'Bearer '+gmToken}});
   if(r.status===401){ gmToken=null; throw new Error('Your Google sign-in expired — click Refresh.'); }
@@ -2553,6 +2575,30 @@ async function gmList(q,max){
       when:+m.internalDate||0, unread:(m.labelIds||[]).includes('UNREAD'), starred:(m.labelIds||[]).includes('STARRED')};
   });
 }
+/* Conversations, not single messages: a conversation where YOU sent the most
+   recent message counts as dealt with and is left out. */
+async function gmThreads(q,max){
+  const r=await gmApi('threads?maxResults='+Math.min(max*2,40)+'&q='+encodeURIComponent(q));
+  const ids=(r.threads||[]).map(t=>t.id);
+  const ths=await Promise.all(ids.map(id=>gmApi('threads/'+id+'?format=metadata&metadataHeaders=From&metadataHeaders=Subject').catch(()=>null)));
+  const me=String(gmUser||'').toLowerCase();
+  const out=[];
+  for(const t of ths){
+    if(!t||!(t.messages||[]).length)continue;
+    const msgs=t.messages;
+    const head=m=>{const h={};((m.payload&&m.payload.headers)||[]).forEach(x=>h[x.name.toLowerCase()]=x.value);return h;};
+    const isMine=m=>(m.labelIds||[]).includes('SENT')||(me&&gmParseFrom(head(m).from).email.toLowerCase()===me);
+    if(isMine(msgs[msgs.length-1]))continue;                       // you replied last → dealt with
+    const last=[...msgs].reverse().find(m=>!isMine(m))||msgs[msgs.length-1];
+    const h=head(last), f=gmParseFrom(h.from);
+    out.push({id:last.id, threadId:t.id, from:f.name, fromEmail:f.email, subject:h.subject||'(no subject)',
+      snippet:(last.snippet||'').replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/&amp;/g,'&'),
+      when:+last.internalDate||0, count:msgs.length,
+      unread:msgs.some(m=>(m.labelIds||[]).includes('UNREAD')), starred:msgs.some(m=>(m.labelIds||[]).includes('STARRED'))});
+    if(out.length>=max)break;
+  }
+  return out.sort((a,b)=>b.when-a.when);
+}
 function gmLink(e){ return 'https://mail.google.com/mail/'+(gmUser?'?authuser='+encodeURIComponent(gmUser):'u/0/')+'#all/'+e.threadId; }
 function gmWhen(ms){
   const d=new Date(ms), now=new Date();
@@ -2565,12 +2611,13 @@ function gmSaveSession(){
 }
 async function gmLoad(){
   if(gmBusy)return;
-  if(!localStorage.getItem(CAL_CLIENT_KEY)){ gmErr='no-client'; gmRender(); return; }
+  if(!localStorage.getItem(CAL_CLIENT_KEY)){ calSignIn(); if(!localStorage.getItem(CAL_CLIENT_KEY)){ gmErr='no-client'; gmRender(); } return; }
+  // No valid sign-in → one Google sign-in for calendar AND email; it loads both when done
+  if(!gmHasToken()){ gmErr=''; googleSignIn(); return; }
   gmBusy=true; gmErr=''; gmRender();
   try{
-    await gmGetToken();
     if(!gmUser){ const p=await gmApi('profile'); gmUser=p.emailAddress||''; }
-    [gmItems,gmRecent]=await Promise.all([gmList(gmFilter(),15), gmList('in:inbox newer_than:14d',50)]);
+    [gmItems,gmRecent]=await Promise.all([gmThreads(gmQuery(),15), gmList('in:inbox newer_than:14d',50)]);
     gmPerson={};
     localStorage.setItem(GM_ON_KEY,'1');
     gmSaveSession(); gsIndex=null;
@@ -2585,25 +2632,25 @@ function gmSetFilter(v){
     v='label:'+l.toLowerCase().replace(/["\s\/]+/g,'-');   // Gmail search form of "Follow up" is label:follow-up
   }
   localStorage.setItem(GM_FILTER_KEY,v);
-  if(gmToken)gmLoad(); else gmRender();
+  if(gmHasToken())gmLoad(); else gmRender();
 }
 function gmRender(){
   const el=document.getElementById('gmPanel'), btn=document.getElementById('gmBtn'), sel=document.getElementById('gmFilterSel');
   if(!el)return;
-  const connected=!!gmToken&&!gmErr;
-  btn.textContent=gmBusy?'Loading…':connected?'↻ Refresh':'Connect email';
+  const connected=gmHasToken()&&!gmErr;
+  btn.textContent=gmBusy?'Loading…':connected?'↻ Refresh':'Sign in with Google';
   sel.style.display=connected?'':'none';
   sel.value=gmFilter().startsWith('label:')?'label':gmFilter();
   if(gmErr==='no-client'){
-    el.innerHTML=`<div class="gm-note">Email uses the same Google sign-in as your calendar. Connect your calendar once (Upcoming events → <b>Sign in with Google</b>), then click <b>Connect email</b>.</div>`; return;
+    el.innerHTML=`<div class="gm-note">Email and calendar share one Google sign-in. Click <b>Sign in with Google</b> (here or under Upcoming events) — the first time it asks for your Google Client ID.</div>`; return;
   }
   if(gmErr){
     el.innerHTML=`<div class="gm-note" style="color:var(--red)">${escHtml(gmErr)}</div>
       <div class="gm-note" style="margin-top:6px"><a href="#" onclick="gmHelp();return false" style="color:var(--gold)">First-time setup steps</a></div>`; return;
   }
   if(gmBusy&&!gmItems.length){ el.innerHTML=`<div class="gm-note">Loading your email…</div>`; return; }
-  if(!gmToken){
-    el.innerHTML=`<div class="gm-note">See the emails you've <b>starred</b> (or a label you choose) right here, turn them into tasks or concern cases, and see recent email with today's 1:1. Read-only — nothing is sent or changed in Gmail, and email is never saved.</div>
+  if(!gmHasToken()){
+    el.innerHTML=`<div class="gm-note">One Google sign-in loads both your <b>calendar</b> and the emails <b>waiting on your reply</b>. Conversations you've answered drop off automatically. Read-only — nothing is sent or changed in Gmail, and email is never saved.</div>
       <div class="gm-note" style="margin-top:6px"><a href="#" onclick="gmHelp();return false" style="color:var(--gold)">First-time setup steps</a></div>`; return;
   }
   if(!gmItems.length){ el.innerHTML=`<div class="gm-note">Nothing ${escHtml(gmFilterLabel())} right now. 🎉</div>`; return; }
