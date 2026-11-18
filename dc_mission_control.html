@@ -1197,7 +1197,7 @@ body::after {
         <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--ink3);letter-spacing:.04em" id="syncWho"></div>
       </div>
       <div style="font-size:11.5px;color:var(--ink3);line-height:1.65;margin-bottom:1rem">
-        Tasks, 1:1 log &amp; roster, quick links, and the scratch pad sync across every device signed into this account. Changes appear within a second.
+        Tasks, 1:1 log &amp; roster, quick links, and the scratch pad sync across every device signed into this account. Changes appear within a second. The concern log, semester checklist and sheet builder use this same sign-in.
       </div>
       <div style="display:flex;gap:8px">
         <button class="ledit-cancel" onclick="fbSignOut()">Sign out</button>
@@ -2266,7 +2266,7 @@ function syncPush(){
    backup taken here captures all of them. Restore only writes keys that are
    in the file — it never deletes anything that isn't. */
 const BK_LAST_KEY='dc_last_backup_v1';
-const BK_CLOUD_NODES=['mc','meeting','hattie','pptLib'];
+const BK_CLOUD_NODES=['mc','meeting','hattie','pptLib','concern','checklist','sheet'];
 const BK_TOOLS=[
   ['Mission Control',   /^dc_(mc_|roster|oo_|school_dates|gc_client|fb_config)/],
   ['Meeting tool',      /^dc_(meeting|people_log|ca_|class_agendas|agenda_handoff)/],
@@ -2403,7 +2403,10 @@ async function bkRestoreFile(input){
   if(!data||data.app!=='DC Mission Control'||!data.local||typeof data.local!=='object'){
     bkStatus('That file is not a Mission Control backup.',true);return;
   }
-  const keys=Object.keys(data.local).filter(k=>k!==BK_LAST_KEY&&typeof data.local[k]==='string');
+  // dc_sync_meta_v1 is left out on purpose: without it, each synced tool
+  // treats the restored data as new and MERGES it with the cloud.
+  const keys=Object.keys(data.local).filter(k=>k!==BK_LAST_KEY&&k!=='dc_sync_meta_v1'&&typeof data.local[k]==='string');
+  if(keys.length)localStorage.removeItem('dc_sync_meta_v1');
   const hasCloud=!!(data.cloud&&Object.keys(data.cloud).length);
   let msg=`Restore the backup from ${new Date(data.createdAt).toLocaleString()}?\n\n`
     +`• ${keys.length} saved items will be written to this device. Anything not in the backup is left alone.\n`;

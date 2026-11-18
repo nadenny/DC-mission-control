@@ -831,5 +831,18 @@ document.getElementById('semInput').addEventListener('keydown', e => {
 load();
 render();
 </script>
+<script src="dc_sync.js"></script>
+<script>
+/* Cloud sync — same account as Mission Control. On first merge a task
+   checked on either device stays checked. */
+if(window.DCSync)DCSync.attach({
+  node:'checklist',
+  collections:{
+    state:{key:STORAGE_KEY, kind:'map', mergeValue:(a,b)=>!!(a||b)},
+    semester:{key:SEM_KEY, kind:'value', raw:true},
+  },
+  onRemote:()=>{ load(); render(); },
+});
+</script>
 </body>
 </html>

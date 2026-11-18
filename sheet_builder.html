@@ -4757,6 +4757,32 @@ document.addEventListener('keydown',e=>{
 loadGridWeight();loadApiKey();loadBank();loadSGLib();loadDecks();loadEqPacks();wireStageClicks();
 if(localStorage.getItem('dc_chembar_open')==='0')document.getElementById('chemBar').style.display='none';
 renderVerStrip();renderEditor();render();
+
+/* Cloud sync — same account as Mission Control. Syncs saved sheets, the
+   question bank, study guides, equation packs and the test blueprint.
+   Loaded slide decks and API keys stay on this device only. */
+(function(){
+  const s=document.createElement('script');
+  s.src='dc_sync.js';
+  s.onload=()=>DCSync.attach({
+    node:'sheet',
+    collections:{
+      sheets:   {key:SAVE_KEY,   kind:'list', keyOf:x=>x&&(x.title+'|'+x.mode)},
+      bank:     {key:BANK_KEY,   kind:'list'},
+      guides:   {key:SG_KEY,     kind:'list'},
+      eqPacks:  {key:EQPACK_KEY, kind:'list'},
+      blueprint:{key:BP_KEY,     kind:'map'},
+    },
+    onRemote:names=>{
+      if(names.includes('bank')){ loadBank(); if(mode==='bank')renderBank(); }
+      if(names.includes('guides'))loadSGLib();
+      if(names.includes('eqPacks'))loadEqPacks();
+      if(names.includes('blueprint'))loadDecks();
+      if(names.includes('sheets')&&document.getElementById('loadModal').style.display==='flex')openLoad();
+    },
+  });
+  document.body.appendChild(s);
+})();
 </script>
 
 <div class="sg-drawer" id="sgDrawer">

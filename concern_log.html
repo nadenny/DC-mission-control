@@ -1219,5 +1219,25 @@ document.addEventListener('keydown', e => {
 load();
 render();
 </script>
+<script src="dc_sync.js"></script>
+<script>
+/* Cloud sync — same account as Mission Control. Case IDs are numbered per
+   device, so two devices can both create "DC-26-005". When merging, a case
+   with a matching ID but a different creation time is a different case and
+   gets the next free number instead of overwriting. */
+if(window.DCSync)DCSync.attach({
+  node:'concern',
+  collections:{
+    cases:{key:STORAGE_KEY, kind:'list',
+      sameItem:(a,b)=>!a.createdAt||!b.createdAt||a.createdAt===b.createdAt,
+      rekey:(x,all)=>{
+        const nums=all.map(c=>{const m=String(c.id||'').match(/(\d+)$/);return m?parseInt(m[1]):0;});
+        const yr=(String(x.id||'').match(/^DC-(\d+)-/)||[])[1]||String(new Date().getFullYear()).slice(-2);
+        return {...x,id:`DC-${yr}-${String(Math.max(0,...nums)+1).padStart(3,'0')}`};
+      }},
+  },
+  onRemote:()=>{ load(); render(); },
+});
+</script>
 </body>
 </html>
