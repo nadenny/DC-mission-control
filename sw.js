@@ -1,7 +1,7 @@
 /* DC Mission Control — service worker
    HTML is NEVER cached: a stale page shell was the single worst failure mode
    on the phone. Only static assets get cached. */
-const CACHE_VERSION = 'dc-mc-v40';
+const CACHE_VERSION = 'dc-mc-v41';
 const ASSETS = ['./manifest.json','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', e => {

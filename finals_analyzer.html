@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en" data-dc="finals">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finals Analyzer · DC Mission Control</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root{
+  --bg:#080C14; --bg2:#0C1220; --bg3:#111827; --bg4:#171F30;
+  --border:rgba(255,255,255,.07); --border2:rgba(255,255,255,.12); --border3:rgba(255,255,255,.22);
+  --ink:#E8EDF5; --ink2:#A3AFC4; --ink3:#6B7A93;
+  --gold:#F5C842; --gold-dim:rgba(245,200,66,.12); --gold-bd:rgba(245,200,66,.38); --gold-glow:rgba(245,200,66,.25);
+  --teal:#2DD4BF; --teal-dim:rgba(45,212,191,.10); --teal-bd:rgba(45,212,191,.35);
+  --blue:#60A5FA; --blue-dim:rgba(96,165,250,.10); --blue-bd:rgba(96,165,250,.35);
+  --green:#4ADE80; --green-dim:rgba(74,222,128,.10); --green-bd:rgba(74,222,128,.35);
+  --red:#F87171; --red-dim:rgba(248,113,113,.10); --red-bd:rgba(248,113,113,.38);
+  --amber:#FB923C; --amber-dim:rgba(251,146,60,.10); --amber-bd:rgba(251,146,60,.38);
+  --purple:#A78BFA; --purple-dim:rgba(167,139,250,.10);
+  --mono:'Share Tech Mono',ui-monospace,monospace; --display:'Bebas Neue','Outfit',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);pointer-events:none;z-index:1000}
+button,input,select{font:inherit;color:inherit}
+
+/* header */
+.header{background:var(--bg2);border-bottom:1px solid var(--border2);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1.25rem;position:sticky;top:0;z-index:50}
+.logo{font-family:var(--display);font-size:22px;letter-spacing:.06em;color:var(--gold);text-shadow:0 0 20px var(--gold-glow);white-space:nowrap}
+.sub{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.12em;text-transform:uppercase}
+.sep{flex:1}
+.back-btn{font-family:var(--mono);font-size:11px;color:var(--ink2);border:1px solid var(--border2);border-radius:4px;padding:5px 12px;letter-spacing:.06em;text-decoration:none;white-space:nowrap}
+.back-btn:hover{color:var(--gold);border-color:var(--gold)}
+
+.main{max-width:1040px;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+.label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:.5rem;display:flex;align-items:center;gap:8px}
+.label .count{color:var(--gold)}
+.panel{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:1.1rem 1.25rem;margin-bottom:1.25rem}
+
+/* api */
+.api-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.inp{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:8px 11px;color:var(--ink);font-size:13px;outline:none;transition:border-color .2s}
+.inp:focus{border-color:var(--gold)}
+.inp::placeholder{color:var(--ink3)}
+.inp.mono{font-family:var(--mono);font-size:12px}
+#apiKey{flex:1;min-width:220px}
+.status{font-family:var(--mono);font-size:11px;white-space:nowrap}
+.settings{display:flex;gap:1.25rem;flex-wrap:wrap;margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--border);font-size:12px;color:var(--ink2);align-items:center}
+.settings label{display:flex;align-items:center;gap:8px}
+.settings .inp{padding:5px 8px;font-size:12px}
+.hint{font-size:11px;color:var(--ink3);line-height:1.5}
+
+/* buttons */
+.btn{font-size:13px;font-weight:500;padding:8px 16px;border-radius:5px;cursor:pointer;border:1px solid var(--border2);background:none;color:var(--ink2);transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg3);color:var(--ink);border-color:var(--ink2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-gold{border-color:var(--gold-bd);color:var(--gold);background:var(--gold-dim)}
+.btn-gold:hover{background:rgba(245,200,66,.2);border-color:var(--gold);color:var(--gold)}
+.btn-sm{font-size:11px;padding:4px 10px}
+.btn-x{border:none;background:none;color:var(--ink3);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px}
+.btn-x:hover{color:var(--red);background:var(--red-dim)}
+
+/* drop zone */
+.drop{border:1.5px dashed var(--border3);border-radius:8px;padding:1.6rem 1rem;text-align:center;transition:border-color .2s,background .2s;cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--gold);background:var(--gold-dim)}
+.drop-title{font-family:var(--display);font-size:20px;letter-spacing:.05em;color:var(--ink);margin-bottom:4px}
+.drop-desc{font-size:12px;color:var(--ink3);line-height:1.6}
+.drop-desc code{font-family:var(--mono);color:var(--teal);font-size:11px}
+.drop-actions{display:flex;gap:8px;justify-content:center;margin-top:.9rem;flex-wrap:wrap}
+
+/* class rows */
+.classes{display:flex;flex-direction:column;gap:8px}
+.crow{background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--border3);border-radius:6px;padding:.75rem .9rem}
+.crow.st-running{border-left-color:var(--blue)}
+.crow.st-done{border-left-color:var(--teal)}
+.crow.st-error{border-left-color:var(--red)}
+.crow-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cname{flex:1;min-width:180px;font-weight:500;font-size:14px;background:transparent;border:1px solid transparent;padding:4px 6px;border-radius:4px}
+.cname:hover{border-color:var(--border2)}
+.cname:focus{border-color:var(--gold);outline:none;background:var(--bg4)}
+.toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink2);cursor:pointer;user-select:none;white-space:nowrap}
+.toggle input{accent-color:var(--gold)}
+.rstate{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);min-width:90px;text-align:right}
+.rstate.running{color:var(--blue)} .rstate.done{color:var(--teal)} .rstate.error{color:var(--red)} .rstate.wait{color:var(--amber)}
+.slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:.6rem}
+.slot{min-width:0;display:flex;align-items:center;gap:6px;border:1px dashed var(--border2);border-radius:5px;padding:6px 8px;font-size:11px;min-height:34px;color:var(--ink3);cursor:pointer;position:relative}
+.slot:hover{border-color:var(--gold-bd)}
+.slot.filled{border-style:solid;border-color:var(--teal-bd);background:var(--teal-dim);color:var(--ink);cursor:default}
+.slot.warnf{border-color:var(--amber-bd);background:var(--amber-dim)}
+.slot-role{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);white-space:nowrap}
+.slot.filled .slot-role{color:var(--teal)}
+.slot.warnf .slot-role{color:var(--amber)}
+.slot-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot-meta{font-family:var(--mono);font-size:9px;color:var(--ink3);white-space:nowrap}
+.slot input[type=file]{display:none}
+.note-inp{width:100%;margin-top:.5rem;font-size:12px;padding:6px 9px}
+.cmsg{font-size:11px;margin-top:.45rem;line-height:1.5}
+.cmsg.err{color:var(--red)} .cmsg.warn{color:var(--amber)}
+
+/* unassigned */
+.unassigned{margin-top:1rem;border:1px solid var(--amber-bd);background:var(--amber-dim);border-radius:6px;padding:.75rem .9rem}
+.un-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border)}
+.un-row:last-child{border-bottom:none}
+.un-row .fname{flex:1;min-width:160px;font-family:var(--mono);font-size:11px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.un-row select,.un-row input{font-size:12px;padding:4px 7px}
+
+/* run bar */
+.runbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:1rem}
+.runbar .sep{flex:1}
+.est{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.prog{margin-top:.9rem;display:none}
+.prog.on{display:block}
+.prog-txt{font-family:var(--mono);font-size:11px;color:var(--ink2);margin-bottom:6px;letter-spacing:.04em}
+.prog-track{height:3px;background:var(--border2);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--gold);transition:width .4s ease;box-shadow:0 0 8px var(--gold-glow)}
+
+/* results */
+.sum-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.stat{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:.7rem .85rem;cursor:pointer;transition:border-color .15s}
+.stat:hover{border-color:var(--border3)}
+.stat.active{border-color:var(--gold-bd);background:var(--gold-dim)}
+.stat-n{font-family:var(--display);font-size:30px;line-height:1;letter-spacing:.03em}
+.stat-l{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-top:4px}
+.res-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
+.res-actions .sep{flex:1}
+.run-sel{font-size:12px;padding:5px 8px;max-width:320px}
+
+.rcard{background:var(--bg3);border:1px solid var(--border);border-radius:7px;margin-bottom:8px;overflow:hidden}
+.rhead{display:flex;align-items:center;gap:10px;padding:.7rem .95rem;cursor:pointer;user-select:none}
+.rhead:hover{background:var(--bg4)}
+.rname{font-weight:500;font-size:14px;flex:1}
+.rcount{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.06em}
+.chev{color:var(--ink3);font-size:12px;width:10px}
+.chev::before{content:'▸'}
+.rcard.open .chev::before{content:'▾'}
+.badge{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;border:1px solid;white-space:nowrap}
+.b-high{color:var(--red);border-color:var(--red-bd);background:var(--red-dim)}
+.b-medium{color:var(--amber);border-color:var(--amber-bd);background:var(--amber-dim)}
+.b-low{color:var(--green);border-color:var(--green-bd);background:var(--green-dim)}
+.b-error{color:var(--red);border-color:var(--red-bd);background:transparent}
+.rbody{display:none;padding:.2rem .95rem 1rem;border-top:1px solid var(--border)}
+.rcard.open .rbody{display:block}
+.rsum{font-size:13px;color:var(--ink2);line-height:1.7;margin:.75rem 0 .4rem}
+.rflags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.4rem}
+.flag{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid var(--border2);color:var(--ink3)}
+.flag.gold{color:var(--gold);border-color:var(--gold-bd)}
+.flag.amber{color:var(--amber);border-color:var(--amber-bd)}
+.sec{margin-top:.85rem}
+.sec-t{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding-bottom:5px;border-bottom:1px solid var(--border);margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+.it{display:flex;gap:9px;padding:5px 0;font-size:13px;line-height:1.55;border-bottom:1px solid var(--border)}
+.it:last-child{border-bottom:none}
+.it .dot{margin-top:6px}
+.it b{font-weight:600;color:var(--ink)}
+.it span{color:var(--ink2)}
+.err-raw{font-family:var(--mono);font-size:11px;color:var(--ink3);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px;margin-top:8px;white-space:pre-wrap;max-height:180px;overflow:auto}
+.empty{text-align:center;padding:2rem;color:var(--ink3);font-size:13px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg4);border:1px solid var(--gold-bd);color:var(--ink);padding:9px 16px;border-radius:6px;font-size:13px;transition:transform .25s;z-index:2000}
+.toast.on{transform:translateX(-50%) translateY(0)}
+
+@media (max-width:700px){
+  .header{padding:.65rem 1rem;gap:.75rem}
+  .header .sub{display:none}
+  .slots{grid-template-columns:minmax(0,1fr)}
+  .crow-top{gap:6px}
+  .cname{min-width:0;flex-basis:100%}
+  .sum-row{grid-template-columns:repeat(2,1fr)}
+}
+
+/* print = clean report */
+@media print{
+  body{background:#fff;color:#111}
+  body::after,.header,.no-print,.res-actions,.sum-row{display:none!important}
+  .main{max-width:none;padding:0}
+  .panel{border:none;background:none;padding:0}
+  .rcard{border:1px solid #ccc;background:#fff;break-inside:avoid;page-break-inside:avoid}
+  .rbody{display:block!important;border-color:#ddd}
+  .rhead{background:#f4f4f4}
+  .chev{display:none}
+  .rname,.it b{color:#111} .rsum,.it span{color:#333} .sec-t{color:#555;border-color:#ddd} .it{border-color:#eee}
+  .print-title{display:block!important;font-family:var(--display);font-size:26px;letter-spacing:.04em;margin-bottom:.25rem}
+  .print-sub{display:block!important;font-size:11px;color:#555;margin-bottom:1rem}
+}
+.print-title,.print-sub{display:none}
+</style>
+<link rel="stylesheet" href="dc_theme.css">
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">Finals Analyzer</div>
+    <div class="sub">Study guides · finals · rubrics → department review</div>
+  </div>
+  <div class="sep"></div>
+  <a class="back-btn" href="dc_mission_control.html">← Mission Control</a>
+</div>
+
+<div class="main">
+
+  <!-- API -->
+  <div class="panel no-print">
+    <div class="label">Anthropic API key</div>
+    <div class="api-row">
+      <input id="apiKey" class="inp mono" type="password" placeholder="sk-ant-api03-…" autocomplete="off">
+      <button class="btn btn-sm" onclick="saveKey()">Save</button>
+      <span class="status" id="keyStatus"></span>
+    </div>
+    <div class="settings">
+      <label>Rate limit (input tokens / min)
+        <input id="tpm" class="inp mono" type="number" min="1000" step="1000" style="width:100px">
+      </label>
+      <span class="hint">Your account was capped at 10,000 last spring. The analyzer paces itself to stay under this — raise it if your API tier is higher and runs go faster.</span>
+    </div>
+  </div>
+
+  <!-- Files -->
+  <div class="panel no-print">
+    <div class="label">Classes <span class="count" id="classCount"></span></div>
+
+    <div class="drop" id="drop">
+      <div class="drop-title">Drop the whole finals folder here</div>
+      <div class="drop-desc">
+        Files group into classes automatically when named <code>Class Name - Study Guide.pdf</code>, <code>- Final</code>, or <code>- Rubric</code>.<br>
+        PDF · Word (.docx) · .txt — anything that doesn't match the pattern lands below for you to assign.
+      </div>
+      <div class="drop-actions">
+        <button class="btn btn-sm" onclick="event.stopPropagation();pickFiles(true)">Choose folder</button>
+        <button class="btn btn-sm" onclick="event.stopPropagation();pickFiles(false)">Choose files</button>
+        <button class="btn btn-sm" onclick="event.stopPropagation();addClass()">+ Add class manually</button>
+      </div>
+      <input type="file" id="pickMany" multiple accept=".pdf,.docx,.txt,.doc" style="display:none">
+      <input type="file" id="pickDir" webkitdirectory multiple style="display:none">
+    </div>
+
+    <div id="unassigned"></div>
+    <div class="classes" id="classes" style="margin-top:1rem"></div>
+
+    <div class="runbar">
+      <button class="btn btn-gold" id="runBtn" onclick="runAll()">Analyze all</button>
+      <button class="btn" id="stopBtn" onclick="stopRun()" style="display:none">Stop after current</button>
+      <button class="btn btn-sm" onclick="clearClasses()">Clear classes</button>
+      <div class="sep"></div>
+      <span class="est" id="estimate"></span>
+    </div>
+    <div class="prog" id="prog">
+      <div class="prog-txt" id="progTxt"></div>
+      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="panel" id="resultsPanel">
+    <div class="print-title" id="printTitle">Finals Review</div>
+    <div class="print-sub" id="printSub"></div>
+    <div class="label no-print">Results</div>
+    <div class="res-actions">
+      <select class="inp run-sel" id="runSel" onchange="showRun(this.value)"></select>
+      <div class="sep"></div>
+      <button class="btn btn-sm" onclick="expandAll(true)">Expand all</button>
+      <button class="btn btn-sm" onclick="expandAll(false)">Collapse</button>
+      <button class="btn btn-sm" onclick="downloadTxt()">Download .txt</button>
+      <button class="btn btn-sm" onclick="window.print()">Print / PDF</button>
+      <button class="btn btn-sm" onclick="deleteRun()">Delete run</button>
+    </div>
+    <div class="sum-row" id="sumRow"></div>
+    <div id="results"><div class="empty">No reviews yet. Drop in a folder of study guides and finals, then hit Analyze all.</div></div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const PDF_WORKER='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let pdfReady=null;
+function ensurePdf(){
+  // Load the worker as a same-origin blob so it works from GitHub Pages, the phone, and file://
+  if(!window.pdfjsLib)return Promise.reject(new Error('PDF reader didn’t load (offline?) — reload the page, or use the .docx version'));
+  if(!pdfReady)pdfReady=fetch(PDF_WORKER).then(r=>{if(!r.ok)throw 0;return r.text();})
+    .then(t=>{pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([t],{type:'text/javascript'}));})
+    .catch(()=>{pdfjsLib.GlobalWorkerOptions.workerSrc=PDF_WORKER;});
+  return pdfReady;
+}
+
+/* ═══════════ storage ═══════════ */
+const KEY_API   = 'dc_finals_apikey';
+const KEY_TPM   = 'dc_finals_tpm';
+const KEY_RUNS  = 'dc_finals_runs_v1';      // [{id,savedAt,label,results:[]}]
+const KEY_CLASS = 'dc_finals_class_prefs_v1'; // {className:{directPull,note,updatedAt}}
+const MODEL     = 'claude-sonnet-4-5-20250929';
+const MAX_RUNS  = 25;
+
+const ls={
+  get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch{return d;}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){toast('Could not save: '+e.message);}},
+  raw(k){try{return localStorage.getItem(k);}catch{return null;}},
+};
+const h=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600);}
+
+/* ═══════════ API key ═══════════ */
+function storedKey(){
+  for(const k of [KEY_API,'dc_ppt_apikey','dc_hattie_apikey','dc_meeting_apikey','dc_sheetbuilder_apikey']){
+    const v=ls.raw(k); if(v&&v.trim()) return v.trim().replace(/^"|"$/g,'');
+  }
+  return '';
+}
+function getKey(){return document.getElementById('apiKey').value.trim()||storedKey();}
+function saveKey(){
+  const v=document.getElementById('apiKey').value.trim();
+  if(!v){setKeyStatus('Paste a key first','var(--red)');return;}
+  try{localStorage.setItem(KEY_API,v);}catch{}
+  setKeyStatus('✓ saved','var(--teal)');
+}
+function setKeyStatus(t,c){const s=document.getElementById('keyStatus');s.textContent=t;s.style.color=c||'var(--ink3)';}
+(function initKey(){
+  const k=storedKey();
+  if(k){document.getElementById('apiKey').value=k;setKeyStatus('✓ key loaded','var(--teal)');}
+  else setKeyStatus('no key yet','var(--amber)');
+  const tpm=document.getElementById('tpm');
+  tpm.value=ls.get(KEY_TPM,10000);
+  tpm.addEventListener('change',()=>{const n=Math.max(1000,parseInt(tpm.value)||10000);tpm.value=n;ls.set(KEY_TPM,n);render();});
+})();
+const tpmLimit=()=>Math.max(1000,parseInt(document.getElementById('tpm').value)||10000);
+
+/* ═══════════ class model ═══════════ */
+// file entry: {file, name, text, chars, error}
+let classes=[];   // {id,name,study_guide,final,rubric,directPull,note,state,msg}
+let unassigned=[];// {id,entry}
+let uid=0;
+const ROLES=[['study_guide','Study Guide'],['final','Final'],['rubric','Rubric']];
+
+function prefs(){return ls.get(KEY_CLASS,{});}
+function savePref(name,patch){
+  if(!name)return;
+  const p=prefs(); p[name]={...(p[name]||{}),...patch,updatedAt:new Date().toISOString()}; ls.set(KEY_CLASS,p);
+}
+function findClass(name){const n=name.trim().toLowerCase();return classes.find(c=>c.name.trim().toLowerCase()===n);}
+function newClass(name){
+  const p=prefs()[name]||{};
+  const c={id:++uid,name,study_guide:null,final:null,rubric:null,directPull:!!p.directPull,note:p.note||'',state:'pending',msg:''};
+  classes.push(c); return c;
+}
+function addClass(){newClass('New class');render();
+  setTimeout(()=>{const ins=document.querySelectorAll('.cname');const el=ins[ins.length-1];if(el){el.focus();el.select();}},30);}
+
+function detectRole(s){
+  const t=s.toLowerCase();
+  if(/study.?guide|studyguide|review.?sheet|review.?packet/.test(t))return 'study_guide';
+  if(/rubric|project/.test(t))return 'rubric';
+  if(/final|exam|\btest\b/.test(t))return 'final';
+  return null;
+}
+function parseName(filename){
+  const stem=filename.replace(/\.[^.]+$/,'').trim();
+  const m=stem.match(/^(.+?)\s+[-–—]\s+([^-–—]+)$/);
+  if(m){const role=detectRole(m[2]);if(role)return{cls:m[1].trim(),role};}
+  return null; // anything else goes to the tray rather than guessing
+}
+
+/* ═══════════ file reading ═══════════ */
+async function extract(file){
+  const n=file.name.toLowerCase();
+  if(n.endsWith('.pdf')){
+    await ensurePdf();
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+    const out=[];
+    for(let i=1;i<=pdf.numPages;i++){
+      const tc=await (await pdf.getPage(i)).getTextContent();
+      out.push(tc.items.map(it=>it.str+(it.hasEOL?'\n':' ')).join(''));
+    }
+    return out.join('\n\n');
+  }
+  if(n.endsWith('.docx')){
+    if(!window.mammoth)throw new Error('Word reader didn’t load (offline?) — reload the page');
+    return (await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value||'';
+  }
+  if(n.endsWith('.doc'))  throw new Error('Old .doc format — open it in Word and Save As .docx');
+  return await file.text();
+}
+async function makeEntry(file){
+  const e={file,name:file.name,text:'',chars:0,error:''};
+  try{
+    e.text=(await extract(file)).replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+    e.chars=e.text.length;
+    if(!e.text) e.error='No text found — this looks like a scanned image. Re-export from the original Word/Google Doc.';
+  }catch(err){e.error=err.message||String(err);}
+  return e;
+}
+
+async function ingest(fileList){
+  const files=[...fileList].filter(f=>!f.name.startsWith('~$')&&!f.name.startsWith('.')&&/\.(pdf|docx|doc|txt)$/i.test(f.name));
+  if(!files.length){toast('No PDF, Word or text files found');return;}
+  toast(`Reading ${files.length} file${files.length>1?'s':''}…`);
+  for(const f of files){
+    const entry=await makeEntry(f);
+    const p=parseName(f.name);
+    if(p){
+      const c=findClass(p.cls)||newClass(p.cls);
+      c[p.role]=entry; c.state='pending'; c.msg='';
+    }else{
+      unassigned.push({id:++uid,entry,role:detectRole(f.name)||'final'});
+    }
+    render();
+  }
+  toast(`Added ${files.length} file${files.length>1?'s':''}`);
+}
+
+function pickFiles(dir){document.getElementById(dir?'pickDir':'pickMany').click();}
+['pickDir','pickMany'].forEach(id=>document.getElementById(id).addEventListener('change',e=>{ingest(e.target.files);e.target.value='';}));
+
+const drop=document.getElementById('drop');
+drop.addEventListener('click',()=>pickFiles(false));
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',async e=>{
+  const items=[...(e.dataTransfer.items||[])];
+  const entries=items.map(i=>i.webkitGetAsEntry&&i.webkitGetAsEntry()).filter(Boolean);
+  if(entries.some(en=>en.isDirectory)){
+    const files=[];
+    const walk=en=>new Promise(res=>{
+      if(en.isFile){en.file(f=>{files.push(f);res();},()=>res());}
+      else if(en.isDirectory){
+        const r=en.createReader(),all=[];
+        const read=()=>r.readEntries(async batch=>{if(!batch.length){for(const b of all)await walk(b);res();}else{all.push(...batch);read();}},()=>res());
+        read();
+      }else res();
+    });
+    for(const en of entries)await walk(en);
+    ingest(files);
+  }else ingest(e.dataTransfer.files);
+});
+
+/* slot actions */
+function pickSlot(cid,role){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.pdf,.docx,.txt,.doc';
+  inp.onchange=async()=>{const f=inp.files[0];if(!f)return;const c=classes.find(x=>x.id===cid);if(!c)return;
+    c[role]=await makeEntry(f);c.state='pending';c.msg='';render();};
+  inp.click();
+}
+function clearSlot(cid,role){const c=classes.find(x=>x.id===cid);if(c){c[role]=null;render();}}
+function removeClass(cid){classes=classes.filter(c=>c.id!==cid);render();}
+function clearClasses(){if(running){toast('Stop the run first');return;}if(classes.length&&!confirm('Remove all classes from the list? (Saved results stay.)'))return;classes=[];unassigned=[];render();}
+function renameClass(cid,val){const c=classes.find(x=>x.id===cid);if(!c)return;const v=val.trim()||c.name;
+  if(v!==c.name){c.name=v;const p=prefs()[v];if(p){c.directPull=!!p.directPull;c.note=p.note||'';}}render();}
+function setDirect(cid,on){const c=classes.find(x=>x.id===cid);if(c){c.directPull=on;savePref(c.name,{directPull:on});render();}}
+function setNote(cid,val){const c=classes.find(x=>x.id===cid);if(c){c.note=val;savePref(c.name,{note:val});updateEstimate();}}
+
+function assignUn(id){
+  const u=unassigned.find(x=>x.id===id);if(!u)return;
+  const row=document.querySelector(`[data-un="${id}"]`);
+  const role=row.querySelector('.un-role').value;
+  let cname=row.querySelector('.un-class').value;
+  if(cname==='__new'){cname=(row.querySelector('.un-new').value||'').trim();if(!cname){toast('Type a class name');return;}}
+  const c=findClass(cname)||newClass(cname);
+  c[role]=u.entry;c.state='pending';c.msg='';
+  unassigned=unassigned.filter(x=>x.id!==id);render();
+}
+function dropUn(id){unassigned=unassigned.filter(x=>x.id!==id);render();}
+
+/* ═══════════ token math ═══════════ */
+const PROMPT_OVERHEAD=1400; // instructions + system, in tokens
+const tok=chars=>Math.ceil(chars/3.6);
+function classTokens(c){
+  let ch=0;for(const [r] of ROLES)if(c[r]&&!c[r].error)ch+=c[r].chars;
+  return tok(ch+(c.note||'').length)+PROMPT_OVERHEAD;
+}
+function ready(c){return ROLES.some(([r])=>c[r]&&!c[r].error);}
+function updateEstimate(){
+  const list=classes.filter(ready);
+  const el=document.getElementById('estimate');
+  if(!list.length){el.textContent='';return;}
+  const total=list.reduce((s,c)=>s+classTokens(c),0);
+  const mins=Math.max(1,Math.ceil(total/tpmLimit()));
+  el.textContent=`${list.length} class${list.length>1?'es':''} · ~${(total/1000).toFixed(1)}k tokens · ~${mins} min at your rate limit`;
+}
+
+/* ═══════════ render setup ═══════════ */
+function render(){
+  document.getElementById('classCount').textContent=classes.length?`· ${classes.length}`:'';
+  const box=document.getElementById('classes');
+  box.innerHTML=classes.map(c=>{
+    const t=classTokens(c),over=ready(c)&&t>tpmLimit()*0.9;
+    const slots=ROLES.map(([r,label])=>{
+      const e=c[r];
+      if(!e) return `<div class="slot" onclick="pickSlot(${c.id},'${r}')"><span class="slot-role">${label}</span><span class="slot-name">+ add</span></div>`;
+      return `<div class="slot filled${e.error?' warnf':''}" title="${h(e.name)}">
+        <span class="slot-role">${label}</span><span class="slot-name">${h(e.name)}</span>
+        <span class="slot-meta">${e.error?'!':Math.round(e.chars/1000)+'k ch'}</span>
+        <button class="btn-x" onclick="clearSlot(${c.id},'${r}')" title="Remove">×</button></div>`;
+    }).join('');
+    const errs=ROLES.map(([r,l])=>c[r]&&c[r].error?`${l}: ${c[r].error}`:'').filter(Boolean);
+    const stLabel={pending:ready(c)?'ready':'needs a file',queued:'queued',waiting:'pacing…',running:'analyzing',done:'done',error:'error'}[c.state]||c.state;
+    const stCls={running:'running',done:'done',error:'error',waiting:'wait',queued:'wait'}[c.state]||'';
+    return `<div class="crow st-${c.state}">
+      <div class="crow-top">
+        <input class="cname" value="${h(c.name)}" onchange="renameClass(${c.id},this.value)" title="Click to rename">
+        <label class="toggle" title="Final questions are pulled straight from the study guide — skip coverage-gap checks and only look for emphasis and level problems">
+          <input type="checkbox" ${c.directPull?'checked':''} onchange="setDirect(${c.id},this.checked)"> Final pulled from guide
+        </label>
+        <span class="rstate ${stCls}">${stLabel}</span>
+        <button class="btn btn-sm" onclick="runOne(${c.id})" ${running||!ready(c)?'disabled':''}>Run</button>
+        <button class="btn-x" onclick="removeClass(${c.id})" title="Remove class">×</button>
+      </div>
+      <div class="slots">${slots}</div>
+      <input class="inp note-inp" placeholder="Optional context for the reviewer — e.g. “final only covers units 5–8”, “calculator allowed”" value="${h(c.note)}" onchange="setNote(${c.id},this.value)">
+      ${errs.length?`<div class="cmsg err">${errs.map(h).join('<br>')}</div>`:''}
+      ${over?`<div class="cmsg warn">≈${(t/1000).toFixed(1)}k tokens — bigger than your ${(tpmLimit()/1000)}k/min limit, so the longest document will be trimmed to fit. Raise the limit above if your plan allows.</div>`:''}
+      ${c.msg?`<div class="cmsg ${c.state==='error'?'err':'warn'}">${h(c.msg)}</div>`:''}
+    </div>`;
+  }).join('');
+
+  const ua=document.getElementById('unassigned');
+  if(!unassigned.length){ua.innerHTML='';}
+  else{
+    const opts=classes.map(c=>`<option value="${h(c.name)}">${h(c.name)}</option>`).join('');
+    ua.innerHTML=`<div class="unassigned">
+      <div class="label" style="color:var(--amber)">Needs a class · ${unassigned.length}</div>
+      <div class="hint" style="margin-bottom:6px">These filenames don't follow <span style="font-family:var(--mono)">Class - Role</span>. Pick where each belongs.</div>
+      ${unassigned.map(u=>`<div class="un-row" data-un="${u.id}">
+        <span class="fname" title="${h(u.entry.name)}">${h(u.entry.name)}</span>
+        <select class="inp un-role">${ROLES.map(([r,l])=>`<option value="${r}" ${u.role===r?'selected':''}>${l}</option>`).join('')}</select>
+        <select class="inp un-class" onchange="this.nextElementSibling.style.display=this.value==='__new'?'':'none'">${opts}<option value="__new" ${classes.length?'':'selected'}>New class…</option></select>
+        <input class="inp un-new" placeholder="Class name" style="${classes.length?'display:none':''};width:150px">
+        <button class="btn btn-sm" onclick="assignUn(${u.id})">Assign</button>
+        <button class="btn-x" onclick="dropUn(${u.id})" title="Discard">×</button>
+      </div>`).join('')}
+    </div>`;
+  }
+  document.getElementById('runBtn').disabled=running||!classes.some(ready);
+  updateEstimate();
+}
+
+/* ═══════════ prompt (ported from finals_reviewer.py) ═══════════ */
+const SYSTEM=`You are an experienced high school department chair with deep subject-matter knowledge across science and math. When reviewing for coverage gaps, you reason like a content expert — you understand that concepts can be covered through examples, case studies, or related topics even when the exact term differs. You only flag a true gap when a student who studied the guide thoroughly would be genuinely blindsided by the question. Return ONLY a valid JSON object — no markdown fences, no preamble, no text of any kind outside the JSON object.`;
+
+const DIRECT_PULL_INSTR=`
+IMPORTANT CONTEXT: This teacher pulls final exam questions directly from the study guide, so every question on the final already appeared in the study guide. Do NOT flag coverage gaps or suggest topics are missing from the study guide.
+
+Focus ONLY on:
+1. EMPHASIS MISMATCHES — a topic that takes up a large portion of the study guide but is barely represented on the final, or vice versa. Only flag genuinely glaring imbalances, not minor differences.
+2. SCOPE ISSUES — questions that seem clearly above or below expected level for this course (confusing wording, unreasonable assumptions, etc.)
+3. POSITIVES — specific things done well
+4. RECOMMENDATIONS — specific, actionable suggestions before distributing`;
+
+const STANDARD_INSTR=`
+Review carefully and analyze as an expert in the subject matter of this course.
+
+CRITICAL INSTRUCTION FOR COVERAGE GAP ANALYSIS:
+Before flagging anything as a coverage gap, you must reason about whether the study guide covers the CONCEPT, not just the exact words. Ask yourself:
+  - Is this topic covered under a different name or example in the study guide?
+  - Is this a subtopic or application of something the study guide does cover?
+  - Would a student who studied the guide's content reasonably be prepared for this question, even if the specific term doesn't appear?
+
+For example: if the study guide covers HeLa cells and their ethical implications, a final question about stem cell ethics is NOT a coverage gap — HeLa cells are a stem cell case study. If the study guide covers Newton's laws, a question about inertia is not a gap. If the study guide covers cellular respiration, a question about ATP production is not a gap.
+
+Only flag something as a coverage gap if a student who thoroughly studied the guide would be genuinely blindsided — the concept is absent, not just the specific word or example used on the exam.
+
+1. COVERAGE GAPS — topics on the final that a well-prepared student (having studied the guide thoroughly) would have NO basis to answer. Apply the reasoning above before flagging anything here.
+2. SCOPE ISSUES — questions or rubric criteria clearly above expected course level, confusing wording, or unreasonable assumptions about preparation
+3. RUBRIC ISSUES — vague criteria, criteria that cannot be objectively assessed, or missing performance descriptors. Only flag missing point values if this is a project rubric — point distributions on regular exams are not required.
+4. EMPHASIS MISMATCHES — a topic that takes up a major portion of the study guide but is barely tested, or a topic barely in the guide that dominates the exam. Only flag genuinely glaring imbalances.
+5. POSITIVES — specific things the teacher has done well
+6. RECOMMENDATIONS — specific, actionable changes to make before distributing`;
+
+const LABELS={study_guide:'STUDY GUIDE',final:'FINAL EXAM',rubric:'PROJECT RUBRIC'};
+
+function buildPrompt(c){
+  // Fit documents inside the per-minute budget: trim the longest first.
+  const docs=ROLES.filter(([r])=>c[r]&&!c[r].error).map(([r])=>({role:r,text:c[r].text}));
+  const budgetChars=Math.floor((tpmLimit()*0.85-PROMPT_OVERHEAD)*3.6)-(c.note||'').length;
+  let trimmed=[];
+  let total=docs.reduce((s,d)=>s+d.text.length,0);
+  while(total>budgetChars&&docs.length){
+    const big=docs.reduce((a,b)=>a.text.length>=b.text.length?a:b);
+    const cut=Math.min(big.text.length-2000,total-budgetChars);
+    if(cut<=0)break;
+    big.text=big.text.slice(0,big.text.length-cut);
+    if(!trimmed.includes(big.role))trimmed.push(big.role);
+    total-=cut;
+  }
+  const present=docs.map(d=>LABELS[d.role]);
+  const hasSG=docs.some(d=>d.role==='study_guide');
+  const docText=docs.map(d=>`\n\n==== ${LABELS[d.role]} (${c.name}) ====\n\n${d.text}${trimmed.includes(d.role)?'\n\n[… document trimmed here to fit length limits …]':''}`).join('');
+  const truncNote=trimmed.length?`\nNOTE: The ${trimmed.map(r=>LABELS[r].toLowerCase()).join(' and ')} was trimmed for length — do not flag material as missing just because it may have been in the trimmed portion.`:'';
+
+  const prompt=`You are an experienced high school department chair reviewing assessment materials for "${c.name}" before distribution to students.
+
+Documents provided: ${present.join(', ')}.
+${hasSG?'':'NOTE: No study guide provided — skip coverage gap analysis and note this in the summary.'}${truncNote}
+${c.note?`\nTeacher context: ${c.note}\n`:''}
+${c.directPull?DIRECT_PULL_INSTR:STANDARD_INSTR}
+
+Return ONLY a JSON object. No markdown fences. Nothing before or after the curly braces:
+{
+  "className": "${c.name.replace(/"/g,"'")}",
+  "overallRisk": "low",
+  "summary": "2-4 sentence plain-English overview of quality and key findings",
+  "coverageGaps":       [{"topic": "topic name", "detail": "what is tested vs what the guide covers"}],
+  "emphasisMismatches": [{"topic": "topic name", "detail": "how the weighting differs between study guide and final"}],
+  "scopeIssues":        [{"item": "question or criterion reference", "issue": "why it is above or below level"}],
+  "rubricIssues":       [{"criterion": "criterion name", "issue": "the specific problem"}],
+  "positives":          ["specific strength"],
+  "recommendations":    ["specific actionable instruction"]
+}
+
+Empty arrays for categories that don't apply or have no issues.
+overallRisk: "low"=minor polish; "medium"=real issues to fix before distributing; "high"=significant revision needed.
+Be specific — cite actual content. Only flag genuine problems, not minor stylistic observations.
+${docText}`;
+  return {prompt,trimmed,present};
+}
+
+/* ═══════════ pacing + API ═══════════ */
+const sent=[]; // {t,tokens}
+async function waitForBudget(need,c,label){
+  const limit=tpmLimit();
+  while(true){
+    const now=Date.now();
+    while(sent.length&&now-sent[0].t>61000)sent.shift();
+    const used=sent.reduce((s,x)=>s+x.tokens,0);
+    if(used+need<=limit||!sent.length)return;
+    const waitMs=61000-(now-sent[0].t);
+    c.state='waiting';render();
+    progress(`${label} · pacing for rate limit — ${Math.ceil(waitMs/1000)}s`);
+    await sleep(Math.min(waitMs,1000));
+    if(stopReq)throw new Error('stopped');
+  }
+}
+
+async function callClaude(prompt,c,label){
+  const key=getKey();
+  if(!key)throw new Error('No API key — paste yours at the top of the page and click Save.');
+  const est=tok(prompt.length+SYSTEM.length);
+  for(let attempt=1;attempt<=5;attempt++){
+    await waitForBudget(est,c,label);
+    c.state='running';render();progress(`${label} · analyzing${attempt>1?` (retry ${attempt-1})`:''}`);
+    sent.push({t:Date.now(),tokens:est});
+    let r;
+    try{
+      r=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:MODEL,max_tokens:8000,system:SYSTEM,messages:[{role:'user',content:prompt}]})
+      });
+    }catch(e){throw new Error('Network error: '+e.message+' — check your internet connection.');}
+    if(r.ok){
+      const j=await r.json();
+      return {text:(j.content||[]).map(b=>b.text||'').join(''),stop:j.stop_reason};
+    }
+    let msg='';try{msg=(await r.json())?.error?.message||'';}catch{}
+    if(r.status===401)throw new Error('API key rejected (401). Copy a fresh key from console.anthropic.com → API Keys.');
+    if(r.status===403)throw new Error('Key not allowed (403): '+msg);
+    if(r.status===400)throw new Error('Request rejected (400): '+msg);
+    if(r.status===429||r.status===529||r.status>=500){
+      const ra=parseInt(r.headers.get('retry-after'))||0;
+      const wait=Math.max(ra,[30,45,60,90,120][attempt-1]);
+      // a 429 means our estimate was low — mark the window as full
+      if(r.status===429)sent.push({t:Date.now(),tokens:tpmLimit()});
+      c.state='waiting';
+      for(let s=wait;s>0;s--){
+        if(stopReq)throw new Error('stopped');
+        progress(`${label} · ${r.status===429?'rate limited':'API busy'} — retrying in ${s}s (${attempt}/5)`);render();
+        await sleep(1000);
+      }
+      continue;
+    }
+    throw new Error(`API error ${r.status}: ${msg}`);
+  }
+  throw new Error('Still rate-limited after 5 retries. Wait a few minutes and press Run on this class.');
+}
+
+function parseJSON(raw){
+  let s=raw.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+  const m=s.match(/\{[\s\S]*\}/);if(m)s=m[0];
+  return JSON.parse(s);
+}
+
+/* ═══════════ runs ═══════════ */
+let running=false,stopReq=false,currentRun=null;
+function allRuns(){return ls.get(KEY_RUNS,[]);}
+function runs(){return allRuns().filter(r=>!r.deleted);}
+function saveRuns(list){
+  // keep tombstones so a delete syncs to other devices instead of coming back
+  const live=list.filter(r=>!r.deleted).slice(0,MAX_RUNS);
+  const ids=new Set(live.map(r=>r.id));
+  const tomb=allRuns().filter(r=>r.deleted&&!ids.has(r.id)).concat(list.filter(r=>r.deleted)).slice(0,60);
+  ls.set(KEY_RUNS,[...live,...tomb]);
+}
+function startRun(){
+  const d=new Date();
+  currentRun={id:'run-'+d.getTime(),savedAt:d.toISOString(),updatedAt:d.toISOString(),
+    label:d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}),results:[]};
+  saveRuns([currentRun,...runs()]);
+}
+function storeResult(res){
+  if(!currentRun)startRun();
+  currentRun.results=currentRun.results.filter(r=>r.className!==res.className);
+  currentRun.results.push(res);
+  currentRun.updatedAt=new Date().toISOString();
+  const list=runs().filter(r=>r.id!==currentRun.id);
+  saveRuns([currentRun,...list]);
+  shownRunId=currentRun.id;
+  renderRuns();
+}
+
+async function analyze(c,label){
+  c.state='queued';c.msg='';render();
+  const {prompt,trimmed,present}=buildPrompt(c);
+  const files=Object.fromEntries(ROLES.filter(([r])=>c[r]).map(([r])=>[r,c[r].name]));
+  try{
+    const {text,stop}=await callClaude(prompt,c,label);
+    if(stop==='max_tokens')throw Object.assign(new Error('The review was cut off before it finished. Press Run to try again.'),{raw:text});
+    let data;
+    try{data=parseJSON(text);}catch{throw Object.assign(new Error('The reply wasn’t valid JSON. Press Run to try again.'),{raw:text});}
+    data.className=c.name;
+    storeResult({...data,ok:true,directPull:c.directPull,note:c.note,trimmed,docs:present,files,at:new Date().toISOString()});
+    c.state='done';
+    c.msg=trimmed.length?`Trimmed the ${trimmed.map(r=>LABELS[r].toLowerCase()).join(' & ')} to fit your rate limit.`:'';
+  }catch(e){
+    if(e.message==='stopped'){c.state='pending';c.msg='Stopped before this class ran.';render();throw e;}
+    c.state='error';c.msg=e.message;
+    storeResult({className:c.name,ok:false,error:e.message,raw:(e.raw||'').slice(0,1500),directPull:c.directPull,files,at:new Date().toISOString()});
+  }
+  render();
+}
+
+function progress(t,pct){
+  const p=document.getElementById('prog');p.classList.add('on');
+  document.getElementById('progTxt').textContent=t;
+  if(pct!=null)document.getElementById('progFill').style.width=pct+'%';
+}
+function setRunning(on){
+  running=on;stopReq=false;
+  document.getElementById('stopBtn').style.display=on?'':'none';
+  render();
+}
+function stopRun(){stopReq=true;progress('Stopping after the current class…');}
+
+async function runAll(){
+  if(running)return;
+  if(!getKey()){setKeyStatus('Paste your key first','var(--red)');document.getElementById('apiKey').focus();return;}
+  const list=classes.filter(ready);
+  if(!list.length)return;
+  setRunning(true);startRun();
+  list.forEach(c=>{c.state='queued';c.msg='';});render();
+  try{
+    for(let i=0;i<list.length;i++){
+      if(stopReq)break;
+      progress(`[${i+1}/${list.length}] ${list[i].name}`,Math.round(i/list.length*100));
+      await analyze(list[i],`[${i+1}/${list.length}] ${list[i].name}`);
+    }
+  }catch(e){if(e.message!=='stopped')console.error(e);}
+  list.forEach(c=>{if(c.state==='queued'){c.state='pending';}});
+  const done=list.filter(c=>c.state==='done').length,err=list.filter(c=>c.state==='error').length;
+  progress(stopReq?`Stopped — ${done} reviewed`:`Done — ${done} reviewed${err?`, ${err} with errors (press Run on those to retry)`:''}`,100);
+  setRunning(false);
+}
+async function runOne(cid){
+  if(running)return;
+  const c=classes.find(x=>x.id===cid);if(!c||!ready(c))return;
+  if(!getKey()){setKeyStatus('Paste your key first','var(--red)');return;}
+  setRunning(true);
+  if(!currentRun)startRun();
+  try{await analyze(c,c.name);progress(`${c.name} — ${c.state==='done'?'done':'error'}`,100);}catch{}
+  setRunning(false);
+}
+
+/* ═══════════ results view ═══════════ */
+let shownRunId=null,riskFilter='all';
+const RISK={high:['Needs revision','b-high'],medium:['Review suggested','b-medium'],low:['Looks good','b-low']};
+const SECTIONS=[
+  ['coverageGaps','Coverage gaps — not prepared for in the guide','var(--red)',i=>[i.topic,i.detail]],
+  ['emphasisMismatches','Emphasis mismatches','var(--amber)',i=>[i.topic,i.detail]],
+  ['scopeIssues','Scope / level issues','var(--amber)',i=>[i.item,i.issue]],
+  ['rubricIssues','Rubric issues','var(--purple)',i=>[i.criterion,i.issue]],
+  ['recommendations','Recommendations','var(--blue)',i=>[null,i]],
+  ['positives','Working well','var(--green)',i=>[null,i]],
+];
+const ORDER={high:0,medium:1,low:2};
+const issueCount=r=>['coverageGaps','emphasisMismatches','scopeIssues','rubricIssues'].reduce((s,k)=>s+((r[k]||[]).length),0);
+
+function renderRuns(){
+  const list=runs();
+  const sel=document.getElementById('runSel');
+  if(!list.length){sel.innerHTML='<option>No saved runs</option>';sel.disabled=true;renderResults(null);return;}
+  sel.disabled=false;
+  if(!shownRunId||!list.some(r=>r.id===shownRunId))shownRunId=list[0].id;
+  sel.innerHTML=list.map(r=>`<option value="${r.id}" ${r.id===shownRunId?'selected':''}>${h(r.label)} — ${r.results.length} class${r.results.length===1?'':'es'}</option>`).join('');
+  renderResults(list.find(r=>r.id===shownRunId));
+}
+function showRun(id){shownRunId=id;riskFilter='all';renderRuns();}
+function deleteRun(){
+  if(!shownRunId)return;
+  if(!confirm('Delete this saved run? This can’t be undone.'))return;
+  const now=new Date().toISOString();
+  saveRuns(runs().map(r=>r.id===shownRunId?{id:r.id,deleted:true,updatedAt:now,results:[]}:r));
+  if(currentRun&&currentRun.id===shownRunId)currentRun=null;
+  shownRunId=null;renderRuns();
+}
+function setFilter(f){riskFilter=riskFilter===f?'all':f;renderRuns();}
+
+function renderResults(run){
+  const box=document.getElementById('results'),sum=document.getElementById('sumRow');
+  if(!run||!run.results.length){sum.innerHTML='';box.innerHTML='<div class="empty">No reviews yet. Drop in a folder of study guides and finals, then hit Analyze all.</div>';return;}
+  document.getElementById('printSub').textContent=`${run.label} · ${run.results.length} classes`;
+  const res=[...run.results].sort((a,b)=>(a.ok?ORDER[a.overallRisk]??1:-1)-(b.ok?ORDER[b.overallRisk]??1:-1)||a.className.localeCompare(b.className));
+  const n=k=>res.filter(r=>k==='error'?!r.ok:r.ok&&r.overallRisk===k).length;
+  sum.innerHTML=[['high','Needs revision','var(--red)'],['medium','Review suggested','var(--amber)'],['low','Looks good','var(--green)'],['error','Errors','var(--ink3)']]
+    .map(([k,l,col])=>`<div class="stat ${riskFilter===k?'active':''}" onclick="setFilter('${k}')"><div class="stat-n" style="color:${col}">${n(k)}</div><div class="stat-l">${l}</div></div>`).join('');
+  const shown=res.filter(r=>riskFilter==='all'||(riskFilter==='error'?!r.ok:r.ok&&r.overallRisk===riskFilter));
+  const openSet=new Set([...document.querySelectorAll('.rcard.open')].map(e=>e.dataset.name));
+  box.innerHTML=shown.map(r=>{
+    if(!r.ok)return `<div class="rcard open" data-name="${h(r.className)}">
+      <div class="rhead" onclick="this.parentElement.classList.toggle('open')"><span class="chev"></span><span class="rname">${h(r.className)}</span><span class="badge b-error">Error</span></div>
+      <div class="rbody"><div class="rsum" style="color:var(--red)">${h(r.error)}</div>${r.raw?`<div class="err-raw">${h(r.raw)}</div>`:''}</div></div>`;
+    const [bl,bc]=RISK[r.overallRisk]||RISK.medium;
+    const flags=[
+      r.directPull?'<span class="flag gold">Final pulled from guide</span>':'',
+      ...(r.docs||[]).map(d=>`<span class="flag">${h(d.toLowerCase())}</span>`),
+      (r.trimmed&&r.trimmed.length)?'<span class="flag amber">trimmed for length</span>':'',
+    ].join('');
+    const secs=SECTIONS.map(([k,title,col,fmt])=>{
+      const items=r[k]||[];if(!items.length)return '';
+      return `<div class="sec"><div class="sec-t" style="color:${col}"><span class="dot" style="background:${col}"></span>${title}</div>
+        ${items.map(i=>{const [a,b]=fmt(i);return `<div class="it"><span class="dot" style="background:${col}"></span><div>${a?`<b>${h(a)}</b> — `:''}<span>${h(b)}</span></div></div>`;}).join('')}</div>`;
+    }).join('');
+    const ic=issueCount(r);
+    return `<div class="rcard ${openSet.has(r.className)?'open':''}" data-name="${h(r.className)}">
+      <div class="rhead" onclick="this.parentElement.classList.toggle('open')">
+        <span class="chev"></span><span class="rname">${h(r.className)}</span>
+        <span class="rcount">${ic} issue${ic===1?'':'s'}</span><span class="badge ${bc}">${bl}</span>
+      </div>
+      <div class="rbody"><div class="rsum">${h(r.summary)}</div><div class="rflags">${flags}</div>${secs}</div>
+    </div>`;
+  }).join('')||'<div class="empty">Nothing in this category.</div>';
+}
+function expandAll(on){document.querySelectorAll('.rcard').forEach(c=>c.classList.toggle('open',on));}
+
+function downloadTxt(){
+  const run=runs().find(r=>r.id===shownRunId);if(!run)return;
+  const wrap=(s,ind='')=>{const words=String(s).split(/\s+/);const lines=[];let cur=ind;for(const w of words){if((cur+w).length>76&&cur.trim()){lines.push(cur);cur=ind+'  ';}cur+=w+' ';}lines.push(cur);return lines.map(l=>l.trimEnd()).join('\n');};
+  const res=[...run.results].sort((a,b)=>(a.ok?ORDER[a.overallRisk]??1:-1)-(b.ok?ORDER[b.overallRisk]??1:-1));
+  let out=`FINALS REVIEW — ${run.label}\n${'='.repeat(64)}\n\nSUMMARY\n`;
+  res.forEach(r=>{out+=`  ${(r.ok?(RISK[r.overallRisk]||RISK.medium)[0]:'Error').toUpperCase().padEnd(20)} ${r.className}\n`;});
+  res.forEach(r=>{
+    out+=`\n${'-'.repeat(64)}\n${r.className.toUpperCase()}\n`;
+    if(!r.ok){out+=`ERROR: ${r.error}\n`;return;}
+    out+=`Status: ${(RISK[r.overallRisk]||RISK.medium)[0]}${r.directPull?'  ·  final pulled from guide':''}\n\n${wrap(r.summary)}\n`;
+    SECTIONS.forEach(([k,title,,fmt])=>{const items=r[k]||[];if(!items.length)return;
+      out+=`\n${title.toUpperCase()}\n`;items.forEach(i=>{const [a,b]=fmt(i);out+=wrap(`* ${a?a+': ':''}${b}`,'  ')+'\n';});});
+  });
+  const blob=new Blob([out],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`finals-review-${run.savedAt.slice(0,10)}.txt`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+render();renderRuns();
+</script>
+<script src="dc_sync.js"></script>
+<script>
+if(window.DCSync)DCSync.attach({
+  node:'finals',
+  collections:{
+    runs:{key:KEY_RUNS,kind:'list'},
+    prefs:{key:KEY_CLASS,kind:'map',mergeValue:(a,b)=>((a&&a.updatedAt)||'')>((b&&b.updatedAt)||'')?a:b},
+  },
+  onRemote:()=>{renderRuns();classes.forEach(c=>{const p=prefs()[c.name];if(p){c.directPull=!!p.directPull;c.note=p.note||'';}});render();},
+});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
